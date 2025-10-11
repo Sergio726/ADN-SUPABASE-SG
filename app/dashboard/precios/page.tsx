@@ -1,19 +1,37 @@
-import { supabase } from '@/lib/supabaseClient'
+"use client"
+
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { formatCurrency } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable } from '@/components/ui/data-table'
+import { SortableHeader } from '@/components/ui/sortable-header'
+import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
 
+type Precio = {
+  id: string
+  precio_costo: number
+  precio_venta: number
+  margen: number
+  vigente: boolean
+  fecha_fin: string | null
+  articulos: {
+    id: string
+    nombre: string
+    categoria: string | null
+  } | null
+}
+
+export default function PreciosPage() {
+  const [precios, setPrecio] = useState<Precio[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
 async function getTodosLosPrecios() {
   const { data, error } = await supabase
     .from('precios_venta')
@@ -24,114 +42,165 @@ async function getTodosLosPrecios() {
 
   if (error) {
     console.error('Error:', error)
-    return []
-  }
-
-  return data?.sort((a: any, b: any) => {
+        setPrecio([])
+      } else {
+        const sorted = data?.sort((a: any, b: any) => {
     if (a.vigente === b.vigente) {
       return (a.articulos?.nombre || '').localeCompare(b.articulos?.nombre || '')
     }
     return a.vigente ? -1 : 1
   }) || []
-}
+        setPrecio(sorted)
+      }
+      setLoading(false)
+    }
 
-export default async function PreciosPage() {
-  const precios = await getTodosLosPrecios()
-  const preciosVigentes = precios.filter((p: any) => p.vigente)
-  const preciosNoVigentes = precios.filter((p: any) => !p.vigente)
+    getTodosLosPrecios()
+  }, [supabase])
+
+  const columns: ColumnDef<Precio>[] = [
+    {
+      accessorKey: "articulos.nombre",
+      header: ({ column }) => <SortableHeader column={column} title="Artículo" />,
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.articulos?.nombre}</div>
+      ),
+    },
+    {
+      accessorKey: "articulos.categoria",
+      header: ({ column }) => <SortableHeader column={column} title="Categoría" />,
+      cell: ({ row }) => (
+        <Badge variant="secondary">
+          {row.original.articulos?.categoria || 'Sin categoría'}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "precio_costo",
+      header: ({ column }) => (
+        <div className="text-right">
+          <SortableHeader column={column} title="Costo" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-right">{formatCurrency(row.original.precio_costo)}</div>
+      ),
+    },
+    {
+      accessorKey: "precio_venta",
+      header: ({ column }) => (
+        <div className="text-right">
+          <SortableHeader column={column} title="Venta" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-medium">{formatCurrency(row.original.precio_venta)}</div>
+      ),
+    },
+    {
+      accessorKey: "margen",
+      header: ({ column }) => (
+        <div className="text-right">
+          <SortableHeader column={column} title="Margen" />
+        </div>
+      ),
+      cell: ({ row }) => {
+        const margen = row.original.margen
+        return (
+          <div className="text-right">
+            <span 
+              className={`font-medium ${
+                margen >= 30 
+                  ? 'text-green-600' 
+                  : margen >= 15 
+                  ? 'text-yellow-600' 
+                  : 'text-red-600'
+              }`}
+            >
+              {margen.toFixed(2)}%
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: "vigente",
+      header: ({ column }) => (
+        <div className="text-center">
+          <SortableHeader column={column} title="Vigencia" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex flex-col items-center gap-1">
+          {row.original.vigente ? (
+            <Badge variant="default" className="gap-1">
+              <CheckCircle className="h-3 w-3" />
+              Vigente
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <XCircle className="h-3 w-3" />
+              No vigente
+            </Badge>
+          )}
+          {row.original.fecha_fin && (
+            <span className="text-xs text-muted-foreground">
+              Vence: {new Date(row.original.fecha_fin).toLocaleDateString('es-AR')}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Acciones</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/dashboard/precios/editar/${row.original.id}`}>
+              <Edit className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/dashboard/articulos/editar/${row.original.articulos?.id}`}>
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  const preciosVigentes = precios.filter((p) => p.vigente).length
+  const preciosNoVigentes = precios.filter((p) => !p.vigente).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
+    <div>
         <h2 className="text-3xl font-bold tracking-tight">Gestión de Precios</h2>
         <p className="text-muted-foreground mt-2">
-          Total: {precios.length} precios ({preciosVigentes.length} vigentes, {preciosNoVigentes.length} no vigentes)
+          Total: {precios.length} precios ({preciosVigentes} vigentes, {preciosNoVigentes} no vigentes)
         </p>
       </div>
 
       {precios.length > 0 ? (
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Artículo</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead className="text-right">Costo</TableHead>
-                  <TableHead className="text-right">Venta</TableHead>
-                  <TableHead className="text-right">Margen</TableHead>
-                  <TableHead className="text-center">Vigencia</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {precios.map((precio: any) => (
-                  <TableRow key={precio.id}>
-                    <TableCell className="font-medium">
-                      {precio.articulos?.nombre}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {precio.articulos?.categoria || 'Sin categoría'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(precio.precio_costo)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(precio.precio_venta)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span 
-                        className={`font-medium ${
-                          precio.margen >= 30 
-                            ? 'text-green-600' 
-                            : precio.margen >= 15 
-                            ? 'text-yellow-600' 
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {precio.margen.toFixed(2)}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        {precio.vigente ? (
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Vigente
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="gap-1">
-                            <XCircle className="h-3 w-3" />
-                            No vigente
-                          </Badge>
-                        )}
-                        {precio.fecha_fin && (
-                          <span className="text-xs text-muted-foreground">
-                            Vence: {new Date(precio.fecha_fin).toLocaleDateString('es-AR')}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/precios/editar/${precio.id}`}>
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/articulos/editar/${precio.articulos?.id}`}>
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="pt-6">
+            <DataTable 
+              columns={columns} 
+              data={precios}
+              searchKey="articulos.nombre"
+              searchPlaceholder="Buscar por artículo..."
+              pageSize={20}
+            />
           </CardContent>
         </Card>
       ) : (
@@ -139,15 +208,15 @@ export default async function PreciosPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">
-              No hay precios configurados
-            </h3>
+            No hay precios configurados
+          </h3>
             <p className="text-muted-foreground mb-6 text-center">
-              Agrega precios a tus artículos desde la gestión de artículos
-            </p>
+            Agrega precios a tus artículos desde la gestión de artículos
+          </p>
             <Button asChild>
               <Link href="/dashboard/articulos">
-                Ir a Artículos
-              </Link>
+            Ir a Artículos
+          </Link>
             </Button>
           </CardContent>
         </Card>

@@ -1,38 +1,142 @@
-import { supabase } from '@/lib/supabaseClient'
+"use client"
+
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable } from '@/components/ui/data-table'
+import { SortableHeader } from '@/components/ui/sortable-header'
+import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { Package, Plus, Edit, ExternalLink, AlertTriangle } from 'lucide-react'
 
-async function getArticulos() {
-  const { data, error } = await supabase
-    .from('articulos')
-    .select(`
-      *,
-      proveedores(nombre),
-      precios_venta(precio_venta, vigente)
-    `)
-    .order('nombre')
-
-  if (error) {
-    console.error('Error al cargar artículos:', error)
-    return []
-  }
-
-  return data || []
+type Articulo = {
+  id: string
+  nombre: string
+  descripcion: string | null
+  categoria: string | null
+  stock_actual: number
+  stock_minimo: number
+  unidad: string
+  proveedores: { nombre: string } | null
+  precios_venta: Array<{ precio_venta: number; vigente: boolean }>
 }
 
-export default async function ArticulosPage() {
-  const articulos = await getArticulos()
+export default function ArticulosPage() {
+  const [articulos, setArticulos] = useState<Articulo[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    async function getArticulos() {
+      const { data, error } = await supabase
+        .from('articulos')
+        .select(`
+          *,
+          proveedores(nombre),
+          precios_venta(precio_venta, vigente)
+        `)
+        .order('nombre')
+
+      if (error) {
+        console.error('Error al cargar artículos:', error)
+        setArticulos([])
+      } else {
+        setArticulos(data || [])
+      }
+      setLoading(false)
+    }
+
+    getArticulos()
+  }, [supabase])
+
+  const columns: ColumnDef<Articulo>[] = [
+    {
+      accessorKey: "nombre",
+      header: ({ column }) => <SortableHeader column={column} title="Artículo" />,
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.nombre}</div>
+          {row.original.descripcion && (
+            <div className="text-sm text-muted-foreground">{row.original.descripcion}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "categoria",
+      header: ({ column }) => <SortableHeader column={column} title="Categoría" />,
+      cell: ({ row }) => (
+        <Badge variant="secondary">
+          {row.original.categoria || 'Sin categoría'}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "proveedores.nombre",
+      header: "Proveedor",
+      cell: ({ row }) => row.original.proveedores?.nombre || 'Sin proveedor',
+    },
+    {
+      accessorKey: "stock_actual",
+      header: ({ column }) => <SortableHeader column={column} title="Stock" />,
+      cell: ({ row }) => {
+        const stockBajo = row.original.stock_actual <= row.original.stock_minimo
+        return (
+          <div className="flex items-center gap-2">
+            <span className={stockBajo ? 'text-destructive font-medium' : ''}>
+              {row.original.stock_actual} {row.original.unidad}
+            </span>
+            {stockBajo && (
+              <Badge variant="destructive" className="gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Bajo
+              </Badge>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      id: "precio",
+      header: "Precio",
+      cell: ({ row }) => {
+        const precioVigente = row.original.precios_venta?.find((p) => p.vigente)
+        return precioVigente ? (
+          <span className="font-medium">${precioVigente.precio_venta.toLocaleString('es-AR')}</span>
+        ) : (
+          <span className="text-muted-foreground">Sin precio</span>
+        )
+      },
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Acciones</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/dashboard/articulos/editar/${row.original.id}`}>
+              <Edit className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/articulos/${row.original.id}`} target="_blank">
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -53,80 +157,14 @@ export default async function ArticulosPage() {
 
       {articulos.length > 0 ? (
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Artículo</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Proveedor</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {articulos.map((articulo: any) => {
-                  const precioVigente = articulo.precios_venta?.find((p: any) => p.vigente)
-                  const stockBajo = articulo.stock_actual <= articulo.stock_minimo
-                  
-                  return (
-                    <TableRow key={articulo.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{articulo.nombre}</div>
-                          {articulo.descripcion && (
-                            <div className="text-sm text-muted-foreground">{articulo.descripcion}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {articulo.categoria || 'Sin categoría'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {articulo.proveedores?.nombre || 'Sin proveedor'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={stockBajo ? 'text-destructive font-medium' : ''}>
-                            {articulo.stock_actual} {articulo.unidad}
-                          </span>
-                          {stockBajo && (
-                            <Badge variant="destructive" className="gap-1">
-                              <AlertTriangle className="h-3 w-3" />
-                              Bajo
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {precioVigente ? (
-                          <span className="font-medium">${precioVigente.precio_venta.toLocaleString('es-AR')}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Sin precio</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/dashboard/articulos/editar/${articulo.id}`}>
-                              <Edit className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/articulos/${articulo.id}`} target="_blank">
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+          <CardContent className="pt-6">
+            <DataTable 
+              columns={columns} 
+              data={articulos}
+              searchKey="nombre"
+              searchPlaceholder="Buscar artículos..."
+              pageSize={20}
+            />
           </CardContent>
         </Card>
       ) : (
@@ -149,4 +187,3 @@ export default async function ArticulosPage() {
     </div>
   )
 }
-
