@@ -1,0 +1,162 @@
+==========================================
+✅ CONFIGURACIÓN COMPLETA
+==========================================
+
+Tu proyecto está listo para funcionar!
+
+==========================================
+📝 INFORMACIÓN DE SUPABASE
+==========================================
+
+URL:
+https://vgsnfshbirzucddwbdpt.supabase.co
+
+Anon Public Key: ✅
+Service Role Key: ✅
+
+==========================================
+⚙️ PASO 1: CREAR ARCHIVO .env.local
+==========================================
+
+OPCIÓN A - COPIAR ARCHIVO:
+--------------------------
+Renombra el archivo "env.local.example" a ".env.local"
+
+OPCIÓN B - CREAR MANUALMENTE:
+-----------------------------
+Crea un nuevo archivo llamado ".env.local" en la raíz del proyecto
+con este contenido:
+
+NEXT_PUBLIC_SUPABASE_URL=https://vgsnfshbirzucddwbdpt.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnc25mc2hiaXJ6dWNkZHdiZHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMTY4MTgsImV4cCI6MjA3NTY5MjgxOH0.zDFc5KucZ_5njcX6pe08mYKkKCZI7s2ehxydxlCQPR4
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnc25mc2hiaXJ6dWNkZHdiZHB0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDExNjgxOCwiZXhwIjoyMDc1NjkyODE4fQ.1-PYBsV0IUVrY69U9dhQMLslcx7DnBlvMzUX_Ldk82c
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+==========================================
+📊 PASO 2: CONFIGURAR BASE DE DATOS
+==========================================
+
+1. Ve a tu panel de Supabase:
+   https://supabase.com/dashboard/project/vgsnfshbirzucddwbdpt
+
+2. Click en "SQL Editor" en el menú lateral izquierdo
+
+3. Click en "New query"
+
+4. Abre el archivo: supabase/migrations/init.sql
+
+5. Copia TODO su contenido y pégalo en el editor SQL
+
+6. Click en "Run" (o presiona Ctrl+Enter)
+
+7. Deberías ver: "Success. No rows returned"
+
+==========================================
+🌱 PASO 3 (OPCIONAL): DATOS DE PRUEBA
+==========================================
+
+Para cargar artículos y proveedores de ejemplo:
+
+1. En SQL Editor, crea una nueva query
+
+2. Abre el archivo: supabase/seed.sql
+
+3. Copia su contenido y pégalo
+
+4. Click en "Run"
+
+Esto creará:
+- 3 proveedores de ejemplo
+- 6 artículos de ejemplo
+- Precios para todos los artículos
+
+==========================================
+🚀 PASO 4: INSTALAR Y EJECUTAR
+==========================================
+
+En tu terminal, ejecuta:
+
+1. Instalar dependencias:
+   npm install
+
+2. Iniciar el servidor de desarrollo:
+   npm run dev
+
+3. Abrir en el navegador:
+   http://localhost:3000
+
+==========================================
+✅ VERIFICAR QUE FUNCIONA
+==========================================
+
+1. Deberías ver la landing page de "Alambres del Norte"
+2. Si cargaste los datos de prueba, verás 6 artículos
+3. Click en "Ingresar" para probar el login (requiere Google OAuth)
+
+==========================================
+🔐 CONFIGURAR GOOGLE OAUTH (OPCIONAL)
+==========================================
+
+Si quieres habilitar el login con Google:
+
+1. Ve a: https://console.cloud.google.com
+
+2. Crea un nuevo proyecto o selecciona uno existente
+
+3. Configura OAuth consent screen
+
+4. Crea credenciales OAuth 2.0
+
+5. En "Authorized redirect URIs", agrega:
+   https://vgsnfshbirzucddwbdpt.supabase.co/auth/v1/callback
+
+6. En Supabase, ve a:
+   Authentication → Providers → Google
+   
+7. Activa Google y pega tus credenciales
+
+📖 Ver SETUP.md para instrucciones detalladas
+
+==========================================
+🎯 FUNCIONALIDADES DEL SISTEMA
+==========================================
+
+✅ Sitio Web Público:
+   - Landing page moderna
+   - Catálogo de productos
+   - Detalle de cada artículo
+   - Formulario de contacto
+
+✅ Panel Administrativo (Dashboard):
+   - Estadísticas en tiempo real
+   - Gestión de artículos (CRUD)
+   - Gestión de proveedores
+   - Control de precios y márgenes
+   - Alertas de stock bajo
+   - Gestión de leads/consultas
+
+==========================================
+📞 SOPORTE
+==========================================
+
+Si tienes problemas:
+
+1. Verifica que el archivo .env.local esté en la raíz del proyecto
+2. Asegúrate de haber ejecutado el script SQL completo
+3. Revisa la consola del navegador (F12) para errores
+4. Revisa los logs en la terminal
+
+==========================================
+🎉 ¡LISTO PARA USAR!
+==========================================
+
+Tu sistema Alambres del Norte SRL está completamente configurado.
+
+Próximos pasos sugeridos:
+1. Crear .env.local (Paso 1)
+2. Ejecutar script SQL (Paso 2)
+3. Cargar datos de prueba (Paso 3)
+4. npm install && npm run dev (Paso 4)
+5. Configurar Google OAuth cuando lo necesites
+
+==========================================
