@@ -174,14 +174,13 @@ export default function NuevoArticuloPage() {
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="proveedor">Proveedor</Label>
                 <Select
-                  value={formData.proveedor_id}
+                  value={formData.proveedor_id || undefined}
                   onValueChange={(value) => setFormData({ ...formData, proveedor_id: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sin proveedor" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin proveedor</SelectItem>
                     {proveedores.map((prov) => (
                       <SelectItem key={prov.id} value={prov.id}>
                         {prov.nombre}
