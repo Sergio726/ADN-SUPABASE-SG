@@ -16,6 +16,10 @@ export type Articulo = {
   stock_minimo: number
   proveedor_id: number | null
   usuario_id: string | null
+  imagen_url: string | null
+  publicado: boolean
+  mostrar_precio_publico: boolean
+  actualizado_en: string | null
   creado_en: string
 }
 

@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ImageUpload } from '@/components/ImageUpload'
+import { Switch } from '@/components/ui/switch'
 
 export default function EditarArticuloPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -32,6 +34,9 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     stock_actual: '0',
     stock_minimo: '0',
     proveedor_id: '',
+    imagen_url: '',
+    publicado: false,
+    mostrar_precio_publico: false,
   })
 
   useEffect(() => {
@@ -53,6 +58,9 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           stock_actual: articuloData.stock_actual.toString(),
           stock_minimo: articuloData.stock_minimo.toString(),
           proveedor_id: articuloData.proveedor_id || '',
+          imagen_url: articuloData.imagen_url || '',
+          publicado: articuloData.publicado || false,
+          mostrar_precio_publico: articuloData.mostrar_precio_publico || false,
         })
       }
 
@@ -82,6 +90,9 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           stock_actual: parseFloat(formData.stock_actual),
           stock_minimo: parseFloat(formData.stock_minimo),
           proveedor_id: formData.proveedor_id || null,
+          imagen_url: formData.imagen_url || null,
+          publicado: formData.publicado,
+          mostrar_precio_publico: formData.mostrar_precio_publico,
         })
         .eq('id', params.id)
 
@@ -258,6 +269,61 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                   onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuración Pública</CardTitle>
+            <CardDescription>Imagen y visibilidad en el sitio web</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Upload de imagen */}
+            <ImageUpload
+              articuloId={params.id}
+              currentImageUrl={formData.imagen_url}
+              onImageUploaded={(url) => setFormData({ ...formData, imagen_url: url })}
+              onImageRemoved={() => setFormData({ ...formData, imagen_url: '' })}
+            />
+
+            {/* Switch para publicar */}
+            <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="publicado" className="text-base cursor-pointer">
+                  Publicar en Web
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  El artículo será visible en la página pública
+                </p>
+              </div>
+              <Switch
+                id="publicado"
+                checked={formData.publicado}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, publicado: checked })
+                }
+              />
+            </div>
+
+            {/* Switch para mostrar precio */}
+            <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="mostrar_precio" className="text-base cursor-pointer">
+                  Mostrar Precio al Público
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  El precio de venta será visible en la web pública
+                </p>
+              </div>
+              <Switch
+                id="mostrar_precio"
+                checked={formData.mostrar_precio_publico}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, mostrar_precio_publico: checked })
+                }
+                disabled={!formData.publicado}
+              />
             </div>
           </CardContent>
         </Card>

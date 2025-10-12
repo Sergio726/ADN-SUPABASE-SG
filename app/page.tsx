@@ -12,6 +12,7 @@ async function getArticulosConPrecios() {
       *,
       precios_venta!inner(precio_venta)
     `)
+    .eq('publicado', true)  // Solo artículos publicados
     .eq('precios_venta.vigente', true)
     .order('nombre')
 
@@ -22,7 +23,8 @@ async function getArticulosConPrecios() {
 
   return articulos?.map((articulo: any) => ({
     ...articulo,
-    precio: articulo.precios_venta?.[0]?.precio_venta || 0,
+    // Solo mostrar precio si mostrar_precio_publico es true
+    precio: articulo.mostrar_precio_publico ? (articulo.precios_venta?.[0]?.precio_venta || 0) : null,
   })) || []
 }
 

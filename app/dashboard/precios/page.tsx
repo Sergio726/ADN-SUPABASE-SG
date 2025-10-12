@@ -60,7 +60,8 @@ async function getTodosLosPrecios() {
 
   const columns: ColumnDef<Precio>[] = [
     {
-      accessorKey: "articulos.nombre",
+      id: "articulo",
+      accessorFn: (row) => row.articulos?.nombre,
       header: ({ column }) => <SortableHeader column={column} title="Artículo" />,
       cell: ({ row }) => (
         <div className="font-medium">{row.original.articulos?.nombre}</div>
@@ -197,7 +198,7 @@ async function getTodosLosPrecios() {
             <DataTable 
               columns={columns} 
               data={precios}
-              searchKey="articulos.nombre"
+              searchKey="articulo"
               searchPlaceholder="Buscar por artículo..."
               pageSize={20}
             />
