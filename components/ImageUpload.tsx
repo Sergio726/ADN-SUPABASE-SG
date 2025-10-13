@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import Image from 'next/image'
+import { useToast } from '@/hooks/use-toast'
 
 interface ImageUploadProps {
   articuloId?: string
@@ -23,6 +24,7 @@ export function ImageUpload({
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null)
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
 
   const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -36,13 +38,21 @@ export function ImageUpload({
       
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen no debe superar 5MB')
+        toast({
+          title: "Error de tamaño",
+          description: "La imagen no debe superar 5MB",
+          variant: "destructive",
+        })
         return
       }
 
       // Validar tipo
       if (!file.type.startsWith('image/')) {
-        alert('Solo se permiten imágenes')
+        toast({
+          title: "Tipo de archivo inválido",
+          description: "Solo se permiten imágenes",
+          variant: "destructive",
+        })
         return
       }
 
@@ -69,11 +79,18 @@ export function ImageUpload({
       setPreview(publicUrl)
       onImageUploaded(publicUrl)
       
-      alert('Imagen subida exitosamente')
+      toast({
+        title: "¡Éxito!",
+        description: "Imagen subida correctamente",
+      })
       
     } catch (error: any) {
       console.error('Error al subir la imagen:', error)
-      alert('Error al subir la imagen: ' + error.message)
+      toast({
+        title: "Error al subir imagen",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setUploading(false)
     }
@@ -96,9 +113,18 @@ export function ImageUpload({
       setPreview(null)
       onImageRemoved()
       
+      toast({
+        title: "Imagen eliminada",
+        description: "La imagen se eliminó correctamente",
+      })
+      
     } catch (error: any) {
       console.error('Error al eliminar la imagen:', error)
-      alert('Error al eliminar la imagen: ' + error.message)
+      toast({
+        title: "Error al eliminar imagen",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -107,22 +133,27 @@ export function ImageUpload({
       <Label>Imagen del Artículo</Label>
       
       {preview ? (
-        <div className="relative w-full h-64 border rounded-lg overflow-hidden bg-muted">
-          <Image
-            src={preview}
-            alt="Preview"
-            fill
-            className="object-cover"
-          />
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2"
-            onClick={removeImage}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <div className="relative w-full max-w-md mx-auto">
+          <div className="relative w-full aspect-[4/5] border rounded-lg overflow-hidden bg-muted">
+            <Image
+              src={preview}
+              alt="Preview"
+              fill
+              className="object-cover"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2"
+              onClick={removeImage}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Dimensiones: 1080 x 1350 px (Formato Instagram)
+          </p>
         </div>
       ) : (
         <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors">
@@ -140,6 +171,9 @@ export function ImageUpload({
               </Button>
               <p className="text-sm text-muted-foreground">
                 PNG, JPG, WEBP hasta 5MB
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Recomendado: 1080 x 1350 px (formato Instagram)
               </p>
             </div>
           </Label>

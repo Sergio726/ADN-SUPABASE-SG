@@ -10,6 +10,7 @@ import { SortableHeader } from '@/components/ui/sortable-header'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { Package, Plus, Edit, ExternalLink, AlertTriangle } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Articulo = {
   id: string
@@ -115,16 +116,35 @@ export default function ArticulosPage() {
       header: () => <div className="text-right">Acciones</div>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/dashboard/articulos/editar/${row.original.id}`}>
-              <Edit className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/articulos/${row.original.id}`} target="_blank">
-              <ExternalLink className="h-4 w-4" />
-            </Link>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/dashboard/articulos/editar/${row.original.id}`}>
+                    <Edit className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Editar artículo</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/articulos/${row.original.id}`} target="_blank">
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Ver en web pública</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
     },

@@ -1,20 +1,28 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { Toaster } from '@/components/ui/toaster'
+import { LOGOS, BRAND } from '@/lib/logos'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'),
-  title: 'Alambres del Norte SRL | Cercos y Alambrados de Calidad',
-  description: 'Fabricación, instalación y suministro de cercos, alambrados y productos para cercado. Más de 30 años de experiencia en Salta, Argentina.',
-  keywords: 'alambres, cercos, alambrados, tejidos, postes, Salta, Argentina',
-  authors: [{ name: 'Alambres del Norte SRL' }],
+  title: `${BRAND.name} | ${BRAND.tagline}`,
+  description: BRAND.description,
+  keywords: BRAND.keywords.join(', '),
+  authors: [{ name: BRAND.name }],
+  icons: {
+    icon: LOGOS.favicon,
+    shortcut: LOGOS.favicon,
+    apple: LOGOS.isoWhite,
+  },
   openGraph: {
-    title: 'Alambres del Norte SRL',
-    description: 'Fabricación, instalación y suministro de cercos de calidad',
+    title: BRAND.name,
+    description: BRAND.tagline,
     type: 'website',
     locale: 'es_AR',
+    images: [LOGOS.openGraph],
   },
 }
 
@@ -25,10 +33,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <head>
-        <link rel="icon" href="/logos/isologo.png" />
-      </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   )
 }

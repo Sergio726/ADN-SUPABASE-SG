@@ -10,10 +10,9 @@ async function getArticulosConPrecios() {
     .from('articulos')
     .select(`
       *,
-      precios_venta!inner(precio_venta)
+      precios_venta(precio_venta, vigente)
     `)
     .eq('publicado', true)  // Solo artículos publicados
-    .eq('precios_venta.vigente', true)
     .order('nombre')
 
   if (error) {
@@ -21,11 +20,16 @@ async function getArticulosConPrecios() {
     return []
   }
 
-  return articulos?.map((articulo: any) => ({
-    ...articulo,
-    // Solo mostrar precio si mostrar_precio_publico es true
-    precio: articulo.mostrar_precio_publico ? (articulo.precios_venta?.[0]?.precio_venta || 0) : null,
-  })) || []
+  return articulos?.map((articulo: any) => {
+    // Buscar el precio vigente
+    const precioVigente = articulo.precios_venta?.find((p: any) => p.vigente === true)
+    
+    return {
+      ...articulo,
+      // Solo mostrar precio si mostrar_precio_publico es true Y hay precio vigente
+      precio: articulo.mostrar_precio_publico && precioVigente ? precioVigente.precio_venta : null,
+    }
+  }) || []
 }
 
 export default async function HomePage() {

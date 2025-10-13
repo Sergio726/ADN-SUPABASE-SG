@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Building2, Plus, Edit, Trash2, User, Phone, Mail, MapPin } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function ProveedoresPage() {
   const supabase = createClientComponentClient()
@@ -14,6 +16,7 @@ export default function ProveedoresPage() {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const { toast } = useToast()
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -46,13 +49,19 @@ export default function ProveedoresPage() {
           .update(formData)
           .eq('id', editingId)
         if (error) throw error
-        alert('Proveedor actualizado exitosamente')
+        toast({
+          title: "¡Éxito!",
+          description: "Proveedor actualizado correctamente",
+        })
       } else {
         const { error } = await supabase
           .from('proveedores')
           .insert(formData)
         if (error) throw error
-        alert('Proveedor creado exitosamente')
+        toast({
+          title: "¡Éxito!",
+          description: "Proveedor creado correctamente",
+        })
       }
 
       setFormData({
@@ -66,8 +75,12 @@ export default function ProveedoresPage() {
       setEditingId(null)
       fetchProveedores()
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error: ' + error.message)
+      console.error('Error al guardar proveedor:', error)
+      toast({
+        title: "Error al guardar",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -94,10 +107,18 @@ export default function ProveedoresPage() {
         .delete()
         .eq('id', id)
       if (error) throw error
-      alert('Proveedor eliminado')
+      toast({
+        title: "Proveedor eliminado",
+        description: "El proveedor se eliminó correctamente",
+      })
       fetchProveedores()
     } catch (error: any) {
-      alert('Error: ' + error.message)
+      console.error('Error al eliminar proveedor:', error)
+      toast({
+        title: "Error al eliminar",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -244,23 +265,42 @@ export default function ProveedoresPage() {
                   )}
                 </div>
                 <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(proveedor)}
-                    className="flex-1"
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(proveedor.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(proveedor)}
+                          className="flex-1"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Editar proveedor</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(proveedor.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Eliminar proveedor</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </CardContent>
             </Card>

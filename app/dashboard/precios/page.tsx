@@ -11,6 +11,7 @@ import { SortableHeader } from '@/components/ui/sortable-header'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Precio = {
   id: string
@@ -157,16 +158,35 @@ async function getTodosLosPrecios() {
       header: () => <div className="text-right">Acciones</div>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/dashboard/precios/editar/${row.original.id}`}>
-              <Edit className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/dashboard/articulos/editar/${row.original.articulos?.id}`}>
-              <ExternalLink className="h-4 w-4" />
-            </Link>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/dashboard/precios/editar/${row.original.id}`}>
+                    <Edit className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Editar precio</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/dashboard/articulos/editar/${row.original.articulos?.id}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Editar artículo</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
     },

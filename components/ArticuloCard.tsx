@@ -22,9 +22,9 @@ export default function ArticuloCard({
     <Card className="h-full hover:shadow-lg transition-shadow">
       <CardContent className="p-6">
         <div className="flex flex-col h-full space-y-3">
-          {/* Imagen del artículo */}
+          {/* Imagen del artículo - Formato Instagram */}
           {articulo.imagen_url && (
-            <div className="relative w-full h-48 rounded-lg overflow-hidden -mx-6 -mt-6 mb-3">
+            <div className="relative w-full aspect-[4/5] rounded-lg overflow-hidden -mx-6 -mt-6 mb-3">
               <Image
                 src={articulo.imagen_url}
                 alt={articulo.nombre}

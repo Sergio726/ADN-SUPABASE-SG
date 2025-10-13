@@ -18,12 +18,14 @@ import {
 import { ArrowLeft } from 'lucide-react'
 import { ImageUpload } from '@/components/ImageUpload'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/hooks/use-toast'
 
 export default function NuevoArticuloPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(false)
   const [proveedores, setProveedores] = useState<any[]>([])
+  const { toast } = useToast()
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -87,11 +89,22 @@ export default function NuevoArticuloPage() {
         if (precioError) throw precioError
       }
 
-      alert('Artículo creado exitosamente')
-      router.push('/dashboard/articulos')
+      toast({
+        title: "¡Éxito!",
+        description: "Artículo creado correctamente",
+      })
+      
+      setTimeout(() => {
+        router.push('/dashboard/articulos')
+      }, 1500)
+      
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error al crear el artículo: ' + error.message)
+      console.error('Error al crear artículo:', error)
+      toast({
+        title: "Error al crear artículo",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -106,8 +119,8 @@ export default function NuevoArticuloPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Nuevo Artículo</h2>
           <p className="text-muted-foreground mt-1">
-            Agrega un nuevo artículo al catálogo
-          </p>
+          Agrega un nuevo artículo al catálogo
+        </p>
         </div>
       </div>
 
@@ -120,25 +133,25 @@ export default function NuevoArticuloPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="nombre">Nombre del artículo *</Label>
-              <Input
+                <Input
                 id="nombre"
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                required
-                placeholder="Ej: Alambre de Púas 2.5mm"
-              />
-            </div>
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  required
+                  placeholder="Ej: Alambre de Púas 2.5mm"
+                />
+              </div>
 
             <div className="space-y-2">
               <Label htmlFor="descripcion">Descripción</Label>
-              <Textarea
+                <Textarea
                 id="descripcion"
-                value={formData.descripcion}
-                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                placeholder="Describe el artículo..."
-                rows={3}
-              />
-            </div>
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  placeholder="Describe el artículo..."
+                  rows={3}
+                />
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -189,11 +202,11 @@ export default function NuevoArticuloPage() {
                     <SelectValue placeholder="Sin proveedor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {proveedores.map((prov) => (
+                  {proveedores.map((prov) => (
                       <SelectItem key={prov.id} value={prov.id}>
-                        {prov.nombre}
+                      {prov.nombre}
                       </SelectItem>
-                    ))}
+                  ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -210,26 +223,26 @@ export default function NuevoArticuloPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stock_actual">Stock actual</Label>
-                <Input
+              <Input
                   id="stock_actual"
-                  type="number"
-                  step="0.01"
-                  value={formData.stock_actual}
-                  onChange={(e) => setFormData({ ...formData, stock_actual: e.target.value })}
-                  placeholder="0"
-                />
+                type="number"
+                step="0.01"
+                value={formData.stock_actual}
+                onChange={(e) => setFormData({ ...formData, stock_actual: e.target.value })}
+                placeholder="0"
+              />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stock_minimo">Stock mínimo</Label>
-                <Input
+              <Input
                   id="stock_minimo"
-                  type="number"
-                  step="0.01"
-                  value={formData.stock_minimo}
-                  onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
+                type="number"
+                step="0.01"
+                value={formData.stock_minimo}
+                onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })}
+                placeholder="0"
+              />
+            </div>
             </div>
           </CardContent>
         </Card>
@@ -243,25 +256,25 @@ export default function NuevoArticuloPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="precio_costo">Precio de costo</Label>
-                <Input
+              <Input
                   id="precio_costo"
-                  type="number"
-                  step="0.01"
-                  value={formData.precio_costo}
-                  onChange={(e) => setFormData({ ...formData, precio_costo: e.target.value })}
-                  placeholder="0.00"
-                />
+                type="number"
+                step="0.01"
+                value={formData.precio_costo}
+                onChange={(e) => setFormData({ ...formData, precio_costo: e.target.value })}
+                placeholder="0.00"
+              />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="precio_venta">Precio de venta</Label>
-                <Input
+              <Input
                   id="precio_venta"
-                  type="number"
-                  step="0.01"
-                  value={formData.precio_venta}
-                  onChange={(e) => setFormData({ ...formData, precio_venta: e.target.value })}
-                  placeholder="0.00"
-                />
+                type="number"
+                step="0.01"
+                value={formData.precio_venta}
+                onChange={(e) => setFormData({ ...formData, precio_venta: e.target.value })}
+                placeholder="0.00"
+              />
               </div>
             </div>
             {formData.precio_costo && formData.precio_venta && (

@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Lock, Mail, AlertCircle } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Logo } from '@/components/Logo'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,19 +33,40 @@ export default function LoginPage() {
       })
 
       if (error) {
+        console.error('Error al iniciar sesión:', error)
         if (error.message.includes('Invalid login credentials')) {
-          setError('Email o contraseña incorrectos')
+          toast({
+            title: "Credenciales incorrectas",
+            description: "Email o contraseña incorrectos",
+            variant: "destructive",
+          })
         } else {
-          setError(error.message)
+          toast({
+            title: "Error al iniciar sesión",
+            description: error.message,
+            variant: "destructive",
+          })
         }
         return
       }
 
-      router.push('/dashboard')
-      router.refresh()
+      toast({
+        title: "¡Bienvenido!",
+        description: "Sesión iniciada correctamente",
+      })
+
+      setTimeout(() => {
+        router.push('/dashboard')
+        router.refresh()
+      }, 1000)
+      
     } catch (error: any) {
       console.error('Error al iniciar sesión:', error)
-      setError('Error al iniciar sesión. Intentá nuevamente.')
+      toast({
+        title: "Error al iniciar sesión",
+        description: "Intentá nuevamente",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -60,8 +84,12 @@ export default function LoginPage() {
       })
       if (error) throw error
     } catch (error: any) {
-      console.error('Error al iniciar sesión:', error)
-      setError('Google OAuth no está configurado todavía. Usa email y contraseña.')
+      console.error('Error al iniciar sesión con Google:', error)
+      toast({
+        title: "Google OAuth no configurado",
+        description: "Usa email y contraseña para iniciar sesión",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -72,11 +100,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
-            <img 
-              src="/logos/logo-color.png" 
-              alt="Alambres del Norte" 
-              className="h-16 w-auto"
-            />
+            <Logo variant="color" size="lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold">
             Sistema de Gestión

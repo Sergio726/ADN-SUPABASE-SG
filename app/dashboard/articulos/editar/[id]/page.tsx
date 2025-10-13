@@ -18,11 +18,13 @@ import {
 import { ArrowLeft, Trash2 } from 'lucide-react'
 import { ImageUpload } from '@/components/ImageUpload'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/hooks/use-toast'
 
 export default function EditarArticuloPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
   const [proveedores, setProveedores] = useState<any[]>([])
   const [articulo, setArticulo] = useState<any>(null)
   
@@ -98,11 +100,22 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
 
       if (error) throw error
 
-      alert('Artículo actualizado exitosamente')
-      router.push('/dashboard/articulos')
+      toast({
+        title: "¡Éxito!",
+        description: "Artículo actualizado correctamente",
+      })
+      
+      setTimeout(() => {
+        router.push('/dashboard/articulos')
+      }, 1500)
+      
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error al actualizar el artículo: ' + error.message)
+      console.error('Error al actualizar artículo:', error)
+      toast({
+        title: "Error al actualizar",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -122,11 +135,22 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
 
       if (error) throw error
 
-      alert('Artículo eliminado exitosamente')
-      router.push('/dashboard/articulos')
+      toast({
+        title: "Artículo eliminado",
+        description: "El artículo se eliminó correctamente",
+      })
+      
+      setTimeout(() => {
+        router.push('/dashboard/articulos')
+      }, 1500)
+      
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error al eliminar el artículo: ' + error.message)
+      console.error('Error al eliminar artículo:', error)
+      toast({
+        title: "Error al eliminar",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }

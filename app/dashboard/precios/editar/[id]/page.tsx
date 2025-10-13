@@ -3,15 +3,21 @@
 import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import Card, { CardBody, CardHeader } from '@/components/ui/Card'
-import Input from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, Trash2, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export default function EditarPrecioPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(false)
   const [precio, setPrecio] = useState<any>(null)
+  const { toast } = useToast()
   
   const [formData, setFormData] = useState({
     precio_costo: '',
@@ -23,7 +29,6 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     const fetchData = async () => {
-      // Cargar precio con información del artículo
       const { data: precioData } = await supabase
         .from('precios_venta')
         .select(`
@@ -75,11 +80,22 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
 
       if (error) throw error
 
-      alert('Precio actualizado exitosamente')
-      router.push('/dashboard/precios')
+      toast({
+        title: "¡Éxito!",
+        description: "Precio actualizado correctamente",
+      })
+      
+      setTimeout(() => {
+        router.push('/dashboard/precios')
+      }, 1500)
+      
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error al actualizar el precio: ' + error.message)
+      console.error('Error al actualizar precio:', error)
+      toast({
+        title: "Error al actualizar",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -99,11 +115,22 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
 
       if (error) throw error
 
-      alert('Precio eliminado exitosamente')
-      router.push('/dashboard/precios')
+      toast({
+        title: "Precio eliminado",
+        description: "El precio se eliminó correctamente",
+      })
+      
+      setTimeout(() => {
+        router.push('/dashboard/precios')
+      }, 1500)
+      
     } catch (error: any) {
-      console.error('Error:', error)
-      alert('Error al eliminar el precio: ' + error.message)
+      console.error('Error al eliminar precio:', error)
+      toast({
+        title: "Error al eliminar",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -112,7 +139,7 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
   if (!precio) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -120,46 +147,55 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
   const margen = calcularMargen()
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Editar Precio</h2>
-        <p className="text-gray-600 mt-1">
-          Artículo: <span className="font-semibold text-brand-red">{precio.articulos?.nombre}</span>
-        </p>
+    <div className="max-w-4xl space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Editar Precio</h2>
+          <p className="text-muted-foreground mt-1">
+            Artículo: <span className="font-semibold text-primary">{precio.articulos?.nombre}</span>
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información del Artículo */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Información del Artículo</h3>
+            <CardTitle>Información del Artículo</CardTitle>
           </CardHeader>
-          <CardBody>
-            <div className="bg-gray-50 p-4 rounded-lg">
+          <CardContent>
+            <div className="bg-muted p-4 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <span className="text-sm text-gray-600">Artículo:</span>
-                  <p className="font-semibold text-gray-900">{precio.articulos?.nombre}</p>
+                  <span className="text-sm text-muted-foreground">Artículo:</span>
+                  <p className="font-semibold">{precio.articulos?.nombre}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">Categoría:</span>
-                  <p className="font-semibold text-gray-900">{precio.articulos?.categoria || 'Sin categoría'}</p>
+                  <span className="text-sm text-muted-foreground">Categoría:</span>
+                  <Badge variant="secondary" className="mt-1">
+                    {precio.articulos?.categoria || 'Sin categoría'}
+                  </Badge>
                 </div>
               </div>
             </div>
-          </CardBody>
+          </CardContent>
         </Card>
 
         {/* Precios */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Precios</h3>
+            <CardTitle>Precios</CardTitle>
+            <CardDescription>Actualiza los precios de costo y venta</CardDescription>
           </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="precio_costo">Precio de Costo *</Label>
                 <Input
-                  label="Precio de Costo *"
+                  id="precio_costo"
                   type="number"
                   step="0.01"
                   value={formData.precio_costo}
@@ -167,12 +203,13 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
                   required
                   placeholder="0.00"
                 />
-                <p className="text-xs text-gray-500 mt-1">Costo del producto sin IVA</p>
+                <p className="text-xs text-muted-foreground">Costo del producto sin IVA</p>
               </div>
 
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="precio_venta">Precio de Venta *</Label>
                 <Input
-                  label="Precio de Venta *"
+                  id="precio_venta"
                   type="number"
                   step="0.01"
                   value={formData.precio_venta}
@@ -180,21 +217,21 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
                   required
                   placeholder="0.00"
                 />
-                <p className="text-xs text-gray-500 mt-1">Precio al que se vende al cliente</p>
+                <p className="text-xs text-muted-foreground">Precio al que se vende al cliente</p>
               </div>
             </div>
 
             {/* Margen Calculado */}
             {formData.precio_costo && formData.precio_venta && (
-              <div className="mt-6 p-6 bg-gradient-to-r from-brand-red/10 to-red-50 rounded-lg border-l-4 border-brand-red">
-                <div className="flex items-center justify-between">
+              <div className="p-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border-l-4 border-primary">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Margen de Ganancia</p>
-                    <p className="text-3xl font-bold text-brand-red">{margen}%</p>
+                    <p className="text-sm text-muted-foreground mb-1">Margen de Ganancia</p>
+                    <p className="text-3xl font-bold text-primary">{margen}%</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">Ganancia por Unidad</p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-sm text-muted-foreground mb-1">Ganancia por Unidad</p>
+                    <p className="text-2xl font-semibold">
                       ${(parseFloat(formData.precio_venta) - parseFloat(formData.precio_costo)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -202,81 +239,79 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
                 <div className="mt-4 flex items-center gap-2">
                   {parseFloat(margen) >= 30 ? (
                     <>
-                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
                       <span className="text-sm text-green-700 font-medium">Margen excelente</span>
                     </>
                   ) : parseFloat(margen) >= 15 ? (
                     <>
-                      <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <span className="text-sm text-yellow-700 font-medium">Margen aceptable</span>
                     </>
                   ) : (
                     <>
-                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
+                      <AlertCircle className="h-5 w-5 text-red-600" />
                       <span className="text-sm text-red-700 font-medium">Margen bajo - Revisar</span>
                     </>
                   )}
                 </div>
               </div>
             )}
-          </CardBody>
+          </CardContent>
         </Card>
 
         {/* Vigencia */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Vigencia del Precio</h3>
+            <CardTitle>Vigencia del Precio</CardTitle>
+            <CardDescription>Controla cuándo es válido este precio</CardDescription>
           </CardHeader>
-          <CardBody>
-            <div className="mb-6">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.vigente}
-                  onChange={(e) => setFormData({ ...formData, vigente: e.target.checked })}
-                  className="w-5 h-5 text-brand-red border-gray-300 rounded focus:ring-brand-red focus:ring-2"
-                />
-                <div>
-                  <span className="text-sm font-semibold text-gray-900">Precio Vigente</span>
-                  <p className="text-xs text-gray-600">Si está desactivado, este precio no se mostrará al público</p>
-                </div>
-              </label>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+              <div className="space-y-0.5 flex-1">
+                <Label htmlFor="vigente" className="text-base cursor-pointer">
+                  Precio Vigente
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Si está desactivado, este precio no se mostrará al público
+                </p>
+              </div>
+              <Switch
+                id="vigente"
+                checked={formData.vigente}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, vigente: checked })
+                }
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fecha_inicio">Fecha de Inicio</Label>
                 <Input
-                  label="Fecha de Inicio"
+                  id="fecha_inicio"
                   type="date"
                   value={formData.fecha_inicio}
                   onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
                 />
-                <p className="text-xs text-gray-500 mt-1">Fecha desde la cual es válido este precio</p>
+                <p className="text-xs text-muted-foreground">Fecha desde la cual es válido este precio</p>
               </div>
 
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="fecha_fin">Fecha de Fin (opcional)</Label>
                 <Input
-                  label="Fecha de Fin (opcional)"
+                  id="fecha_fin"
                   type="date"
                   value={formData.fecha_fin}
                   onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
                 />
-                <p className="text-xs text-gray-500 mt-1">Dejar vacío si no tiene fecha de vencimiento</p>
+                <p className="text-xs text-muted-foreground">Dejar vacío si no tiene fecha de vencimiento</p>
               </div>
             </div>
 
             {formData.fecha_fin && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-yellow-800">Precio con fecha de vencimiento</p>
                     <p className="text-xs text-yellow-700 mt-1">
@@ -286,14 +321,14 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
                 </div>
               </div>
             )}
-          </CardBody>
+          </CardContent>
         </Card>
 
         {/* Botones de acción */}
         <div className="flex justify-between">
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Guardando...' : '💾 Guardar Cambios'}
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
             <Button
               type="button"
@@ -306,15 +341,15 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
           
           <Button
             type="button"
-            variant="danger"
+            variant="destructive"
             onClick={handleDelete}
             disabled={loading}
           >
-            🗑️ Eliminar Precio
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar Precio
           </Button>
         </div>
       </form>
     </div>
   )
 }
-

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut } from 'lucide-react'
+import { IsoLogo } from '@/components/Logo'
 
 export default function DashboardLayout({
   children,
@@ -73,18 +74,29 @@ export default function DashboardLayout({
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <Link href="/dashboard" className="flex items-center">
-              <img 
-                src="/logos/isologo.png" 
-                alt="ADN" 
-                className="h-8 w-auto"
-              />
-              <span className="ml-2 text-lg font-bold text-brand-red">ERP</span>
+              <div className="bg-white p-2 rounded-lg">
+                <img 
+                  src="/logos/isologo.png" 
+                  alt="ADN" 
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              <div className="ml-3 flex flex-col">
+                <span className="text-lg font-bold text-brand-red">
+                  ERP
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  Alambres del Norte
+                </span>
+              </div>
             </Link>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden"
+              className="lg:hidden hover:bg-red-50"
             >
               <X className="h-5 w-5" />
             </Button>

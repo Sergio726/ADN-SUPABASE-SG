@@ -3,6 +3,7 @@ import { formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Phone, Clock, MessageSquare } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 async function getLeads() {
   const { data, error } = await supabase
@@ -54,17 +55,35 @@ export default async function LeadsPage() {
                   {lead.email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a href={`mailto:${lead.email}`} className="hover:text-primary hover:underline">
-                        {lead.email}
-                      </a>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a href={`mailto:${lead.email}`} className="hover:text-primary hover:underline">
+                              {lead.email}
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Enviar email</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
                   {lead.telefono && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${lead.telefono}`} className="hover:text-primary hover:underline">
-                        {lead.telefono}
-                      </a>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <a href={`tel:${lead.telefono}`} className="hover:text-primary hover:underline">
+                              {lead.telefono}
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Llamar por teléfono</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
                 </div>

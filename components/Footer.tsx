@@ -4,11 +4,11 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
-            <img 
-              src="/logos/logo-blanco.png" 
-              alt="Alambres del Norte" 
-              className="h-12 w-auto mb-4"
-            />
+              <img 
+                src="/logos/logo-grey.png" 
+                alt="Alambres del Norte" 
+                className="h-60 w-auto mb-4"
+              />
             <p className="text-gray-400 max-w-md">
               Fabricación, instalación y suministro de cercos de calidad. 
               Más de 30 años de experiencia en el mercado.
