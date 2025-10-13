@@ -1,0 +1,115 @@
+{
+  "encabezados": [
+    "Codigo",
+    "Descripcion",
+    "Calibre''",
+    "Separacion''",
+    "Altura mt",
+    "Peso por rollo(kg)",
+    "Precio por kg",
+    "Mano de obra",
+    "Precio de costo",
+    "Precio Venta +",
+    0.3,
+    "Precio de la competencia"
+  ],
+  "total_configuraciones": 40,
+  "calibres": [
+    14,
+    12
+  ],
+  "alturas": [
+    2,
+    1.8,
+    1.5,
+    1.2,
+    1
+  ],
+  "tamaños_rombo": [
+    3.5,
+    3,
+    2.5,
+    2
+  ],
+  "precio_alambre": {
+    "calibre_12": 2912,
+    "calibre_14": 3135.77
+  },
+  "formula_calculo": {
+    "precio_costo": "(peso_kg × precio_alambre_kg) + mano_obra",
+    "precio_venta": "precio_costo + precio_plus",
+    "margen_aprox": "30%"
+  },
+  "configuraciones": [
+    {
+      "fila": 1,
+      "codigo": "RC14x3,5x2",
+      "descripcion": "Calibre 14 Alt 2m con rombos de 3,5",
+      "calibre": 14,
+      "separacion_rombo": 3.5,
+      "altura": 2,
+      "peso_kg": 12,
+      "precio_kg_alambre": 3135.77,
+      "mano_obra": 7600,
+      "precio_costo": 45229.24,
+      "precio_venta_plus": 13568.771999999999,
+      "margen": 58790
+    },
+    {
+      "fila": 2,
+      "codigo": "RC14x3,5x1,8",
+      "descripcion": "Calibre 14 Alt 1,8m con rombos de 3,5",
+      "calibre": 14,
+      "separacion_rombo": 3.5,
+      "altura": 1.8,
+      "peso_kg": 11,
+      "precio_kg_alambre": 3135.77,
+      "mano_obra": 7100,
+      "precio_costo": 41593.47,
+      "precio_venta_plus": 12478.041,
+      "margen": 54070
+    },
+    {
+      "fila": 3,
+      "codigo": "RC14x3,5x1,5",
+      "descripcion": "Calibre 14 Alt 1,5m con rombos de 3,5",
+      "calibre": 14,
+      "separacion_rombo": 3.5,
+      "altura": 1.5,
+      "peso_kg": 9,
+      "precio_kg_alambre": 3135.77,
+      "mano_obra": 6800,
+      "precio_costo": 35021.93,
+      "precio_venta_plus": 10506.579,
+      "margen": 45520
+    },
+    {
+      "fila": 4,
+      "codigo": "RC14x3,5x1,2",
+      "descripcion": "Calibre 14 Alt 1,2m con rombos de 3,5",
+      "calibre": 14,
+      "separacion_rombo": 3.5,
+      "altura": 1.2,
+      "peso_kg": 7.8,
+      "precio_kg_alambre": 3135.77,
+      "mano_obra": 6400,
+      "precio_costo": 30859.005999999998,
+      "precio_venta_plus": 9257.701799999999,
+      "margen": 40110
+    },
+    {
+      "fila": 5,
+      "codigo": "RC14x3,5x1",
+      "descripcion": "Calibre 14 Alt 1m con rombos de 3,5",
+      "calibre": 14,
+      "separacion_rombo": 3.5,
+      "altura": 1,
+      "peso_kg": 6,
+      "precio_kg_alambre": 3135.77,
+      "mano_obra": 6200,
+      "precio_costo": 25014.62,
+      "precio_venta_plus": 7504.3859999999995,
+      "margen": 32510
+    }
+  ]
+}
