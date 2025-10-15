@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut, Grid3x3, FileText } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 
 export default function DashboardLayout({
@@ -49,8 +49,10 @@ export default function DashboardLayout({
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Artículos', href: '/dashboard/articulos', icon: Package },
+    { name: 'Tejidos', href: '/dashboard/tejidos', icon: Grid3x3 },
     { name: 'Proveedores', href: '/dashboard/proveedores', icon: Building2 },
     { name: 'Precios', href: '/dashboard/precios', icon: DollarSign },
+    { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
     { name: 'Leads', href: '/dashboard/leads', icon: Mail },
   ]
 
