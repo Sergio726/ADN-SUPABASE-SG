@@ -1,0 +1,66 @@
+{
+  "terrenoBase": {
+    "dimension": "60x30",
+    "metrosLineales": 180
+  },
+  "alturas": [
+    {
+      "altura": "Cerco con rollo de 2mt",
+      "dimension": "60x30",
+      "metrosLineales": 180,
+      "tejidoSeleccionado": "Rollo C14x 2mt x 3 1/2\"",
+      "posteSeleccionado": "POSTE EUCALIPTO",
+      "cordonSeleccionado": "CORDON 10 CM",
+      "hilosPua": 0,
+      "total": 8974302.144,
+      "precioMetro": 49857.23413333333,
+      "precioMetroMenor50": 64814.40437333333
+    },
+    {
+      "altura": "Cerco con rollo de 1.8mt",
+      "dimension": "60x30",
+      "metrosLineales": 180,
+      "tejidoSeleccionado": "Rollo C12x 1.8mt x 2 1/2\"",
+      "posteSeleccionado": "POSTES OLIMP",
+      "cordonSeleccionado": "CORDON 15 CM",
+      "hilosPua": 3,
+      "total": 10401777.136,
+      "precioMetro": 57787.65075555556,
+      "precioMetroMenor50": 75123.94598222223
+    },
+    {
+      "altura": "Cerco con rollo de 1.5mt",
+      "dimension": "60x30",
+      "metrosLineales": 180,
+      "tejidoSeleccionado": "Rollo C14x 1.5mt x 3 1/2\"",
+      "posteSeleccionado": "POSTE EUCALIPTO",
+      "cordonSeleccionado": "CORDON 10 CM",
+      "hilosPua": 0,
+      "total": 7500421.591999999,
+      "precioMetro": 41669.00884444444,
+      "precioMetroMenor50": 54169.711497777775
+    },
+    {
+      "altura": "Cerco con rollo de 1.2mt",
+      "dimension": "60x30",
+      "metrosLineales": 180,
+      "tejidoSeleccionado": "Rollo C14x 1.2mt x 3 1/2\"",
+      "posteSeleccionado": "POSTE EUCALIPTO",
+      "cordonSeleccionado": "CORDON 10 CM",
+      "hilosPua": 0,
+      "total": 7190298.84,
+      "precioMetro": 39946.104666666666,
+      "precioMetroMenor50": 51929.93606666667
+    }
+  ],
+  "formula_calculo": {
+    "precio_por_metro": "Total / Metros_Lineales",
+    "recargo_menor_50ml": "Aprox 30% adicional"
+  },
+  "componentes": {
+    "tejidos": 8,
+    "tipos_postes": 3,
+    "opciones_cordon": 3,
+    "incluye_mano_obra": true
+  }
+}
