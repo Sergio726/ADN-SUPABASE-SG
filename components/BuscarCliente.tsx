@@ -9,7 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Plus, User, Building2, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ClienteData {
   id?: string
@@ -35,7 +42,7 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
   const { toast } = useToast()
   const [buscando, setBuscando] = useState(false)
   const [clienteEncontrado, setClienteEncontrado] = useState<ClienteData | null>(null)
-  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [dialogAbierto, setDialogAbierto] = useState(false)
   const [guardando, setGuardando] = useState(false)
 
   const [busqueda, setBusqueda] = useState({
@@ -88,17 +95,17 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
           description: `${cliente.nombre_completo} - ${cliente.tipo_documento} ${cliente.numero_documento}`,
         })
       } else {
-        // Cliente no encontrado
+        // Cliente no encontrado - Abrir dialog
         setClienteEncontrado(null)
-        setMostrarFormulario(true)
         setNuevoCliente({
           ...nuevoCliente,
           tipo_documento: busqueda.tipo_documento,
           numero_documento: busqueda.numero_documento.replace(/[-\s]/g, ''),
         })
+        setDialogAbierto(true)
         toast({
           title: "Cliente no encontrado",
-          description: "Completa los datos para registrarlo",
+          description: "Registra los datos básicos para continuar",
         })
       }
     } catch (error: any) {
@@ -144,7 +151,7 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
       // Seleccionar el cliente recién creado
       onClienteSeleccionado({ ...data })
       setClienteEncontrado(data)
-      setMostrarFormulario(false)
+      setDialogAbierto(false)
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -246,156 +253,121 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
         </CardContent>
       </Card>
 
-      {/* Formulario de Registro Rápido */}
-      {mostrarFormulario && !clienteEncontrado && (
-        <Card className="border-2 border-orange-300">
-          <CardHeader className="bg-orange-50">
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
+      {/* Dialog de Registro Rápido */}
+      <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-orange-600" />
               Registrar Nuevo Cliente
-            </CardTitle>
-            <CardDescription>
-              El cliente no existe. Completa los datos para registrarlo
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            </DialogTitle>
+            <DialogDescription>
+              El cliente no existe en el sistema. Completa los datos básicos para registrarlo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Documento (bloqueado) */}
+            <div className="grid gap-4 grid-cols-2">
               <div className="space-y-2">
-                <Label>Tipo Documento *</Label>
-                <Input value={nuevoCliente.tipo_documento} disabled className="bg-muted" />
+                <Label>Tipo Documento</Label>
+                <Input value={nuevoCliente.tipo_documento} disabled className="bg-muted font-mono" />
               </div>
               <div className="space-y-2">
-                <Label>Número *</Label>
-                <Input value={nuevoCliente.numero_documento} disabled className="bg-muted" />
+                <Label>Número</Label>
+                <Input value={nuevoCliente.numero_documento} disabled className="bg-muted font-mono" />
               </div>
             </div>
 
+            {/* Nombre - OBLIGATORIO */}
             <div className="space-y-2">
-              <Label htmlFor="nuevo_nombre">Nombre Completo *</Label>
+              <Label htmlFor="dialog_nombre">
+                Nombre Completo <span className="text-red-500">*</span>
+              </Label>
               <Input
-                id="nuevo_nombre"
+                id="dialog_nombre"
                 value={nuevoCliente.nombre_completo}
                 onChange={(e) => setNuevoCliente({ ...nuevoCliente, nombre_completo: e.target.value })}
                 placeholder="Juan Pérez o Empresa SRL"
+                autoFocus
                 required
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_categoria">Categoría *</Label>
-                <Select
-                  value={nuevoCliente.categoria}
-                  onValueChange={(value) => setNuevoCliente({ ...nuevoCliente, categoria: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Particular">Particular</SelectItem>
-                    <SelectItem value="Empresa">Empresa</SelectItem>
-                    <SelectItem value="Gobierno">Gobierno</SelectItem>
-                    <SelectItem value="Revendedor">Revendedor</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_telefono">Teléfono *</Label>
-                <Input
-                  id="nuevo_telefono"
-                  value={nuevoCliente.telefono}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })}
-                  placeholder="+54 387 123-4567"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_email">Email</Label>
-                <Input
-                  id="nuevo_email"
-                  type="email"
-                  value={nuevoCliente.email}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })}
-                  placeholder="cliente@example.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_razon">Razón Social (empresas)</Label>
-                <Input
-                  id="nuevo_razon"
-                  value={nuevoCliente.razon_social}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, razon_social: e.target.value })}
-                  placeholder="Empresa SRL"
-                />
-              </div>
-            </div>
-
+            {/* Teléfono - OBLIGATORIO */}
             <div className="space-y-2">
-              <Label htmlFor="nuevo_direccion">Dirección</Label>
+              <Label htmlFor="dialog_telefono">
+                Teléfono <span className="text-red-500">*</span>
+              </Label>
               <Input
-                id="nuevo_direccion"
-                value={nuevoCliente.direccion}
-                onChange={(e) => setNuevoCliente({ ...nuevoCliente, direccion: e.target.value })}
-                placeholder="Av. Principal 123"
+                id="dialog_telefono"
+                type="tel"
+                value={nuevoCliente.telefono}
+                onChange={(e) => setNuevoCliente({ ...nuevoCliente, telefono: e.target.value })}
+                placeholder="+54 387 123-4567"
+                required
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_ciudad">Ciudad</Label>
-                <Input
-                  id="nuevo_ciudad"
-                  value={nuevoCliente.ciudad}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, ciudad: e.target.value })}
-                  placeholder="Salta"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_provincia">Provincia</Label>
-                <Input
-                  id="nuevo_provincia"
-                  value={nuevoCliente.provincia}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, provincia: e.target.value })}
-                  placeholder="Salta"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nuevo_cp">C.P.</Label>
-                <Input
-                  id="nuevo_cp"
-                  value={nuevoCliente.codigo_postal}
-                  onChange={(e) => setNuevoCliente({ ...nuevoCliente, codigo_postal: e.target.value })}
-                  placeholder="4400"
-                />
-              </div>
+            {/* Categoría - OBLIGATORIO */}
+            <div className="space-y-2">
+              <Label htmlFor="dialog_categoria">
+                Categoría <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={nuevoCliente.categoria}
+                onValueChange={(value) => setNuevoCliente({ ...nuevoCliente, categoria: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Particular">Particular</SelectItem>
+                  <SelectItem value="Empresa">Empresa</SelectItem>
+                  <SelectItem value="Gobierno">Gobierno</SelectItem>
+                  <SelectItem value="Revendedor">Revendedor</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button
-                type="button"
-                onClick={guardarNuevoCliente}
-                disabled={guardando || !nuevoCliente.nombre_completo || !nuevoCliente.telefono}
-                className="flex-1"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {guardando ? 'Guardando...' : 'Guardar y Continuar'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setMostrarFormulario(false)}
-              >
-                Cancelar
-              </Button>
+            {/* Email - OPCIONAL */}
+            <div className="space-y-2">
+              <Label htmlFor="dialog_email">Email (opcional)</Label>
+              <Input
+                id="dialog_email"
+                type="email"
+                value={nuevoCliente.email}
+                onChange={(e) => setNuevoCliente({ ...nuevoCliente, email: e.target.value })}
+                placeholder="cliente@example.com"
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded border border-blue-200">
+              <p className="font-semibold mb-1">💡 Registro rápido</p>
+              <p>Solo completa los datos básicos ahora. Podrás agregar más información después en la ficha del cliente.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogAbierto(false)}
+              disabled={guardando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={guardarNuevoCliente}
+              disabled={guardando || !nuevoCliente.nombre_completo || !nuevoCliente.telefono}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {guardando ? 'Guardando...' : 'Guardar y Continuar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
