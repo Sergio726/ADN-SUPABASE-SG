@@ -18,7 +18,7 @@ export default function Navbar() {
                 className="h-20 w-auto transition-transform duration-200 group-hover:scale-105"
               />
               <div className="hidden sm:block">
-                <span className="text-xl font-bold text-brand-red">Alambres del Norte</span>
+                <span className="text-xl font-bold text-brand-red">Tu seguridad comienza con nosotros</span>
                 <p className="text-xs text-gray-600">Cercos y Alambrados de Calidad</p>
               </div>
             </Link>

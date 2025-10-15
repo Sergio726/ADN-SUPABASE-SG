@@ -135,7 +135,7 @@ BEGIN
   SET
     precio_costo = v_precios.precio_costo,
     precio_venta = v_precios.precio_venta,
-    actualizado_en = NOW()
+    margen = NEW.margen_porcentaje
   FROM tejidos_configuraciones tc
   WHERE tc.id = config_id
     AND pv.articulo_id = tc.articulo_id
@@ -171,7 +171,7 @@ BEGIN
     SET
       precio_costo = tc.precio_costo,
       precio_venta = tc.precio_venta,
-      actualizado_en = NOW()
+      margen = tc.margen_porcentaje
     FROM tejidos_configuraciones tc
     WHERE tc.alambre_articulo_id = NEW.articulo_id
       AND pv.articulo_id = tc.articulo_id
