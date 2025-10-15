@@ -79,10 +79,13 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
     try {
       const numeroLimpio = busqueda.numero_documento.replace(/[-\s]/g, '')
 
+      // Buscar cliente directamente (sin RPC)
       const { data, error } = await supabase
-        .rpc('buscar_cliente_por_documento', {
-          p_numero_documento: numeroLimpio
-        })
+        .from('clientes')
+        .select('*')
+        .eq('numero_documento', numeroLimpio)
+        .eq('activo', true)
+        .limit(1)
 
       if (error) throw error
 
