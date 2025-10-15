@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText } from 'lu
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { ProductoCombobox } from '@/components/ProductoCombobox'
+import { BuscarCliente } from '@/components/BuscarCliente'
 
 interface PresupuestoItem {
   id: string
@@ -34,7 +35,10 @@ export default function NuevoPresupuestoArticulosPage() {
   const [tejidos, setTejidos] = useState<any[]>([])
   const [userId, setUserId] = useState<string | null>(null)
 
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null)
+
   const [formData, setFormData] = useState({
+    cliente_id: null as string | null,
     cliente_nombre: '',
     cliente_email: '',
     cliente_telefono: '',
@@ -44,6 +48,18 @@ export default function NuevoPresupuestoArticulosPage() {
     observaciones: '',
     condiciones_comerciales: 'Pago: Contado o transferencia\nGarantía: 12 meses\nInstalación no incluida',
   })
+
+  function handleClienteSeleccionado(cliente: any) {
+    setClienteSeleccionado(cliente)
+    setFormData({
+      ...formData,
+      cliente_id: cliente.id,
+      cliente_nombre: cliente.nombre_completo,
+      cliente_email: cliente.email || '',
+      cliente_telefono: cliente.telefono || '',
+      cliente_direccion: cliente.direccion || '',
+    })
+  }
 
   const [items, setItems] = useState<PresupuestoItem[]>([])
 
@@ -187,6 +203,7 @@ export default function NuevoPresupuestoArticulosPage() {
       const presupuestoData = {
         numero,
         tipo: 'articulos',
+        cliente_id: formData.cliente_id,
         cliente_nombre: formData.cliente_nombre,
         cliente_email: formData.cliente_email || null,
         cliente_telefono: formData.cliente_telefono,
@@ -263,75 +280,85 @@ export default function NuevoPresupuestoArticulosPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Datos del Cliente */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Datos del Cliente</CardTitle>
-              <CardDescription>Información del cliente para el presupuesto</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre Completo *</Label>
-                  <Input
-                    id="nombre"
-                    value={formData.cliente_nombre}
-                    onChange={(e) => setFormData({ ...formData, cliente_nombre: e.target.value })}
-                    placeholder="Juan Pérez"
-                    required
-                  />
-                </div>
+      {/* Búsqueda de Cliente */}
+      {!clienteSeleccionado && (
+        <BuscarCliente onClienteSeleccionado={handleClienteSeleccionado} />
+      )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="telefono">Teléfono *</Label>
-                  <Input
-                    id="telefono"
-                    type="tel"
-                    value={formData.cliente_telefono}
-                    onChange={(e) => setFormData({ ...formData, cliente_telefono: e.target.value })}
-                    placeholder="+54 387 123-4567"
-                    required
-                  />
+      {/* Formulario de Presupuesto - Solo visible cuando hay cliente seleccionado */}
+      {clienteSeleccionado && (
+        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Datos del Cliente - Solo lectura */}
+            <Card className="border-2 border-green-300 bg-green-50/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Cliente Seleccionado</CardTitle>
+                    <CardDescription>Datos del cliente para el presupuesto</CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setClienteSeleccionado(null)
+                      setFormData({
+                        ...formData,
+                        cliente_id: null,
+                        cliente_nombre: '',
+                        cliente_email: '',
+                        cliente_telefono: '',
+                        cliente_direccion: '',
+                      })
+                    }}
+                  >
+                    Cambiar Cliente
+                  </Button>
                 </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.cliente_email}
-                    onChange={(e) => setFormData({ ...formData, cliente_email: e.target.value })}
-                    placeholder="juan@example.com"
-                  />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Nombre</p>
+                    <p className="font-semibold">{formData.cliente_nombre}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Documento</p>
+                    <p className="font-mono font-semibold">
+                      {clienteSeleccionado.tipo_documento} {clienteSeleccionado.numero_documento}
+                    </p>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="validez">Validez (días)</Label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Teléfono</p>
+                    <p>{formData.cliente_telefono || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-sm">{formData.cliente_email || '-'}</p>
+                  </div>
+                </div>
+                {formData.cliente_direccion && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Dirección</p>
+                    <p className="text-sm">{formData.cliente_direccion}</p>
+                  </div>
+                )}
+                <div className="pt-2 border-t">
+                  <Label htmlFor="validez">Validez del Presupuesto (días)</Label>
                   <Input
                     id="validez"
                     type="number"
                     value={formData.validez_dias}
                     onChange={(e) => setFormData({ ...formData, validez_dias: e.target.value })}
                     placeholder="15"
+                    className="mt-1 max-w-xs"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="direccion">Dirección</Label>
-                <Input
-                  id="direccion"
-                  value={formData.cliente_direccion}
-                  onChange={(e) => setFormData({ ...formData, cliente_direccion: e.target.value })}
-                  placeholder="Av. Principal 123, Salta"
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
           {/* Items del Presupuesto - Estilo Tabla */}
           <Card>
@@ -674,7 +701,8 @@ export default function NuevoPresupuestoArticulosPage() {
             </CardContent>
           </Card>
         </div>
-      </form>
+        </form>
+      )}
     </div>
   )
 }
