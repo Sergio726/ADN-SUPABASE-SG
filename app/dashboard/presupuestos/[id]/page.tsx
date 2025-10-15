@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { generarPDFPresupuesto } from '@/lib/pdf-generator'
 
 export default function VerPresupuestoPage() {
   const params = useParams()
@@ -85,6 +86,23 @@ export default function VerPresupuestoPage() {
     }
   }
 
+  function descargarPDF() {
+    try {
+      generarPDFPresupuesto(presupuesto, items)
+      toast({
+        title: "¡PDF Generado!",
+        description: "El presupuesto se ha descargado correctamente",
+      })
+    } catch (error: any) {
+      console.error('Error:', error)
+      toast({
+        title: "Error al generar PDF",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -135,7 +153,7 @@ export default function VerPresupuestoPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={descargarPDF}>
             <Download className="h-4 w-4 mr-2" />
             Descargar PDF
           </Button>
@@ -375,7 +393,7 @@ export default function VerPresupuestoPage() {
               <CardTitle className="text-base">Acciones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full" variant="outline">
+              <Button className="w-full" onClick={descargarPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Descargar PDF
               </Button>

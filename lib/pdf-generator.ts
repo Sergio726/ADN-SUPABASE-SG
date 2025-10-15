@@ -1,0 +1,263 @@
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+interface PresupuestoData {
+  numero: string
+  tipo: string
+  fecha_emision: string
+  fecha_vencimiento: string
+  validez_dias: number
+  cliente_nombre: string
+  cliente_email?: string
+  cliente_telefono?: string
+  cliente_direccion?: string
+  terreno_largo?: number
+  terreno_ancho?: number
+  metros_lineales_total?: number
+  subtotal: number
+  descuento: number
+  total: number
+  observaciones?: string
+  condiciones_comerciales?: string
+}
+
+interface PresupuestoItem {
+  descripcion: string
+  cantidad: number
+  unidad: string
+  precio_unitario: number
+  precio_total: number
+}
+
+export function generarPDFPresupuesto(
+  presupuesto: PresupuestoData,
+  items: PresupuestoItem[]
+) {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  let yPos = 20
+
+  // ===== HEADER =====
+  // Logo (simulado con texto por ahora)
+  doc.setFontSize(20)
+  doc.setTextColor(220, 38, 38) // Brand red
+  doc.setFont('helvetica', 'bold')
+  doc.text('ALAMBRES DEL NORTE SRL', 15, yPos)
+  
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Cercos y Alambrados de Calidad', 15, yPos + 5)
+  
+  // Número de presupuesto (derecha)
+  doc.setFontSize(12)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PRESUPUESTO', pageWidth - 15, yPos, { align: 'right' })
+  
+  doc.setFontSize(14)
+  doc.setTextColor(220, 38, 38)
+  doc.text(presupuesto.numero, pageWidth - 15, yPos + 6, { align: 'right' })
+  
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  const fechaEmision = new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')
+  const fechaVenc = new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')
+  doc.text(`Fecha: ${fechaEmision}`, pageWidth - 15, yPos + 12, { align: 'right' })
+  doc.text(`Vencimiento: ${fechaVenc}`, pageWidth - 15, yPos + 17, { align: 'right' })
+  
+  yPos = 50
+
+  // Línea separadora
+  doc.setDrawColor(220, 38, 38)
+  doc.setLineWidth(0.5)
+  doc.line(15, yPos, pageWidth - 15, yPos)
+  
+  yPos += 10
+
+  // ===== DATOS DEL CLIENTE =====
+  doc.setFontSize(11)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('CLIENTE:', 15, yPos)
+  
+  yPos += 6
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text(presupuesto.cliente_nombre, 15, yPos)
+  
+  if (presupuesto.cliente_telefono) {
+    yPos += 5
+    doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
+  }
+  
+  if (presupuesto.cliente_email) {
+    yPos += 5
+    doc.text(`Email: ${presupuesto.cliente_email}`, 15, yPos)
+  }
+  
+  if (presupuesto.cliente_direccion) {
+    yPos += 5
+    doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
+  }
+  
+  // Si es cercado, mostrar datos del terreno
+  if (presupuesto.tipo === 'cercado' && presupuesto.metros_lineales_total) {
+    yPos += 8
+    doc.setFont('helvetica', 'bold')
+    doc.text('TERRENO:', 15, yPos)
+    
+    yPos += 6
+    doc.setFont('helvetica', 'normal')
+    if (presupuesto.terreno_largo && presupuesto.terreno_ancho) {
+      doc.text(`Dimensiones: ${presupuesto.terreno_largo}m × ${presupuesto.terreno_ancho}m`, 15, yPos)
+      yPos += 5
+    }
+    doc.text(`Perímetro total: ${presupuesto.metros_lineales_total} metros lineales`, 15, yPos)
+  }
+  
+  yPos += 12
+
+  // ===== TABLA DE ITEMS =====
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DETALLE:', 15, yPos)
+  
+  yPos += 5
+
+  const tableData = items.map((item, index) => [
+    (index + 1).toString(),
+    item.descripcion,
+    item.cantidad.toLocaleString('es-AR'),
+    item.unidad,
+    `$${item.precio_unitario.toLocaleString('es-AR')}`,
+    `$${item.precio_total.toLocaleString('es-AR')}`,
+  ])
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [['#', 'Descripción', 'Cant.', 'Unidad', 'P. Unit.', 'Total']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [220, 38, 38],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: {
+      fontSize: 9,
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 20, halign: 'right' },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 30, halign: 'right' },
+      5: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
+    },
+    margin: { left: 15, right: 15 },
+  })
+
+  // Obtener posición final de la tabla
+  yPos = (doc as any).lastAutoTable.finalY + 10
+
+  // ===== TOTALES =====
+  const totalesX = pageWidth - 80
+  
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Subtotal:', totalesX, yPos)
+  doc.text(`$${presupuesto.subtotal.toLocaleString('es-AR')}`, pageWidth - 15, yPos, { align: 'right' })
+  
+  if (presupuesto.descuento > 0) {
+    yPos += 6
+    doc.setTextColor(220, 38, 38)
+    doc.text('Descuento:', totalesX, yPos)
+    doc.text(`-$${presupuesto.descuento.toLocaleString('es-AR')}`, pageWidth - 15, yPos, { align: 'right' })
+    doc.setTextColor(0, 0, 0)
+  }
+  
+  yPos += 8
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.5)
+  doc.line(totalesX - 5, yPos - 3, pageWidth - 15, yPos - 3)
+  
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.text('TOTAL:', totalesX, yPos)
+  doc.setTextColor(34, 139, 34) // Verde
+  doc.setFontSize(14)
+  doc.text(`$${presupuesto.total.toLocaleString('es-AR')}`, pageWidth - 15, yPos, { align: 'right' })
+  doc.setTextColor(0, 0, 0)
+  
+  yPos += 15
+
+  // ===== CONDICIONES COMERCIALES =====
+  if (presupuesto.condiciones_comerciales && yPos < pageHeight - 60) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('CONDICIONES COMERCIALES:', 15, yPos)
+    
+    yPos += 6
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const condiciones = presupuesto.condiciones_comerciales.split('\n')
+    condiciones.forEach(linea => {
+      if (yPos < pageHeight - 30) {
+        doc.text(`• ${linea}`, 20, yPos)
+        yPos += 5
+      }
+    })
+    
+    yPos += 5
+  }
+
+  // ===== OBSERVACIONES =====
+  if (presupuesto.observaciones && yPos < pageHeight - 40) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('OBSERVACIONES:', 15, yPos)
+    
+    yPos += 6
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const observaciones = doc.splitTextToSize(presupuesto.observaciones, pageWidth - 30)
+    doc.text(observaciones, 15, yPos)
+    yPos += observaciones.length * 5
+  }
+
+  // ===== FOOTER =====
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'italic')
+  
+  const footerY = pageHeight - 20
+  doc.line(15, footerY - 5, pageWidth - 15, footerY - 5)
+  
+  doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
+  doc.text('Tel: +54 387 XXX-XXXX | Email: info@alambresdelnorte.com', pageWidth / 2, footerY + 4, { align: 'center' })
+  doc.text(`Validez: ${presupuesto.validez_dias} días`, pageWidth / 2, footerY + 8, { align: 'center' })
+
+  // Descargar
+  const filename = `${presupuesto.numero.replace(/\//g, '-')}_${presupuesto.cliente_nombre.replace(/\s/g, '_')}.pdf`
+  doc.save(filename)
+}
+
+export function generarPDFPresupuestoArticulos(
+  presupuesto: PresupuestoData,
+  items: PresupuestoItem[]
+) {
+  generarPDFPresupuesto(presupuesto, items)
+}
+
+export function generarPDFPresupuestoCercado(
+  presupuesto: PresupuestoData,
+  items: PresupuestoItem[]
+) {
+  // Mismo template, solo cambia el contenido
+  generarPDFPresupuesto(presupuesto, items)
+}
+
