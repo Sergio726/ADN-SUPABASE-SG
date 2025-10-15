@@ -12,11 +12,24 @@ import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft, Save, User } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
+import { useEffect } from 'react'
 
 export default function NuevoClientePage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    cargarUsuario()
+  }, [])
+
+  async function cargarUsuario() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserId(user.id)
+    }
+  }
 
   const [formData, setFormData] = useState({
     tipo_documento: 'DNI',
@@ -39,6 +52,10 @@ export default function NuevoClientePage() {
     setLoading(true)
 
     try {
+      if (!userId) {
+        throw new Error('Usuario no autenticado')
+      }
+
       const clienteData = {
         tipo_documento: formData.tipo_documento,
         numero_documento: formData.numero_documento.replace(/[-\s]/g, ''), // Quitar guiones y espacios
@@ -54,6 +71,7 @@ export default function NuevoClientePage() {
         categoria: formData.categoria,
         notas: formData.notas || null,
         activo: true,
+        usuario_id: userId,
       }
 
       const { data, error } = await supabase

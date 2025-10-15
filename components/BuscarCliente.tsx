@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Plus, User, Building2, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,18 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
   const [clienteEncontrado, setClienteEncontrado] = useState<ClienteData | null>(null)
   const [dialogAbierto, setDialogAbierto] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    cargarUsuario()
+  }, [])
+
+  async function cargarUsuario() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserId(user.id)
+    }
+  }
 
   const [busqueda, setBusqueda] = useState({
     tipo_documento: 'DNI',
@@ -126,6 +139,10 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
   async function guardarNuevoCliente() {
     setGuardando(true)
     try {
+      if (!userId) {
+        throw new Error('Usuario no autenticado')
+      }
+
       const clienteData = {
         ...nuevoCliente,
         razon_social: nuevoCliente.razon_social || null,
@@ -136,6 +153,7 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
         provincia: nuevoCliente.provincia || null,
         codigo_postal: nuevoCliente.codigo_postal || null,
         activo: true,
+        usuario_id: userId,
       }
 
       const { data, error } = await supabase
