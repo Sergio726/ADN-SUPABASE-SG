@@ -299,12 +299,12 @@ git log --oneline -10         # Ver últimos commits
 
 ---
 
-## ✅ **ESTADO ACTUAL: 40% COMPLETADO**
+## ✅ **ESTADO ACTUAL: 60% COMPLETADO**
 
 - ✅ Base de Datos: 100%
 - ✅ Scripts: 50% (tejidos completo, cercado pendiente)
-- ✅ Tejidos CRUD: 50% (listar y crear completo)
-- ⏳ Presupuestos: 0%
+- ✅ Tejidos CRUD: 100% (listar, crear, ver, editar)
+- ✅ Presupuestos: 40% (listado y selector de tipo)
 - ⏳ PDF: 0%
 - ⏳ Cercado Wizard: 0%
 
