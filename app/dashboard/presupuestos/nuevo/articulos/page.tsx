@@ -317,17 +317,19 @@ export default function NuevoPresupuestoArticulosPage() {
             </CardContent>
           </Card>
 
-          {/* Items del Presupuesto */}
+          {/* Items del Presupuesto - Estilo Tabla */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Items del Presupuesto</CardTitle>
-                  <CardDescription>Agrega los productos a cotizar</CardDescription>
+                  <CardDescription>
+                    Presiona Tab para navegar | Enter para agregar fila | Clic en ❌ para eliminar
+                  </CardDescription>
                 </div>
                 <Button type="button" onClick={agregarItem} size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Agregar Item
+                  Agregar Fila
                 </Button>
               </div>
             </CardHeader>
@@ -344,138 +346,196 @@ export default function NuevoPresupuestoArticulosPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {items.map((item, index) => (
-                    <Card key={item.id} className="border-2">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="font-bold text-primary">{index + 1}</span>
-                            </div>
-                            <h4 className="font-semibold">Item {index + 1}</h4>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => eliminarItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-
-                        <div className="grid gap-4">
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label>Tipo de Producto</Label>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b-2 bg-muted/50">
+                        <th className="p-2 text-left font-semibold text-sm w-12">#</th>
+                        <th className="p-2 text-left font-semibold text-sm w-32">Tipo</th>
+                        <th className="p-2 text-left font-semibold text-sm min-w-[200px]">Producto</th>
+                        <th className="p-2 text-left font-semibold text-sm min-w-[250px]">Descripción</th>
+                        <th className="p-2 text-left font-semibold text-sm w-24">Cant.</th>
+                        <th className="p-2 text-left font-semibold text-sm w-20">Unidad</th>
+                        <th className="p-2 text-left font-semibold text-sm w-32">P. Unit.</th>
+                        <th className="p-2 text-left font-semibold text-sm w-32">Total</th>
+                        <th className="p-2 text-center font-semibold text-sm w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <tr 
+                          key={item.id} 
+                          className="border-b hover:bg-muted/30 transition-colors"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              agregarItem()
+                            }
+                          }}
+                        >
+                          <td className="p-2 text-center text-muted-foreground font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={item.tipo}
+                              onValueChange={(value: any) => actualizarItem(item.id, 'tipo', value)}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="articulo">Artículo</SelectItem>
+                                <SelectItem value="tejido">Tejido</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            {item.tipo === 'articulo' ? (
                               <Select
-                                value={item.tipo}
-                                onValueChange={(value: any) => actualizarItem(item.id, 'tipo', value)}
+                                value={item.articulo_id?.toString()}
+                                onValueChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
                               >
-                                <SelectTrigger>
-                                  <SelectValue />
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Seleccionar..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="articulo">Artículo</SelectItem>
-                                  <SelectItem value="tejido">Tejido Romboidal</SelectItem>
+                                  {articulos.map((articulo) => (
+                                    <SelectItem key={articulo.id} value={articulo.id.toString()}>
+                                      {articulo.nombre}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
-                            </div>
-
-                            {item.tipo === 'articulo' ? (
-                              <div className="space-y-2">
-                                <Label>Artículo</Label>
-                                <Select
-                                  value={item.articulo_id?.toString()}
-                                  onValueChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar artículo" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {articulos.map((articulo) => (
-                                      <SelectItem key={articulo.id} value={articulo.id.toString()}>
-                                        {articulo.nombre}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
                             ) : (
-                              <div className="space-y-2">
-                                <Label>Tejido Romboidal</Label>
-                                <Select
-                                  value={item.tejido_id}
-                                  onValueChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar tejido" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {tejidos.map((tejido) => (
-                                      <SelectItem key={tejido.id} value={tejido.id}>
-                                        {tejido.codigo} - ${tejido.precio_venta?.toLocaleString()}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              <Select
+                                value={item.tejido_id}
+                                onValueChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tejidos.map((tejido) => (
+                                    <SelectItem key={tejido.id} value={tejido.id}>
+                                      {tejido.codigo}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Descripción</Label>
+                          </td>
+                          <td className="p-2">
                             <Input
                               value={item.descripcion}
                               onChange={(e) => actualizarItem(item.id, 'descripcion', e.target.value)}
-                              placeholder="Descripción del item"
+                              placeholder="Descripción..."
+                              className="h-9"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
                             />
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-3">
-                            <div className="space-y-2">
-                              <Label>Cantidad</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={item.cantidad}
-                                onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
-                                placeholder="1"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Unidad</Label>
-                              <Input
-                                value={item.unidad}
-                                onChange={(e) => actualizarItem(item.id, 'unidad', e.target.value)}
-                                placeholder="unidad"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Precio Unitario</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={item.precio_unitario}
-                                onChange={(e) => actualizarItem(item.id, 'precio_unitario', e.target.value)}
-                                placeholder="0.00"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                            <span className="font-medium">Total Item:</span>
-                            <span className="text-xl font-bold text-green-600">
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.cantidad}
+                              onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
+                              placeholder="1"
+                              className="h-9"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={item.unidad}
+                              onChange={(e) => actualizarItem(item.id, 'unidad', e.target.value)}
+                              placeholder="un"
+                              className="h-9"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.precio_unitario}
+                              onChange={(e) => actualizarItem(item.id, 'precio_unitario', e.target.value)}
+                              placeholder="0.00"
+                              className="h-9"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <div className="font-bold text-green-600 text-right">
                               ${item.precio_total.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                            </div>
+                          </td>
+                          <td className="p-2 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => eliminarItem(item.id)}
+                              className="h-8 w-8 p-0 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Fila de totales */}
+                      <tr className="border-t-2 bg-muted/30">
+                        <td colSpan={7} className="p-3 text-right font-semibold">
+                          Subtotal:
+                        </td>
+                        <td className="p-3 font-bold text-lg text-green-600">
+                          ${subtotal.toLocaleString()}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      type="button" 
+                      onClick={agregarItem} 
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Fila (Enter)
+                    </Button>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                    <p className="font-semibold mb-1">💡 Atajos de teclado:</p>
+                    <ul className="space-y-1">
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Tab</kbd> - Navegar entre columnas</li>
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Enter</kbd> - Agregar nueva fila</li>
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Clic en ❌</kbd> - Eliminar fila</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </CardContent>
