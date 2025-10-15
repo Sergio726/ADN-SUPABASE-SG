@@ -32,6 +32,7 @@ export default function NuevoPresupuestoArticulosPage() {
   const [loading, setLoading] = useState(false)
   const [articulos, setArticulos] = useState<any[]>([])
   const [tejidos, setTejidos] = useState<any[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     cliente_nombre: '',
@@ -47,9 +48,17 @@ export default function NuevoPresupuestoArticulosPage() {
   const [items, setItems] = useState<PresupuestoItem[]>([])
 
   useEffect(() => {
+    cargarUsuario()
     cargarArticulos()
     cargarTejidos()
   }, [])
+
+  async function cargarUsuario() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserId(user.id)
+    }
+  }
 
   async function cargarArticulos() {
     const { data } = await supabase
@@ -169,6 +178,11 @@ export default function NuevoPresupuestoArticulosPage() {
 
       const numero = numeroData
 
+      // Verificar usuario
+      if (!userId) {
+        throw new Error('Usuario no autenticado')
+      }
+
       // Crear presupuesto
       const presupuestoData = {
         numero,
@@ -184,6 +198,7 @@ export default function NuevoPresupuestoArticulosPage() {
         condiciones_comerciales: formData.condiciones_comerciales || null,
         validez_dias: parseInt(formData.validez_dias),
         estado: 'borrador',
+        usuario_id: userId,
       }
 
       const { data: presupuesto, error: errorPresupuesto } = await supabase
