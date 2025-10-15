@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
+import { ProductoCombobox } from '@/components/ProductoCombobox'
 
 interface PresupuestoItem {
   id: string
@@ -392,37 +393,29 @@ export default function NuevoPresupuestoArticulosPage() {
                           </td>
                           <td className="p-2">
                             {item.tipo === 'articulo' ? (
-                              <Select
+                              <ProductoCombobox
                                 value={item.articulo_id?.toString()}
-                                onValueChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
-                              >
-                                <SelectTrigger className="h-9">
-                                  <SelectValue placeholder="Seleccionar..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {articulos.map((articulo) => (
-                                    <SelectItem key={articulo.id} value={articulo.id.toString()}>
-                                      {articulo.nombre}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                onChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
+                                productos={articulos.map((art) => ({
+                                  id: art.id,
+                                  label: art.nombre,
+                                  sublabel: art.unidad
+                                }))}
+                                placeholder="Buscar artículo..."
+                                emptyMessage="No se encontraron artículos"
+                              />
                             ) : (
-                              <Select
+                              <ProductoCombobox
                                 value={item.tejido_id}
-                                onValueChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
-                              >
-                                <SelectTrigger className="h-9">
-                                  <SelectValue placeholder="Seleccionar..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {tejidos.map((tejido) => (
-                                    <SelectItem key={tejido.id} value={tejido.id}>
-                                      {tejido.codigo}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                onChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
+                                productos={tejidos.map((tej) => ({
+                                  id: tej.id,
+                                  label: tej.codigo,
+                                  sublabel: `$${tej.precio_venta?.toLocaleString()}`
+                                }))}
+                                placeholder="Buscar tejido..."
+                                emptyMessage="No se encontraron tejidos"
+                              />
                             )}
                           </td>
                           <td className="p-2">
