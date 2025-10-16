@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Eye, CheckCircle, XCircle, RefreshCw, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -11,15 +11,50 @@ import { SortableHeader } from '@/components/ui/sortable-header'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function TejidosPage() {
   const [tejidos, setTejidos] = useState([])
+  const [tejidosFiltrados, setTejidosFiltrados] = useState([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  
+  // Estados de filtros
+  const [filtroCalibre, setFiltroCalibre] = useState('todos')
+  const [filtroAltura, setFiltroAltura] = useState('todos')
+  const [filtroRombo, setFiltroRombo] = useState('todos')
 
   useEffect(() => {
     cargarTejidos()
   }, [])
+
+  useEffect(() => {
+    aplicarFiltros()
+  }, [tejidos, filtroCalibre, filtroAltura, filtroRombo])
+
+  function aplicarFiltros() {
+    let resultado = [...tejidos]
+
+    if (filtroCalibre !== 'todos') {
+      resultado = resultado.filter((t: any) => t.calibre === parseInt(filtroCalibre))
+    }
+
+    if (filtroAltura !== 'todos') {
+      resultado = resultado.filter((t: any) => t.altura === parseFloat(filtroAltura))
+    }
+
+    if (filtroRombo !== 'todos') {
+      resultado = resultado.filter((t: any) => t.tamano_rombo === parseFloat(filtroRombo))
+    }
+
+    setTejidosFiltrados(resultado)
+  }
+
+  function limpiarFiltros() {
+    setFiltroCalibre('todos')
+    setFiltroAltura('todos')
+    setFiltroRombo('todos')
+  }
 
   async function cargarTejidos() {
     try {
@@ -289,15 +324,78 @@ export default function TejidosPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Listado de Tejidos</CardTitle>
-          <CardDescription>
-            {tejidos.length} configuraciones en total
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Listado de Tejidos</CardTitle>
+              <CardDescription>
+                {tejidosFiltrados.length} de {tejidos.length} configuraciones
+              </CardDescription>
+            </div>
+            {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos') && (
+              <Button variant="outline" size="sm" onClick={limpiarFiltros}>
+                Limpiar Filtros
+              </Button>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Filtros */}
+          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1 grid gap-3 md:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Calibre</label>
+                <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="12">Calibre 12</SelectItem>
+                    <SelectItem value="14">Calibre 14</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Altura</label>
+                <Select value={filtroAltura} onValueChange={setFiltroAltura}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    <SelectItem value="1.00">1.0 m</SelectItem>
+                    <SelectItem value="1.20">1.2 m</SelectItem>
+                    <SelectItem value="1.50">1.5 m</SelectItem>
+                    <SelectItem value="1.80">1.8 m</SelectItem>
+                    <SelectItem value="2.00">2.0 m</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Rombo</label>
+                <Select value={filtroRombo} onValueChange={setFiltroRombo}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="2.0">2.0"</SelectItem>
+                    <SelectItem value="2.5">2.5"</SelectItem>
+                    <SelectItem value="3.0">3.0"</SelectItem>
+                    <SelectItem value="3.5">3.5"</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabla */}
           <DataTable
             columns={columns}
-            data={tejidos}
+            data={tejidosFiltrados}
             searchKey="codigo"
             searchPlaceholder="Buscar por código..."
           />
