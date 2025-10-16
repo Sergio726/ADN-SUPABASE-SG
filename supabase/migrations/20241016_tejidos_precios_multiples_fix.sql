@@ -62,11 +62,11 @@ DECLARE
   v_precio_costo NUMERIC;
 BEGIN
   -- Obtener precio del alambre desde precios_venta
-  SELECT precio_costo INTO v_precio_alambre
-  FROM precios_venta
-  WHERE articulo_id = p_alambre_articulo_id
-    AND vigente = true
-  ORDER BY fecha_desde DESC
+  SELECT pv.precio_costo INTO v_precio_alambre
+  FROM precios_venta pv
+  WHERE pv.articulo_id = p_alambre_articulo_id
+    AND pv.vigente = true
+  ORDER BY pv.fecha_desde DESC
   LIMIT 1;
   
   -- Si no hay precio, usar 0
