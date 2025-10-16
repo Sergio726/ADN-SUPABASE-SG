@@ -49,17 +49,32 @@ export default function EditarTejidoPage() {
   async function cargarAlambres() {
     const { data, error } = await supabase
       .from('articulos')
-      .select('id, nombre, categoria')
-      .ilike('categoria', '%alambre%')
+      .select('id, nombre, categoria, proveedor_id')
       .order('nombre')
 
-    console.log('Alambres cargados:', data)
+    console.log('Todos los artículos:', data)
     console.log('Error:', error)
 
     if (error) {
       console.error('Error al cargar alambres:', error)
+      setAlambres([])
     } else {
-      setAlambres(data || [])
+      // Filtrar solo los que tengan "alambre" en categoría o nombre
+      const alambres = (data || []).filter((a: any) => {
+        const tieneAlambre = 
+          a.categoria?.toLowerCase().includes('alambre') ||
+          a.nombre?.toLowerCase().includes('alambre')
+        
+        console.log(`Artículo ${a.id} - ${a.nombre}:`, {
+          categoria: a.categoria,
+          proveedor_id: a.proveedor_id,
+          tieneAlambre
+        })
+        
+        return tieneAlambre
+      })
+      console.log('Alambres filtrados:', alambres)
+      setAlambres(alambres)
     }
   }
 
