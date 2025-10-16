@@ -179,7 +179,7 @@ export default function VerTejidoPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Peso</p>
-                  <p className="text-lg font-bold">{tejido.peso_kg} kg</p>
+                  <p className="text-lg font-bold">{tejido.cantidad_alambre || tejido.peso_kg} kg</p>
                 </div>
               </div>
             </div>
