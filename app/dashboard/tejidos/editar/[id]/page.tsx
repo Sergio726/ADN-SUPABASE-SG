@@ -80,6 +80,8 @@ export default function EditarTejidoPage() {
         return
       }
 
+      console.log('Tejido cargado:', data)
+      
       setFormData({
         calibre: data.calibre.toString(),
         altura: parseFloat(data.altura).toFixed(2),
@@ -88,9 +90,14 @@ export default function EditarTejidoPage() {
         mano_obra: (data.costo_mano_obra || data.mano_obra).toString(),
         horas_fabricacion: data.horas_fabricacion?.toString() || '',
         alambre_articulo_id: data.alambre_articulo_id?.toString() || '',
-        margen_porcentaje: data.margen_porcentaje?.toString() || '30.00',
+        margen_porcentaje: (data.margen_efectivo || data.margen_porcentaje)?.toString() || '45.00',
         descripcion: data.descripcion || '',
         activo: data.activo,
+      })
+      
+      console.log('FormData después de cargar:', {
+        ...formData,
+        alambre_articulo_id: data.alambre_articulo_id?.toString()
       })
     } catch (error) {
       console.error('Error:', error)
