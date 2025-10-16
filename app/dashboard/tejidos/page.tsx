@@ -82,14 +82,14 @@ export default function TejidosPage() {
   const columns = [
     {
       accessorKey: 'codigo',
-      header: ({ column }: any) => <SortableHeader column={column} label="Código" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Código" />,
       cell: ({ row }: any) => (
         <div className="font-mono font-semibold text-sm">{row.original.codigo}</div>
       ),
     },
     {
       accessorKey: 'calibre',
-      header: ({ column }: any) => <SortableHeader column={column} label="Calibre" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Calibre" />,
       cell: ({ row }: any) => (
         <Badge variant="outline" className="font-mono">
           Cal. {row.original.calibre}
@@ -98,35 +98,35 @@ export default function TejidosPage() {
     },
     {
       accessorKey: 'altura',
-      header: ({ column }: any) => <SortableHeader column={column} label="Altura" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Altura" />,
       cell: ({ row }: any) => (
         <span className="font-medium">{row.original.altura}m</span>
       ),
     },
     {
       accessorKey: 'tamano_rombo',
-      header: ({ column }: any) => <SortableHeader column={column} label="Rombo" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Rombo" />,
       cell: ({ row }: any) => (
         <span className="font-medium">{row.original.tamano_rombo}"</span>
       ),
     },
     {
       accessorKey: 'peso_kg',
-      header: ({ column }: any) => <SortableHeader column={column} label="Peso (kg)" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Peso" />,
       cell: ({ row }: any) => (
         <span className="text-muted-foreground">{row.original.peso_kg} kg</span>
       ),
     },
     {
       accessorKey: 'mano_obra',
-      header: ({ column }: any) => <SortableHeader column={column} label="M. Obra" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="M. Obra" />,
       cell: ({ row }: any) => (
         <span className="text-sm">${row.original.mano_obra?.toLocaleString()}</span>
       ),
     },
     {
       accessorKey: 'precio_costo',
-      header: ({ column }: any) => <SortableHeader column={column} label="Costo" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Costo" />,
       cell: ({ row }: any) => (
         <span className="font-semibold text-orange-600">
           ${row.original.precio_costo?.toLocaleString() || 'N/A'}
@@ -135,7 +135,7 @@ export default function TejidosPage() {
     },
     {
       accessorKey: 'precio_venta',
-      header: ({ column }: any) => <SortableHeader column={column} label="Venta" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Venta" />,
       cell: ({ row }: any) => (
         <span className="font-bold text-green-600">
           ${row.original.precio_venta?.toLocaleString() || 'N/A'}
