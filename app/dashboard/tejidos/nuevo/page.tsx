@@ -57,8 +57,8 @@ export default function NuevoTejidoPage() {
     const { data, error } = await supabase
       .from('articulos')
       .select('id, nombre')
-      .or('nombre.ilike.%Alambre Galvanizado%,nombre.ilike.%alambre galvanizado%')
-      .order('nombre')
+      .in('id', [7, 8])
+      .order('id')
 
     if (error) {
       console.error('Error al cargar alambres:', error)
