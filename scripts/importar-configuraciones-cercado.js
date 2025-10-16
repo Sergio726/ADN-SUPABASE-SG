@@ -547,11 +547,21 @@ async function importarConfiguraciones() {
         delete configData.tejido_calibre
         delete configData.tejido_rombo
 
-        const { error } = await supabase
+        // Calcular y asignar directamente los valores para evitar el trigger
+        configData.precio_total_accesorios = totalAccesorios
+        configData.precio_base_180m = total180m
+        configData.precio_por_metro_lineal = precioMetro
+        configData.precio_por_metro_menor_50m = precioMetroMenor50
+
+        const { data: insertData, error } = await supabase
           .from('configuraciones_cercado')
           .insert(configData)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error(`   Error SQL:`, error)
+          throw error
+        }
 
         console.log(`✅ ${config.nombre}`)
         console.log(`   Altura: ${config.altura}m | Tejido: ${tejido.codigo}`)
