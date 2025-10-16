@@ -47,30 +47,18 @@ export default function EditarTejidoPage() {
   }, [formData.peso_kg, formData.mano_obra, formData.margen_porcentaje, formData.alambre_articulo_id])
 
   async function cargarAlambres() {
-    // Intentar cargar todos los artículos primero
-    const { data: todosArticulos, error: errorTodos } = await supabase
-      .from('articulos')
-      .select('id, nombre')
-      .order('id')
-      .limit(20)
-
-    console.log('Todos los artículos (primeros 20):', todosArticulos)
-    console.log('Error al cargar todos:', errorTodos)
-
-    // Intentar cargar específicamente los IDs 7 y 8
     const { data, error } = await supabase
       .from('articulos')
-      .select('id, nombre')
-      .in('id', [7, 8])
-      .order('id')
+      .select('id, nombre, categoria')
+      .ilike('categoria', '%alambre%')
+      .order('nombre')
 
-    console.log('Query de alambres - data:', data)
-    console.log('Query de alambres - error:', error)
+    console.log('Alambres cargados:', data)
+    console.log('Error:', error)
 
     if (error) {
       console.error('Error al cargar alambres:', error)
     } else {
-      console.log('Alambres cargados:', data)
       setAlambres(data || [])
     }
   }

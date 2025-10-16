@@ -56,14 +56,16 @@ export default function NuevoTejidoPage() {
   async function cargarAlambres() {
     const { data, error } = await supabase
       .from('articulos')
-      .select('id, nombre')
-      .in('id', [7, 8])
-      .order('id')
+      .select('id, nombre, categoria')
+      .ilike('categoria', '%alambre%')
+      .order('nombre')
+
+    console.log('Alambres cargados:', data)
+    console.log('Error:', error)
 
     if (error) {
       console.error('Error al cargar alambres:', error)
     } else {
-      console.log('Alambres cargados:', data)
       setAlambres(data || [])
     }
   }
