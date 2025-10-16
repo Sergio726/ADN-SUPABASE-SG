@@ -297,18 +297,28 @@ FROM tejidos_configuraciones;
 
 ---
 
-## 🔧 **FIX RÁPIDO SI NO COINCIDEN**
+## 🔧 **FIX APLICADO** ✅
 
-Si el problema es la conversión de tipos:
+**PROBLEMA RESUELTO:** El filtrado ahora usa comparación numérica con tolerancia.
 
 ```typescript
-// Cambiar línea 299 en app/dashboard/cercado/nuevo/page.tsx
-// De:
-.filter((t) => t.altura.toString() === formData.altura)
-
-// A (comparación numérica):
-.filter((t) => parseFloat(t.altura.toString()) === parseFloat(formData.altura))
+// ✅ SOLUCIONADO en líneas 299-303
+.filter((t) => {
+  const alturaFloat = parseFloat(formData.altura)
+  const tejidoAltura = typeof t.altura === 'number' ? t.altura : parseFloat(t.altura)
+  return Math.abs(tejidoAltura - alturaFloat) < 0.01
+})
 ```
+
+**Por qué funcionaba antes:**
+- `formData.altura` = `"2.00"` (string)
+- `t.altura` = `2` (number)
+- `t.altura.toString()` = `"2"` ❌ NO coincidía con `"2.00"`
+
+**Solución:**
+- Convertimos ambos a números decimales
+- Comparamos con tolerancia de 0.01 para evitar problemas de precisión
+- Funciona con cualquier formato: `1.8`, `1.80`, `2`, `2.00`
 
 ---
 
