@@ -267,7 +267,7 @@ export default function VerTejidoPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Precio por metro:</span>
                 <span className="font-semibold">
-                  ${tejido.precio_por_metro?.toLocaleString() || 'N/A'}/m
+                  ${((tejido.precio_venta || 0) / (tejido.largo || 10)).toLocaleString()}/m
                 </span>
               </div>
             </div>
