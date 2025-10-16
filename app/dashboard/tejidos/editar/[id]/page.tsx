@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Calculator, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 
 export default function EditarTejidoPage() {
   const params = useParams()
