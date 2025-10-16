@@ -227,16 +227,12 @@ export default function VerTejidoPage() {
                 <span className="font-semibold">${tejido.alambre_precio_kg?.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Peso necesario:</span>
-                <span className="font-semibold">{tejido.peso_kg} kg</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Costo alambre:</span>
-                <span className="font-semibold">${(tejido.peso_kg * (tejido.alambre_precio_kg || 0)).toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground">Alambre necesario:</span>
+                <span className="font-semibold">{tejido.cantidad_alambre || tejido.peso_kg} kg</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Mano de obra:</span>
-                <span className="font-semibold">${tejido.mano_obra?.toLocaleString()}</span>
+                <span className="font-semibold">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString()}</span>
               </div>
             </div>
 
