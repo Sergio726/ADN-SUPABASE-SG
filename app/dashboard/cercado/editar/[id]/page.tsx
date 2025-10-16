@@ -416,7 +416,11 @@ export default function EditarConfiguracionCercadoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {tejidos
-                        .filter((t) => t.altura.toString() === formData.altura)
+                        .filter((t) => {
+                          const alturaFloat = parseFloat(formData.altura)
+                          const tejidoAltura = typeof t.altura === 'number' ? t.altura : parseFloat(t.altura)
+                          return Math.abs(tejidoAltura - alturaFloat) < 0.01
+                        })
                         .map((tejido) => (
                           <SelectItem key={tejido.id} value={tejido.id}>
                             {tejido.codigo} - ${tejido.precio_venta?.toLocaleString()}
