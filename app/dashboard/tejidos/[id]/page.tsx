@@ -339,65 +339,6 @@ export default function VerTejidoPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Cálculo Detallado */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Desglose de Cálculo</CardTitle>
-          <CardDescription>
-            Cómo se calcula el precio de este tejido
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm">
-                {tejido.peso_kg} kg × ${tejido.alambre_precio_kg?.toLocaleString()} (alambre)
-              </span>
-              <span className="font-bold">
-                ${(tejido.peso_kg * (tejido.alambre_precio_kg || 0)).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-center text-muted-foreground">
-              <span className="text-xl">+</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm">Mano de obra</span>
-              <span className="font-bold">${tejido.mano_obra?.toLocaleString()}</span>
-            </div>
-
-            <div className="border-t-2 border-dashed pt-3">
-              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <span className="font-semibold text-orange-900">Precio de Costo</span>
-                <span className="text-2xl font-bold text-orange-600">
-                  ${tejido.precio_costo?.toLocaleString() || 'N/A'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center text-muted-foreground">
-              <span className="text-xl">× {(1 + (tejido.margen_porcentaje || 30) / 100).toFixed(2)}</span>
-              <span className="text-sm ml-2">(+{tejido.margen_porcentaje || 30}% margen)</span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-2 border-green-300">
-              <span className="text-lg font-semibold text-green-900">Precio de Venta</span>
-              <span className="text-3xl font-bold text-green-600">
-                ${tejido.precio_venta?.toLocaleString() || 'N/A'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="font-medium text-blue-900">Precio por Metro Lineal</span>
-              <span className="text-xl font-bold text-blue-600">
-                ${tejido.precio_por_metro?.toLocaleString() || 'N/A'}/m
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
