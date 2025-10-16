@@ -54,13 +54,18 @@ export default function NuevoTejidoPage() {
   }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.margen_factura, formData.margen_tarjeta, formData.alambre_articulo_id])
 
   async function cargarAlambres() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('articulos')
       .select('id, nombre')
-      .ilike('nombre', '%Alambre Galvanizado Calibre%')
+      .or('nombre.ilike.%Alambre Galvanizado%,nombre.ilike.%alambre galvanizado%')
       .order('nombre')
 
-    setAlambres(data || [])
+    if (error) {
+      console.error('Error al cargar alambres:', error)
+    } else {
+      console.log('Alambres cargados:', data)
+      setAlambres(data || [])
+    }
   }
 
   function generarCodigo() {
