@@ -18,6 +18,7 @@ export default function NuevoTejidoPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [alambres, setAlambres] = useState<any[]>([])
+  const [precioAlambre, setPrecioAlambre] = useState(0)
   const [precioCalculado, setPrecioCalculado] = useState({ 
     costo: 0, 
     efectivo: 0, 
@@ -103,12 +104,16 @@ export default function NuevoTejidoPage() {
         const margenFactura = parseFloat(formData.margen_factura) || 57
         const margenTarjeta = parseFloat(formData.margen_tarjeta) || 65
 
+        setPrecioAlambre(precios.precio_costo)
+
         const costo = (pesoKg * precios.precio_costo) + manoObra
         const efectivo = costo * (1 + (margenEfectivo / 100))
         const lista = costo * (1 + (margenFactura / 100))
         const tarjeta = costo * (1 + (margenTarjeta / 100))
 
         setPrecioCalculado({ costo, efectivo, lista, tarjeta })
+      } else {
+        setPrecioAlambre(0)
       }
     } catch (error) {
       console.error('Error al calcular precio:', error)
@@ -340,6 +345,11 @@ export default function NuevoTejidoPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {precioAlambre > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Precio: ${precioAlambre.toLocaleString()}/kg
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -354,6 +364,21 @@ export default function NuevoTejidoPage() {
                     />
                   </div>
                 </div>
+
+                {/* Desglose del costo de alambre */}
+                {formData.alambre_articulo_id && formData.peso_kg && precioAlambre > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-sm text-blue-900 mb-2">Costo en Alambre:</h4>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-700">
+                        {formData.peso_kg} kg × ${precioAlambre.toLocaleString()}/kg
+                      </span>
+                      <span className="text-lg font-bold text-blue-900">
+                        = ${((parseFloat(formData.peso_kg) || 0) * precioAlambre).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="border-t pt-4 mt-4">
                   <h4 className="font-semibold mb-3">Márgenes de Ganancia (%)</h4>
