@@ -5,22 +5,28 @@
 -- Problema: Usuarios autenticados no ven artículos con publicado=false
 -- Solución: Permitir a usuarios autenticados ver TODOS los artículos
 
--- Eliminar política actual
+-- Eliminar todas las políticas SELECT existentes
 DROP POLICY IF EXISTS "lectura pública de artículos publicados" ON articulos;
 DROP POLICY IF EXISTS "lectura de articulos" ON articulos;
+DROP POLICY IF EXISTS "Articulos publicos visibles" ON articulos;
 
--- Crear nueva política que distingue entre autenticados y anónimos
-CREATE POLICY "lectura de articulos"
-ON articulos FOR SELECT 
-USING (
-  -- Usuarios NO autenticados (web pública): solo ven publicados
-  (auth.uid() IS NULL AND publicado = true) OR
-  -- Usuarios autenticados (dashboard): ven TODOS
-  (auth.uid() IS NOT NULL)
-);
+-- Política para usuarios ANÓNIMOS (web pública)
+CREATE POLICY "articulos_select_publico"
+ON articulos FOR SELECT
+TO anon
+USING (publicado = true);
 
-COMMENT ON POLICY "lectura de articulos" ON articulos IS 
-'Usuarios autenticados ven todos los artículos, usuarios anónimos solo los publicados';
+-- Política para usuarios AUTENTICADOS (dashboard)
+CREATE POLICY "articulos_select_autenticado"
+ON articulos FOR SELECT
+TO authenticated
+USING (true);  -- Ven TODOS los artículos
+
+COMMENT ON POLICY "articulos_select_publico" ON articulos IS 
+'Usuarios no autenticados solo ven artículos publicados';
+
+COMMENT ON POLICY "articulos_select_autenticado" ON articulos IS 
+'Usuarios autenticados ven todos los artículos sin restricciones';
 
 -- =====================================================
 -- Verificación
