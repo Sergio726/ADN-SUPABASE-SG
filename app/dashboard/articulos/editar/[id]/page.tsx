@@ -39,7 +39,10 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
     imagen_url: '',
     publicado: false,
     mostrar_precio_publico: false,
+    altura_compatible: '',
   })
+  
+  const [alturasSeleccionadas, setAlturasSeleccionadas] = useState<string[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,7 +66,17 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           imagen_url: articuloData.imagen_url || '',
           publicado: articuloData.publicado || false,
           mostrar_precio_publico: articuloData.mostrar_precio_publico || false,
+          altura_compatible: articuloData.altura_compatible || '',
         })
+        
+        // Pre-cargar alturas seleccionadas
+        if (articuloData.altura_compatible) {
+          if (articuloData.altura_compatible === 'todas') {
+            setAlturasSeleccionadas(['todas'])
+          } else {
+            setAlturasSeleccionadas(articuloData.altura_compatible.split(','))
+          }
+        }
       }
 
       // Cargar proveedores
@@ -95,6 +108,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           imagen_url: formData.imagen_url || null,
           publicado: formData.publicado,
           mostrar_precio_publico: formData.mostrar_precio_publico,
+          altura_compatible: formData.altura_compatible || null,
         })
         .eq('id', params.id)
 
@@ -348,6 +362,92 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                 }
                 disabled={!formData.publicado}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Altura Compatible (Opcional) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Compatibilidad con Cercado (Opcional)</CardTitle>
+            <CardDescription>
+              Indica para qué alturas de cercado es compatible este artículo
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label>Alturas Compatibles</Label>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="altura_todas"
+                    checked={alturasSeleccionadas.includes('todas')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setAlturasSeleccionadas(['todas'])
+                        setFormData({ ...formData, altura_compatible: 'todas' })
+                      } else {
+                        setAlturasSeleccionadas([])
+                        setFormData({ ...formData, altura_compatible: '' })
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="altura_todas" className="font-semibold">
+                    Todas las alturas
+                  </Label>
+                </div>
+
+                {!alturasSeleccionadas.includes('todas') && (
+                  <div className="grid grid-cols-2 gap-2 ml-6">
+                    {['1.0', '1.2', '1.5', '1.8', '2.0'].map((altura) => (
+                      <div key={altura} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`altura_${altura}`}
+                          checked={alturasSeleccionadas.includes(altura)}
+                          onChange={(e) => {
+                            let nuevas = [...alturasSeleccionadas]
+                            if (e.target.checked) {
+                              nuevas.push(altura)
+                            } else {
+                              nuevas = nuevas.filter(a => a !== altura)
+                            }
+                            setAlturasSeleccionadas(nuevas)
+                            setFormData({ 
+                              ...formData, 
+                              altura_compatible: nuevas.length > 0 ? nuevas.join(',') : '' 
+                            })
+                          }}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <Label htmlFor={`altura_${altura}`}>
+                          {altura} metros
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {formData.altura_compatible && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-900">
+                    <span className="font-semibold">Compatible con:</span>{' '}
+                    {formData.altura_compatible === 'todas' 
+                      ? 'Todas las alturas de cercado'
+                      : formData.altura_compatible.split(',').map(a => `${a}m`).join(', ')
+                    }
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                💡 Esto ayudará a filtrar artículos al crear presupuestos de cercado según la altura seleccionada.
+                Si no seleccionas nada, el artículo no aparecerá filtrado por altura (general).
+              </p>
             </div>
           </CardContent>
         </Card>
