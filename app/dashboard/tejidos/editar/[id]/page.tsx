@@ -22,7 +22,13 @@ export default function EditarTejidoPage() {
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [alambres, setAlambres] = useState<any[]>([])
-  const [precioCalculado, setPrecioCalculado] = useState({ costo: 0, venta: 0 })
+  const [precioAlambre, setPrecioAlambre] = useState(0)
+  const [precioCalculado, setPrecioCalculado] = useState({ 
+    costo: 0, 
+    efectivo: 0, 
+    lista: 0, 
+    tarjeta: 0 
+  })
 
   const [formData, setFormData] = useState({
     calibre: '',
@@ -32,7 +38,9 @@ export default function EditarTejidoPage() {
     mano_obra: '',
     horas_fabricacion: '',
     alambre_articulo_id: '',
-    margen_porcentaje: '30.00',
+    margen_efectivo: '45.00',
+    margen_factura: '57.00',
+    margen_tarjeta: '65.00',
     descripcion: '',
     activo: true,
   })
@@ -44,7 +52,7 @@ export default function EditarTejidoPage() {
 
   useEffect(() => {
     calcularPrecio()
-  }, [formData.peso_kg, formData.mano_obra, formData.margen_porcentaje, formData.alambre_articulo_id])
+  }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.margen_factura, formData.margen_tarjeta, formData.alambre_articulo_id])
 
   async function cargarAlambres() {
     const { data, error } = await supabase
@@ -107,7 +115,9 @@ export default function EditarTejidoPage() {
         mano_obra: (data.costo_mano_obra || data.mano_obra).toString(),
         horas_fabricacion: data.horas_fabricacion?.toString() || '',
         alambre_articulo_id: data.alambre_articulo_id?.toString() || '',
-        margen_porcentaje: (data.margen_efectivo || data.margen_porcentaje)?.toString() || '45.00',
+        margen_efectivo: (data.margen_efectivo)?.toString() || '45.00',
+        margen_factura: (data.margen_factura)?.toString() || '57.00',
+        margen_tarjeta: (data.margen_tarjeta)?.toString() || '65.00',
         descripcion: data.descripcion || '',
         activo: data.activo,
       })
@@ -125,7 +135,8 @@ export default function EditarTejidoPage() {
 
   async function calcularPrecio() {
     if (!formData.peso_kg || !formData.mano_obra || !formData.alambre_articulo_id) {
-      setPrecioCalculado({ costo: 0, venta: 0 })
+      setPrecioCalculado({ costo: 0, efectivo: 0, lista: 0, tarjeta: 0 })
+      setPrecioAlambre(0)
       return
     }
 
@@ -140,12 +151,20 @@ export default function EditarTejidoPage() {
       if (precios) {
         const pesoKg = parseFloat(formData.peso_kg) || 0
         const manoObra = parseFloat(formData.mano_obra) || 0
-        const margen = parseFloat(formData.margen_porcentaje) || 30
+        const margenEfectivo = parseFloat(formData.margen_efectivo) || 45
+        const margenFactura = parseFloat(formData.margen_factura) || 57
+        const margenTarjeta = parseFloat(formData.margen_tarjeta) || 65
+
+        setPrecioAlambre(precios.precio_costo)
 
         const costo = (pesoKg * precios.precio_costo) + manoObra
-        const venta = costo * (1 + (margen / 100))
+        const efectivo = costo * (1 + (margenEfectivo / 100))
+        const lista = costo * (1 + (margenFactura / 100))
+        const tarjeta = costo * (1 + (margenTarjeta / 100))
 
-        setPrecioCalculado({ costo, venta })
+        setPrecioCalculado({ costo, efectivo, lista, tarjeta })
+      } else {
+        setPrecioAlambre(0)
       }
     } catch (error) {
       console.error('Error al calcular precio:', error)
@@ -176,7 +195,9 @@ export default function EditarTejidoPage() {
         costo_mano_obra: parseFloat(formData.mano_obra),
         horas_fabricacion: formData.horas_fabricacion ? parseFloat(formData.horas_fabricacion) : null,
         alambre_articulo_id: parseInt(formData.alambre_articulo_id),
-        margen_efectivo: parseFloat(formData.margen_porcentaje),
+        margen_efectivo: parseFloat(formData.margen_efectivo),
+        margen_factura: parseFloat(formData.margen_factura),
+        margen_tarjeta: parseFloat(formData.margen_tarjeta),
         categoria_calidad,
         activo: formData.activo,
       }
@@ -425,6 +446,11 @@ export default function EditarTejidoPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {precioAlambre > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Precio: ${precioAlambre.toLocaleString()}/kg
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -440,16 +466,69 @@ export default function EditarTejidoPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="margen">Margen de Ganancia (%)</Label>
-                  <Input
-                    id="margen"
-                    type="number"
-                    step="0.01"
-                    value={formData.margen_porcentaje}
-                    onChange={(e) => setFormData({ ...formData, margen_porcentaje: e.target.value })}
-                    placeholder="30.00"
-                  />
+                {/* Desglose del costo de alambre */}
+                {formData.alambre_articulo_id && formData.peso_kg && precioAlambre > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-sm text-blue-900 mb-2">Costo en Alambre:</h4>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-700">
+                        {formData.peso_kg} kg × ${precioAlambre.toLocaleString()}/kg
+                      </span>
+                      <span className="text-lg font-bold text-blue-900">
+                        = ${((parseFloat(formData.peso_kg) || 0) * precioAlambre).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-semibold mb-3">Márgenes de Ganancia (%)</h4>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_efectivo">Efectivo</Label>
+                      <Input
+                        id="margen_efectivo"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_efectivo}
+                        onChange={(e) => setFormData({ ...formData, margen_efectivo: e.target.value })}
+                        placeholder="45.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio efectivo = Costo × 1.45
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_factura">Lista/Factura</Label>
+                      <Input
+                        id="margen_factura"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_factura}
+                        onChange={(e) => setFormData({ ...formData, margen_factura: e.target.value })}
+                        placeholder="57.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio lista = Costo × 1.57
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_tarjeta">Tarjeta</Label>
+                      <Input
+                        id="margen_tarjeta"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_tarjeta}
+                        onChange={(e) => setFormData({ ...formData, margen_tarjeta: e.target.value })}
+                        placeholder="65.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio tarjeta = Costo × 1.65
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -496,16 +575,12 @@ export default function EditarTejidoPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Peso:</span>
+                  <span className="text-muted-foreground">Alambre:</span>
                   <span className="font-medium">{formData.peso_kg || '0'} kg</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Mano de obra:</span>
                   <span className="font-medium">${parseFloat(formData.mano_obra || '0').toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Margen:</span>
-                  <span className="font-medium">{formData.margen_porcentaje || '30'}%</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Estado:</span>
@@ -517,23 +592,49 @@ export default function EditarTejidoPage() {
 
               <div className="border-t pt-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Precio Costo:</span>
-                  <span className="text-xl font-bold text-orange-600">
-                    ${precioCalculado.costo.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-sm font-medium">Costo:</span>
+                  <span className="text-xl font-bold text-gray-700">
+                    ${precioCalculado.costo.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Precio Venta:</span>
-                  <span className="text-2xl font-bold text-green-600">
-                    ${precioCalculado.venta.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+
+                <div className="bg-green-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-green-900">Efectivo ({formData.margen_efectivo}%):</span>
+                    <span className="text-lg font-bold text-green-600">
+                      ${precioCalculado.efectivo.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-green-700">Precio más bajo (sin factura)</p>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-blue-900">Lista ({formData.margen_factura}%):</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      ${precioCalculado.lista.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-700">Con factura</p>
+                </div>
+
+                <div className="bg-purple-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-purple-900">Tarjeta ({formData.margen_tarjeta}%):</span>
+                    <span className="text-lg font-bold text-purple-600">
+                      ${precioCalculado.tarjeta.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-700">Pago con tarjeta</p>
                 </div>
               </div>
 
               <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
-                <p className="font-medium mb-1">Fórmula:</p>
-                <p>Costo = (Peso × Precio Alambre) + Mano de Obra</p>
-                <p>Venta = Costo × (1 + Margen/100)</p>
+                <p className="font-medium mb-1">Fórmulas:</p>
+                <p>• Costo = (Alambre kg × Precio/kg) + Mano de Obra</p>
+                <p>• Efectivo = Costo × (1 + {formData.margen_efectivo}/100)</p>
+                <p>• Lista = Costo × (1 + {formData.margen_factura}/100)</p>
+                <p>• Tarjeta = Costo × (1 + {formData.margen_tarjeta}/100)</p>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs">
@@ -549,4 +650,5 @@ export default function EditarTejidoPage() {
     </div>
   )
 }
+
 
