@@ -77,7 +77,7 @@ export default function EditarTejidoPage() {
 
       setFormData({
         calibre: data.calibre.toString(),
-        altura: data.altura.toString(),
+        altura: parseFloat(data.altura).toFixed(2),
         tamano_rombo: data.tamano_rombo.toString(),
         peso_kg: (data.cantidad_alambre || data.peso_kg).toString(),
         mano_obra: (data.costo_mano_obra || data.mano_obra).toString(),
