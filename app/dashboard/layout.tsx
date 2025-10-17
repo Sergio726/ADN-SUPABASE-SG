@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut, Grid3x3, FileText, Users, Shield } from 'lucide-react'
+import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut, Grid3x3, FileText, Users, Shield, Settings } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 
 export default function DashboardLayout({
@@ -56,6 +56,7 @@ export default function DashboardLayout({
     { name: 'Precios', href: '/dashboard/precios', icon: DollarSign },
     { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
     { name: 'Leads', href: '/dashboard/leads', icon: Mail },
+    { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
   ]
 
   return (

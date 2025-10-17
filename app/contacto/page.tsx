@@ -1,8 +1,75 @@
+'use client'
+
+import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ContactoPage() {
+  const { toast } = useToast()
+  const [enviando, setEnviando] = useState(false)
+  const [formData, setFormData] = useState({
+    nombre: '',
+    email: '',
+    telefono: '',
+    empresa: '',
+    tipoCliente: 'particular',
+    mensaje: '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEnviando(true)
+
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'contacto',
+          datos: formData,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: '✅ ¡Mensaje enviado!',
+          description: 'Nos comunicaremos contigo en menos de 24hs. ¡Gracias por tu consulta!',
+        })
+        
+        // Limpiar formulario
+        setFormData({
+          nombre: '',
+          email: '',
+          telefono: '',
+          empresa: '',
+          tipoCliente: 'particular',
+          mensaje: '',
+        })
+      } else {
+        throw new Error(result.error || 'Error al enviar el mensaje')
+      }
+    } catch (error: any) {
+      console.error('Error:', error)
+      toast({
+        title: '❌ Error al enviar',
+        description: error.message || 'No se pudo enviar el mensaje. Por favor, intenta más tarde o contactanos por WhatsApp.',
+        variant: 'destructive',
+      })
+    } finally {
+      setEnviando(false)
+    }
+  }
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -37,7 +104,7 @@ export default function ContactoPage() {
                     <span className="text-brand-red font-semibold"> ¡Respuesta en menos de 24hs!</span>
                   </p>
 
-                  <form className="space-y-5">
+                  <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                       <label htmlFor="nombre" className="block text-sm font-semibold text-gray-700 mb-2">
                         Nombre completo *
@@ -47,6 +114,8 @@ export default function ContactoPage() {
                         id="nombre"
                         name="nombre"
                         required
+                        value={formData.nombre}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all"
                         placeholder="Tu nombre"
                       />
@@ -62,6 +131,8 @@ export default function ContactoPage() {
                           id="email"
                           name="email"
                           required
+                          value={formData.email}
+                          onChange={handleChange}
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all"
                           placeholder="tu@email.com"
                         />
@@ -76,6 +147,8 @@ export default function ContactoPage() {
                           id="telefono"
                           name="telefono"
                           required
+                          value={formData.telefono}
+                          onChange={handleChange}
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all"
                           placeholder="+54 9..."
                         />
@@ -90,27 +163,27 @@ export default function ContactoPage() {
                         type="text"
                         id="empresa"
                         name="empresa"
+                        value={formData.empresa}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all"
                         placeholder="Nombre de tu empresa"
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="asunto" className="block text-sm font-semibold text-gray-700 mb-2">
-                        ¿Qué necesitás? *
+                      <label htmlFor="tipoCliente" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Tipo de Cliente *
                       </label>
                       <select
-                        id="asunto"
-                        name="asunto"
+                        id="tipoCliente"
+                        name="tipoCliente"
                         required
+                        value={formData.tipoCliente}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all"
                       >
-                        <option value="">Seleccioná una opción</option>
-                        <option value="presupuesto">Presupuesto de materiales</option>
-                        <option value="instalacion">Instalación de cercos</option>
-                        <option value="asesoramiento">Asesoramiento técnico</option>
-                        <option value="productos">Consulta sobre productos</option>
-                        <option value="otro">Otro</option>
+                        <option value="particular">🏠 Particular</option>
+                        <option value="empresa">🏢 Empresa</option>
                       </select>
                     </div>
 
@@ -123,6 +196,8 @@ export default function ContactoPage() {
                         name="mensaje"
                         rows={5}
                         required
+                        value={formData.mensaje}
+                        onChange={handleChange}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent transition-all resize-none"
                         placeholder="Describinos qué necesitás, medidas aproximadas, ubicación, etc."
                       />
@@ -130,9 +205,10 @@ export default function ContactoPage() {
 
                     <button
                       type="submit"
-                      className="w-full bg-brand-red text-white py-4 rounded-lg font-bold text-lg hover:bg-brand-darkred transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all"
+                      disabled={enviando}
+                      className="w-full bg-brand-red text-white py-4 rounded-lg font-bold text-lg hover:bg-brand-darkred transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      📬 Enviar consulta
+                      {enviando ? 'Enviando...' : '📬 Enviar consulta'}
                     </button>
 
                     <p className="text-sm text-gray-500 text-center">
