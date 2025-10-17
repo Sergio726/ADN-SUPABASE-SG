@@ -129,130 +129,49 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Segmentación Empresas vs Particulares */}
-      <section className="py-16 bg-white">
+      {/* Productos Destacados */}
+      <section id="productos" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
-            ¿Qué tipo de proyecto tenés?
-          </h2>
-          
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Para Empresas */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl border-2 border-blue-200 hover:border-blue-400 transition-all hover:shadow-xl">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-blue-500 p-4 rounded-xl">
-                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-blue-900">Para Empresas</h3>
-                  <p className="text-blue-700">Grandes proyectos y volumen</p>
-                </div>
-              </div>
-              
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Factura A</strong> - Inscriptos y habilitados
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Cheques diferidos</strong> - 45, 60 y 90 días
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Cercos Olímpicos</strong> - Máxima seguridad
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Precios por volumen</strong> - Descuentos especiales
-                  </div>
-                </li>
-              </ul>
-              
-              <a 
-                href="/contacto?tipo=empresa"
-                className="block w-full bg-blue-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Solicitar Cotización Empresarial
-              </a>
-            </div>
-
-            {/* Para Particulares */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-2xl border-2 border-green-200 hover:border-green-400 transition-all hover:shadow-xl">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-green-500 p-4 rounded-xl">
-                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-green-900">Para Particulares</h3>
-                  <p className="text-green-700">Tu casa, tu tranquilidad</p>
-                </div>
-              </div>
-              
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Tejido Romboidal</strong> - Fabricación propia
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Envío gratis</strong> - En toda la ciudad de Salta
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Asesoramiento técnico</strong> - Te ayudamos a elegir
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <strong>Instalación disponible</strong> - Servicio completo
-                  </div>
-                </li>
-              </ul>
-              
-              <a 
-                href="https://wa.me/5493874773393?text=Hola! Quiero comprar tejido romboidal"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full bg-green-600 text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-              >
-                Consultar por WhatsApp
-              </a>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Nuestros Productos Destacados
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Tejido romboidal de fabricación propia y materiales de primera calidad para tu proyecto
+            </p>
           </div>
+
+          {articulos.length > 0 ? (
+            <>
+              {/* Mostrar solo primeros 6 productos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {articulos.slice(0, 6).map((articulo) => (
+                  <ArticuloCard 
+                    key={articulo.id} 
+                    articulo={articulo} 
+                    showPrice={true}
+                  />
+                ))}
+              </div>
+              
+              {articulos.length > 6 && (
+                <div className="text-center">
+                  <a 
+                    href="#productos"
+                    className="inline-block bg-brand-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
+                  >
+                    Ver Todo el Catálogo ({articulos.length} productos)
+                  </a>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">
+                Estamos actualizando nuestro catálogo...
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -325,54 +244,135 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Productos Destacados */}
-      <section id="productos" className="py-20 bg-white">
+      {/* Segmentación Empresas vs Particulares */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Nuestros Productos Destacados
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Tejido romboidal de fabricación propia y materiales de primera calidad para tu proyecto
-            </p>
-          </div>
-
-          {articulos.length > 0 ? (
-            <>
-              {/* Mostrar solo primeros 6 productos */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {articulos.slice(0, 6).map((articulo) => (
-                  <ArticuloCard 
-                    key={articulo.id} 
-                    articulo={articulo} 
-                    showPrice={true}
-                  />
-                ))}
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+            ¿Qué tipo de proyecto tenés?
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Para Empresas */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-8 rounded-2xl border-2 border-red-200 hover:border-brand-red transition-all hover:shadow-xl">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-brand-red p-4 rounded-xl">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Para Empresas</h3>
+                  <p className="text-gray-700">Grandes proyectos y volumen</p>
+                </div>
               </div>
               
-              {articulos.length > 6 && (
-                <div className="text-center">
-                  <a 
-                    href="#productos"
-                    className="inline-block bg-brand-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
-                  >
-                    Ver Todo el Catálogo ({articulos.length} productos)
-                  </a>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">
-                Estamos actualizando nuestro catálogo...
-              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Factura A</strong> - Inscriptos y habilitados
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Cheques diferidos</strong> - 45, 60 y 90 días
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Cercos Olímpicos</strong> - Máxima seguridad
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Precios por volumen</strong> - Descuentos especiales
+                  </div>
+                </li>
+              </ul>
+              
+              <a 
+                href="/contacto?tipo=empresa"
+                className="block w-full bg-brand-red text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
+              >
+                Solicitar Cotización Empresarial
+              </a>
             </div>
-          )}
+
+            {/* Para Particulares */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-8 rounded-2xl border-2 border-red-200 hover:border-brand-red transition-all hover:shadow-xl">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-brand-darkred p-4 rounded-xl">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Para Particulares</h3>
+                  <p className="text-gray-700">Tu casa, tu tranquilidad</p>
+                </div>
+              </div>
+              
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Tejido Romboidal</strong> - Fabricación propia
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Envío gratis</strong> - En toda la ciudad de Salta
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Asesoramiento técnico</strong> - Te ayudamos a elegir
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-brand-red flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <strong>Instalación disponible</strong> - Servicio completo
+                  </div>
+                </li>
+              </ul>
+              
+              <a 
+                href="https://wa.me/5493874773393?text=Hola! Quiero comprar tejido romboidal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-brand-darkred text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-red-900 transition-colors"
+              >
+                Consultar por WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Nuestros Servicios */}
-      <section className="py-20 bg-gray-900 text-white">
+      <section className="py-20 bg-gradient-to-br from-brand-red to-brand-darkred text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -385,13 +385,13 @@ export default async function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Servicio 1 */}
-            <div className="bg-gray-800 p-8 rounded-xl hover:bg-gray-700 transition-all">
+            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
               <div className="text-5xl mb-4">🏭</div>
               <h3 className="text-2xl font-bold mb-4">Fabricación de Tejido</h3>
-              <p className="text-gray-300 mb-4">
+              <p className="text-white/90 mb-4">
                 Producimos rollos de tejido romboidal en diferentes alturas y calibres. Calidad superior a precio de fábrica.
               </p>
-              <ul className="space-y-2 text-gray-400 text-sm">
+              <ul className="space-y-2 text-white/80 text-sm">
                 <li>✓ Calibre 12 y 14</li>
                 <li>✓ Alturas de 1m a 2m</li>
                 <li>✓ Rombos de 2&quot; a 3.5&quot;</li>
@@ -400,13 +400,13 @@ export default async function HomePage() {
             </div>
 
             {/* Servicio 2 */}
-            <div className="bg-gray-800 p-8 rounded-xl hover:bg-gray-700 transition-all">
+            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
               <div className="text-5xl mb-4">🔨</div>
               <h3 className="text-2xl font-bold mb-4">Instalación Completa</h3>
-              <p className="text-gray-300 mb-4">
+              <p className="text-white/90 mb-4">
                 Servicio &quot;llave en mano&quot; con todo incluido. Vos solo indicás dónde y nosotros hacemos todo el resto.
               </p>
-              <ul className="space-y-2 text-gray-400 text-sm">
+              <ul className="space-y-2 text-white/80 text-sm">
                 <li>✓ Medición del terreno</li>
                 <li>✓ Todos los materiales</li>
                 <li>✓ Mano de obra especializada</li>
@@ -415,13 +415,13 @@ export default async function HomePage() {
             </div>
 
             {/* Servicio 3 */}
-            <div className="bg-gray-800 p-8 rounded-xl hover:bg-gray-700 transition-all">
+            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
               <div className="text-5xl mb-4">💬</div>
               <h3 className="text-2xl font-bold mb-4">Asesoramiento Técnico</h3>
-              <p className="text-gray-300 mb-4">
+              <p className="text-white/90 mb-4">
                 Te ayudamos a elegir el cerco ideal según tu necesidad, presupuesto y tipo de terreno.
               </p>
-              <ul className="space-y-2 text-gray-400 text-sm">
+              <ul className="space-y-2 text-white/80 text-sm">
                 <li>✓ Atención personalizada</li>
                 <li>✓ Visita al terreno</li>
                 <li>✓ Presupuesto sin cargo</li>
@@ -528,7 +528,7 @@ export default async function HomePage() {
             {/* Formulario */}
             <a
               href="/contacto"
-              className="bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-xl shadow-xl transition-all hover:scale-105 transform text-center group"
+              className="bg-brand-darkred hover:bg-red-900 text-white p-8 rounded-xl shadow-xl transition-all hover:scale-105 transform text-center group"
             >
               <svg className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
