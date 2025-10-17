@@ -66,7 +66,7 @@ BEGIN
   FROM precios_venta pv
   WHERE pv.articulo_id = p_alambre_articulo_id
     AND pv.vigente = true
-  ORDER BY pv.fecha_desde DESC
+  ORDER BY pv.fecha_inicio DESC
   LIMIT 1;
   
   -- Si no hay precio, usar 0
