@@ -1,3 +1,6 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import ArticuloCard from '@/components/ArticuloCard'
 import Navbar from '@/components/Navbar'
@@ -5,37 +8,46 @@ import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import Link from 'next/link'
 
-async function getArticulosConPrecios() {
-  const { data: articulos, error } = await supabase
-    .from('articulos')
-    .select(`
-      *,
-      precios_venta(precio_venta, vigente)
-    `)
-    .eq('publicado', true)  // Solo artículos publicados
-    .order('nombre')
+export default function HomePage() {
+  const [articulos, setArticulos] = useState<any[]>([])
+  const [mostrarTodos, setMostrarTodos] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  if (error) {
-    console.error('Error al cargar artículos:', error)
-    return []
-  }
+  useEffect(() => {
+    async function cargarArticulos() {
+      const { data: articulosData, error } = await supabase
+        .from('articulos')
+        .select(`
+          *,
+          precios_venta(precio_venta, vigente)
+        `)
+        .eq('publicado', true)
+        .order('nombre')
 
-  return articulos?.map((articulo: any) => {
-    // Buscar el precio vigente
-    const precioVigente = articulo.precios_venta?.find((p: any) => p.vigente === true)
-    
-    return {
-      ...articulo,
-      // Solo mostrar precio si mostrar_precio_publico es true Y hay precio vigente
-      precio: articulo.mostrar_precio_publico && precioVigente ? precioVigente.precio_venta : null,
+      if (error) {
+        console.error('Error al cargar artículos:', error)
+        setLoading(false)
+        return
+      }
+
+      const articulosConPrecios = articulosData?.map((articulo: any) => {
+        const precioVigente = articulo.precios_venta?.find((p: any) => p.vigente === true)
+        
+        return {
+          ...articulo,
+          precio: articulo.mostrar_precio_publico && precioVigente ? precioVigente.precio_venta : null,
+        }
+      }) || []
+
+      console.log('Artículos cargados en home:', articulosConPrecios.length)
+      setArticulos(articulosConPrecios)
+      setLoading(false)
     }
-  }) || []
-}
 
-export default async function HomePage() {
-  const articulos = await getArticulosConPrecios()
-  
-  console.log('Artículos cargados en home:', articulos.length)
+    cargarArticulos()
+  }, [])
+
+  const articulosMostrar = mostrarTodos ? articulos : articulos.slice(0, 6)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -141,11 +153,14 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {articulos.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">Cargando productos...</p>
+            </div>
+          ) : articulos.length > 0 ? (
             <>
-              {/* Mostrar solo primeros 6 productos */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {articulos.slice(0, 6).map((articulo) => (
+                {articulosMostrar.map((articulo) => (
                   <ArticuloCard 
                     key={articulo.id} 
                     articulo={articulo} 
@@ -156,12 +171,15 @@ export default async function HomePage() {
               
               {articulos.length > 6 && (
                 <div className="text-center">
-                  <a 
-                    href="#productos"
+                  <button 
+                    onClick={() => setMostrarTodos(!mostrarTodos)}
                     className="inline-block bg-brand-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
                   >
-                    Ver Todo el Catálogo ({articulos.length} productos)
-                  </a>
+                    {mostrarTodos 
+                      ? 'Ver Menos' 
+                      : `Ver Todo el Catálogo (${articulos.length} productos)`
+                    }
+                  </button>
                 </div>
               )}
             </>
