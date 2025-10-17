@@ -187,7 +187,7 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
             {/* Garantía 90 días */}
             <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -211,6 +211,19 @@ export default async function HomePage() {
               <h3 className="text-xl font-bold text-center mb-3">Fabricación Propia</h3>
               <p className="text-gray-600 text-center">
                 Producimos nuestro propio tejido romboidal - Calidad y precio directo de fábrica
+              </p>
+            </div>
+
+            {/* Entrega Rápida */}
+            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
+              <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-center mb-3">Entrega Rápida</h3>
+              <p className="text-gray-600 text-center">
+                Stock permanente y envío gratis en Salta - Recibí tu pedido en tiempo récord
               </p>
             </div>
 
