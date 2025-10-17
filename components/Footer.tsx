@@ -11,7 +11,7 @@ export default function Footer() {
               />
             <p className="text-gray-400 max-w-md">
               Fabricación, instalación y suministro de cercos de calidad. 
-              Más de 30 años de experiencia en el mercado.
+              Más de 6 años de experiencia en el mercado.
             </p>
             <div className="flex space-x-4 mt-4">
               <a 
@@ -44,7 +44,7 @@ export default function Footer() {
                 <span className="mr-2">📞</span>
                 <div>
                   <a href="tel:+5493874773393" className="hover:text-white font-semibold">+54 9 3874 77-3393</a><br/>
-                  <a href="tel:+5493875359782" className="hover:text-white text-sm">+54 9387 535-9782</a>
+                  
                 </div>
               </li>
               <li className="flex items-start">

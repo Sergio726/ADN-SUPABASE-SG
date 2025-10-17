@@ -16,7 +16,7 @@ export default function ContactoPage() {
             </h1>
             <p className="text-xl text-gray-100 max-w-2xl mx-auto">
               Contanos qué necesitás y nuestro equipo te asesorará con la mejor solución. 
-              Más de 30 años nos respaldan.
+              Más de 6 años nos respaldan.
             </p>
           </div>
         </section>
@@ -205,9 +205,6 @@ export default function ContactoPage() {
                           <a href="tel:+5493874773393" className="hover:text-brand-red transition-colors">
                             +54 9 3874 77-3393
                           </a><br/>
-                          <a href="tel:+5493875359782" className="hover:text-brand-red transition-colors">
-                            +54 9387 535-9782
-                          </a>
                         </p>
                       </div>
                     </div>
@@ -221,10 +218,10 @@ export default function ContactoPage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
                         <a 
-                          href="mailto:amiranda@alambresdelnortesrl.com.ar" 
+                          href="mailto:info@alambresdelnortesrl.com.ar" 
                           className="text-gray-700 hover:text-brand-red transition-colors break-all"
                         >
-                          amiranda@alambresdelnortesrl.com.ar
+                          info@alambresdelnortesrl.com.ar
                         </a>
                       </div>
                     </div>

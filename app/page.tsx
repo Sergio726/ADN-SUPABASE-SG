@@ -50,7 +50,7 @@ export default async function HomePage() {
               Fabricamos, instalamos y suministramos cercos de calidad
             </p>
             <p className="text-lg mb-8 max-w-3xl mx-auto">
-              Con más de 30 años de experiencia en el mercado, ofrecemos soluciones 
+              Con más de 6 años de experiencia en el mercado, ofrecemos soluciones 
               completas para cercado perimetral, rural y urbano. Calidad garantizada 
               y servicio profesional.
             </p>
