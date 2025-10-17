@@ -34,6 +34,8 @@ async function getArticulosConPrecios() {
 
 export default async function HomePage() {
   const articulos = await getArticulosConPrecios()
+  
+  console.log('Artículos cargados en home:', articulos.length)
 
   return (
     <div className="min-h-screen flex flex-col">
