@@ -4,7 +4,8 @@
 
 -- Eliminar trigger problemático si existe
 DROP TRIGGER IF EXISTS trigger_actualizar_precios_tejidos ON precios_venta;
-DROP FUNCTION IF EXISTS trigger_actualizar_precios_tejidos();
+DROP TRIGGER IF EXISTS trg_actualizar_precios_tejidos ON precios_venta;
+DROP FUNCTION IF EXISTS trigger_actualizar_precios_tejidos() CASCADE;
 
 -- Crear versión corregida del trigger
 CREATE OR REPLACE FUNCTION trigger_actualizar_precios_tejidos()
