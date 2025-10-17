@@ -187,7 +187,7 @@ export default function ContactoPage() {
                         <h3 className="font-semibold text-gray-900 mb-1">Dirección</h3>
                         <p className="text-gray-700">
                           Gral. Arias Rangel 320<br/>
-                          (Altura Zuvirí al 2000)<br/>
+                          (Altura Zuviría al 2000)<br/>
                           Salta Capital, Argentina
                         </p>
                       </div>
@@ -235,8 +235,8 @@ export default function ContactoPage() {
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">Horarios</h3>
                         <p className="text-gray-700">
-                          <strong>Lunes a Viernes:</strong> 8:00 - 18:00<br/>
-                          <strong>Sábados:</strong> 8:00 - 13:00<br/>
+                          <strong>Lunes a Viernes:</strong> 10:00 - 14:00<br/>
+                          <strong>Sábados:</strong> 10:00 - 13:00<br/>
                           <strong>Domingos:</strong> Cerrado
                         </p>
                       </div>

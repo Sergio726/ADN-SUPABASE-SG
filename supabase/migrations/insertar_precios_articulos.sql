@@ -4,9 +4,6 @@
 -- Generado automáticamente desde Articulos.xlsx
 -- Fecha: 2025-10-17
 
--- Desactivar triggers temporalmente
-ALTER TABLE precios_venta DISABLE TRIGGER ALL;
-
 -- Desactivar todos los precios vigentes actuales
 UPDATE precios_venta SET vigente = false WHERE vigente = true;
 
@@ -305,9 +302,6 @@ SELECT id, 40955.95041322314, 63829.029599999994, true, CURRENT_DATE
 FROM articulos
 WHERE nombre = 'Concertinas 30cm x 10 mt'
 LIMIT 1;
-
--- Reactivar triggers
-ALTER TABLE precios_venta ENABLE TRIGGER ALL;
 
 -- Verificar
 SELECT 
