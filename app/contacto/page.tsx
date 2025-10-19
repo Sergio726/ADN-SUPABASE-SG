@@ -208,7 +208,7 @@ export default function ContactoPage() {
                       disabled={enviando}
                       className="w-full bg-brand-red text-white py-4 rounded-lg font-bold text-lg hover:bg-brand-darkred transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {enviando ? 'Enviando...' : '📬 Enviar consulta'}
+                      {enviando ? 'Enviando...' : 'Enviar consulta'}
                     </button>
 
                     <p className="text-sm text-gray-500 text-center">
@@ -248,7 +248,7 @@ export default function ContactoPage() {
                 {/* Información de contacto */}
                 <div className="bg-gray-50 rounded-xl p-8">
                   <h2 className="text-2xl font-bold text-brand-black mb-6">
-                    📍 Visitanos en nuestras oficinas
+                    Visitanos en nuestras oficinas
                   </h2>
 
                   <div className="space-y-6">
@@ -324,7 +324,7 @@ export default function ContactoPage() {
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                   <div className="p-6 bg-brand-red text-white">
                     <h3 className="text-xl font-bold">¿Cómo llegar?</h3>
-                    <p className="text-sm mt-1">Estamos ubicados en el corazón de Salta</p>
+                    <p className="text-sm mt-1">Estamos ubicados en el norte de Salta</p>
                   </div>
                   <div className="relative h-96">
                     <iframe

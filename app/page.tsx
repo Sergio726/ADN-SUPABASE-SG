@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import ArticuloCard from '@/components/ArticuloCard'
 import Navbar from '@/components/Navbar'
@@ -12,6 +12,9 @@ export default function HomePage() {
   const [articulos, setArticulos] = useState<any[]>([])
   const [mostrarTodos, setMostrarTodos] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [newsletterLoading, setNewsletterLoading] = useState(false)
+  const [newsletterMessage, setNewsletterMessage] = useState('')
+  const newsletterFormRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     async function cargarArticulos() {
@@ -49,6 +52,53 @@ export default function HomePage() {
 
   const articulosMostrar = mostrarTodos ? articulos : articulos.slice(0, 6)
 
+  const handleNewsletterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setNewsletterLoading(true)
+    setNewsletterMessage('')
+    console.log('Iniciando envío de formulario...')
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const telefono = formData.get('telefono') as string
+    console.log('Datos del formulario:', { email, telefono })
+
+    try {
+      const response = await fetch('/api/suscribirse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          telefono: telefono || null,
+        }),
+      })
+
+      const result = await response.json()
+      console.log('Respuesta del servidor:', { response: response.ok, result })
+
+      if (response.ok && result.success) {
+        console.log('Éxito - mostrando mensaje:', result.data.mensaje)
+        setNewsletterMessage(result.data.mensaje)
+        // Reset del formulario usando ref
+        if (newsletterFormRef.current) {
+          newsletterFormRef.current.reset()
+        }
+      } else {
+        console.log('Error - mostrando mensaje de error')
+        setNewsletterMessage(result.error || 'Error al suscribirse')
+      }
+    } catch (error) {
+      console.error('Error en catch:', error)
+      console.error('Tipo de error:', typeof error)
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+      setNewsletterMessage('Error al suscribirse. Intenta nuevamente.')
+    } finally {
+      setNewsletterLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -69,21 +119,35 @@ export default function HomePage() {
               <svg className="w-5 h-5 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              <span className="text-white font-semibold">Sabemos que no somos los únicos, por eso decidimos ser los mejores</span>
+              <span className="text-white font-semibold">Como no somos los únicos, decidimos ser los mejores</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Cercado Perimetral<br />
-              <span className="text-yellow-300">Llave en Mano</span>
+              <span className="text-transparent" style={{ textShadow: '1px 1px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff' }}>CERCADO PERIMETRAL</span><br />
+              <span className="text-transparent" style={{ textShadow: '1px 1px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff' }}>LLAVE EN MANO</span>
             </h1>
             
-            <p className="text-xl md:text-2xl mb-4 max-w-3xl mx-auto font-light">
-              Fabricación propia • Instalación profesional • Garantía 90 días
-            </p>
+            <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8 mb-4 max-w-4xl mx-auto">
+              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
+                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Fabricación propia</span>
+              </div>
+              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
+                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Instalación profesional</span>
+              </div>
+              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
+                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Garantía 90 días</span>
+              </div>
+            </div>
             
-            <p className="text-lg mb-8 max-w-2xl mx-auto text-white/90">
-              <strong>6 años de experiencia</strong> en Salta y Jujuy. Servicio completo para <strong>empresas</strong> (Factura A, cheques diferidos) y <strong>particulares</strong>.
-            </p>
 
             {/* CTAs principales */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -109,34 +173,6 @@ export default function HomePage() {
                 Llamar Ahora
               </a>
             </div>
-
-            {/* Badges de confianza */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-white/80">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Factura A
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Cheques Diferidos
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Envío Gratis Salta
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Garantía 90 días
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -146,7 +182,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Nuestros Productos Destacados
+              Productos Destacados
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Tejido romboidal de fabricación propia y materiales de primera calidad para tu proyecto
@@ -496,32 +532,108 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
             <div className="text-center mb-8">
+              <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-12 h-12 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
+              </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                📬 Recibí Promociones y Novedades
+                Recibí Promociones y Novedades
               </h2>
-              <p className="text-lg text-gray-600">
+              <p className="text-lg text-gray-600 mb-2">
                 Suscribite y enterate de ofertas exclusivas, nuevos productos y consejos técnicos
               </p>
+              <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6 mb-6 shadow-lg animate-pulse">
+                <div className="flex items-center justify-center gap-3 text-green-800 mb-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"/>
+                    </svg>
+                  </div>
+                  <span className="text-xl font-bold">¡BONUS ESPECIAL!</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-green-700 mb-2">
+                    💰 Recibí <span className="text-2xl text-green-600">10% DE DESCUENTO</span> en tu primera compra
+                  </p>
+                  <p className="text-sm text-green-600 font-medium">
+                    Solo por suscribirte con tu teléfono
+                  </p>
+                </div>
+              </div>
             </div>
             
-            <form className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-              <input
-                type="email"
-                placeholder="tu@email.com"
-                className="flex-1 px-6 py-4 rounded-lg border-2 border-gray-300 focus:border-brand-red focus:outline-none text-lg"
-                required
-              />
+            <form ref={newsletterFormRef} onSubmit={handleNewsletterSubmit} className="max-w-lg mx-auto">
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-3">
+                    Email *
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    className="w-full px-6 py-4 rounded-lg border-2 border-gray-300 focus:border-brand-red focus:outline-none text-lg"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-3">
+                    Teléfono (opcional)
+                  </label>
+                  <input
+                    id="telefono"
+                    name="telefono"
+                    type="tel"
+                    placeholder="+54 9 387 123-4567"
+                    className="w-full px-6 py-4 rounded-lg border-2 border-gray-300 focus:border-brand-red focus:outline-none text-lg"
+                  />
+                  <p className="text-sm text-green-600 font-medium mt-2 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Agregá tu teléfono para recibir el 10% de descuento
+                  </p>
+                </div>
+              </div>
+              
+              {newsletterMessage && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  newsletterMessage.includes('descuento') 
+                    ? 'bg-green-50 border border-green-200 text-green-800' 
+                    : newsletterMessage.includes('Error') || newsletterMessage.includes('error')
+                    ? 'bg-red-50 border border-red-200 text-red-800'
+                    : 'bg-blue-50 border border-blue-200 text-blue-800'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">{newsletterMessage}</span>
+                  </div>
+                </div>
+              )}
+              
               <button
                 type="submit"
-                className="bg-brand-red text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-darkred transition-colors text-lg shadow-lg whitespace-nowrap"
+                disabled={newsletterLoading}
+                className="w-full bg-brand-red text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-darkred transition-colors text-lg shadow-lg mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Suscribirme Gratis
+                {newsletterLoading ? 'Suscribiendo...' : 'Suscribirme Gratis'}
               </button>
             </form>
             
-            <p className="text-sm text-gray-500 text-center mt-4">
-              🔒 No spam. Cancelá cuando quieras.
-            </p>
+            <div className="text-center mt-6">
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>No spam. Cancelá cuando quieras.</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

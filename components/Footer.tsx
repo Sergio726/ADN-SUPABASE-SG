@@ -15,7 +15,7 @@ export default function Footer() {
             </p>
             <div className="flex space-x-4 mt-4">
               <a 
-                href="https://www.instagram.com/alambresdelnorte/" 
+                href="https://www.instagram.com/alambresdelnorte.salta/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-brand-red transition-colors"
@@ -25,7 +25,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a 
-                href="https://www.facebook.com/alambresdelnorte" 
+                href="https://www.facebook.com/alambresdelnorte.salta" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-brand-red transition-colors"
@@ -63,8 +63,8 @@ export default function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4 text-brand-red">Horarios</h4>
             <ul className="space-y-2 text-gray-400">
-              <li>Lunes a Viernes<br/><span className="text-white">8:00 - 18:00</span></li>
-              <li>Sábados<br/><span className="text-white">8:00 - 13:00</span></li>
+              <li>Lunes a Viernes<br/><span className="text-white">10:00 - 14:00</span></li>
+              <li>Sábados<br/><span className="text-white">10:00 - 13:00</span></li>
               <li>Domingos<br/><span className="text-white">Cerrado</span></li>
             </ul>
           </div>
