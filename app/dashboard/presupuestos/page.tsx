@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function PresupuestosPage() {
-  const [presupuestos, setPresupuestos] = useState([])
+  const [presupuestos, setPresupuestos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
@@ -70,7 +70,7 @@ export default function PresupuestosPage() {
   const columns = [
     {
       accessorKey: 'numero',
-      header: ({ column }: any) => <SortableHeader column={column} label="Número" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Número" />,
       cell: ({ row }: any) => (
         <div className="font-mono font-semibold">{row.original.numero}</div>
       ),
@@ -86,7 +86,7 @@ export default function PresupuestosPage() {
     },
     {
       accessorKey: 'cliente_nombre',
-      header: ({ column }: any) => <SortableHeader column={column} label="Cliente" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Cliente" />,
       cell: ({ row }: any) => (
         <div>
           <div className="font-medium">{row.original.cliente_nombre}</div>
@@ -98,7 +98,7 @@ export default function PresupuestosPage() {
     },
     {
       accessorKey: 'fecha_emision',
-      header: ({ column }: any) => <SortableHeader column={column} label="Fecha" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Fecha" />,
       cell: ({ row }: any) => (
         <div className="text-sm">
           {new Date(row.original.fecha_emision).toLocaleDateString('es-AR', {
@@ -111,7 +111,7 @@ export default function PresupuestosPage() {
     },
     {
       accessorKey: 'total',
-      header: ({ column }: any) => <SortableHeader column={column} label="Total" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Total" />,
       cell: ({ row }: any) => (
         <span className="font-bold text-green-600">
           ${row.original.total?.toLocaleString() || '0'}

@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState([])
+  const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
@@ -72,7 +72,7 @@ export default function ClientesPage() {
   const columns = [
     {
       accessorKey: 'numero_documento',
-      header: ({ column }: any) => <SortableHeader column={column} label="Documento" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Documento" />,
       cell: ({ row }: any) => (
         <div>
           <div className="font-mono font-semibold text-sm">
@@ -83,7 +83,7 @@ export default function ClientesPage() {
     },
     {
       accessorKey: 'nombre_completo',
-      header: ({ column }: any) => <SortableHeader column={column} label="Cliente" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Cliente" />,
       cell: ({ row }: any) => (
         <div>
           <div className="font-medium">{row.original.nombre_completo}</div>

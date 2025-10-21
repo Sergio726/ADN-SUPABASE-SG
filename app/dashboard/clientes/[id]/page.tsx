@@ -78,7 +78,7 @@ export default function VerClientePage() {
   const presupuestosColumns = [
     {
       accessorKey: 'numero',
-      header: ({ column }: any) => <SortableHeader column={column} label="Número" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Número" />,
       cell: ({ row }: any) => (
         <Link href={`/dashboard/presupuestos/${row.original.id}`} className="font-mono font-semibold hover:text-primary">
           {row.original.numero}
@@ -96,12 +96,12 @@ export default function VerClientePage() {
     },
     {
       accessorKey: 'fecha_emision',
-      header: ({ column }: any) => <SortableHeader column={column} label="Fecha" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Fecha" />,
       cell: ({ row }: any) => new Date(row.original.fecha_emision).toLocaleDateString('es-AR'),
     },
     {
       accessorKey: 'total',
-      header: ({ column }: any) => <SortableHeader column={column} label="Total" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Total" />,
       cell: ({ row }: any) => (
         <span className="font-bold text-green-600">${row.original.total?.toLocaleString()}</span>
       ),

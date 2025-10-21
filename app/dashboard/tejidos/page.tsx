@@ -14,8 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function TejidosPage() {
-  const [tejidos, setTejidos] = useState([])
-  const [tejidosFiltrados, setTejidosFiltrados] = useState([])
+  const [tejidos, setTejidos] = useState<any[]>([])
+  const [tejidosFiltrados, setTejidosFiltrados] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   

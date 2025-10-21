@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function ConfiguracionesCercadoPage() {
-  const [configuraciones, setConfiguraciones] = useState([])
+  const [configuraciones, setConfiguraciones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
@@ -55,7 +55,7 @@ export default function ConfiguracionesCercadoPage() {
   const columns = [
     {
       accessorKey: 'nombre',
-      header: ({ column }: any) => <SortableHeader column={column} label="Nombre" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Nombre" />,
       cell: ({ row }: any) => (
         <div>
           <div className="font-semibold">{row.original.nombre}</div>
@@ -67,7 +67,7 @@ export default function ConfiguracionesCercadoPage() {
     },
     {
       accessorKey: 'altura',
-      header: ({ column }: any) => <SortableHeader column={column} label="Altura" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Altura" />,
       cell: ({ row }: any) => (
         <Badge variant="outline">{row.original.altura}m</Badge>
       ),
@@ -109,7 +109,7 @@ export default function ConfiguracionesCercadoPage() {
     },
     {
       accessorKey: 'precio_por_metro_lineal',
-      header: ({ column }: any) => <SortableHeader column={column} label="$/Metro" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="$/Metro" />,
       cell: ({ row }: any) => (
         <div className="font-bold text-green-600">
           ${row.original.precio_por_metro_lineal?.toLocaleString() || 'N/A'}
@@ -118,7 +118,7 @@ export default function ConfiguracionesCercadoPage() {
     },
     {
       accessorKey: 'precio_base_180m',
-      header: ({ column }: any) => <SortableHeader column={column} label="Total 180m" />,
+      header: ({ column }: any) => <SortableHeader column={column} title="Total 180m" />,
       cell: ({ row }: any) => (
         <div className="text-sm text-muted-foreground">
           ${row.original.precio_base_180m?.toLocaleString() || 'N/A'}
