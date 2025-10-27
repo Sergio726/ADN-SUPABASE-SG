@@ -11,6 +11,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
 import { Package, Plus, Edit, ExternalLink, AlertTriangle } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Switch } from '@/components/ui/switch'
+import { toast } from '@/hooks/use-toast'
 
 type Articulo = {
   id: string
@@ -20,6 +22,8 @@ type Articulo = {
   stock_actual: number
   stock_minimo: number
   unidad: string
+  publicado: boolean
+  mostrar_precio_publico: boolean
   proveedores: { nombre: string } | null
   precios_venta: Array<{ precio_venta: number; vigente: boolean }>
 }
@@ -51,6 +55,56 @@ export default function ArticulosPage() {
 
     getArticulos()
   }, [supabase])
+
+  const actualizarPublicado = async (id: string, publicado: boolean) => {
+    const { error } = await supabase
+      .from('articulos')
+      .update({ publicado })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error al actualizar publicación:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la publicación del artículo",
+        variant: "destructive",
+      })
+    } else {
+      // Actualizar el estado local
+      setArticulos(prev => prev.map(articulo => 
+        articulo.id === id ? { ...articulo, publicado } : articulo
+      ))
+      toast({
+        title: "Éxito",
+        description: publicado ? "Artículo publicado en web" : "Artículo removido de la web",
+      })
+    }
+  }
+
+  const actualizarMostrarPrecio = async (id: string, mostrar_precio_publico: boolean) => {
+    const { error } = await supabase
+      .from('articulos')
+      .update({ mostrar_precio_publico })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error al actualizar mostrar precio:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la visibilidad del precio",
+        variant: "destructive",
+      })
+    } else {
+      // Actualizar el estado local
+      setArticulos(prev => prev.map(articulo => 
+        articulo.id === id ? { ...articulo, mostrar_precio_publico } : articulo
+      ))
+      toast({
+        title: "Éxito",
+        description: mostrar_precio_publico ? "Precio visible en web" : "Precio oculto en web",
+      })
+    }
+  }
 
   const columns: ColumnDef<Articulo>[] = [
     {
@@ -110,6 +164,31 @@ export default function ArticulosPage() {
           <span className="text-muted-foreground">Sin precio</span>
         )
       },
+    },
+    {
+      id: "publicado",
+      header: "Publicar en Web",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <Switch
+            checked={row.original.publicado}
+            onCheckedChange={(checked) => actualizarPublicado(row.original.id, checked)}
+          />
+        </div>
+      ),
+    },
+    {
+      id: "mostrar_precio_publico",
+      header: "Mostrar Precio al Público",
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <Switch
+            checked={row.original.mostrar_precio_publico}
+            onCheckedChange={(checked) => actualizarMostrarPrecio(row.original.id, checked)}
+            disabled={!row.original.publicado}
+          />
+        </div>
+      ),
     },
     {
       id: "actions",

@@ -89,6 +89,94 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Enviar email de notificación al admin
+    try {
+      // Obtener la URL base del sitio
+      let baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+      
+      console.log('🔍 Variables de entorno:', {
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+        VERCEL_URL: process.env.VERCEL_URL,
+        origin: request.headers.get('origin')
+      })
+      
+      if (!baseUrl) {
+        if (process.env.VERCEL_URL) {
+          baseUrl = `https://${process.env.VERCEL_URL}`
+          console.log('📍 Usando VERCEL_URL:', baseUrl)
+        } else {
+          const origin = request.headers.get('origin')
+          if (origin) {
+            baseUrl = origin
+            console.log('📍 Usando origin:', baseUrl)
+          } else {
+            baseUrl = 'http://localhost:3000'
+            console.log('📍 Usando localhost fallback:', baseUrl)
+          }
+        }
+      } else {
+        console.log('📍 Usando NEXT_PUBLIC_SITE_URL:', baseUrl)
+      }
+      
+      console.log('Enviando email de notificación a:', `${baseUrl}/api/send-email`)
+      
+      // Enviar email de notificación al admin
+      const adminEmailResponse = await fetch(`${baseUrl}/api/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'newsletter',
+          datos: {
+            email: email,
+            telefono: telefono || null,
+            tipo_suscripcion: tipoSuscripcion,
+            descuento_porcentaje: descuentoPorcentaje,
+            codigo_descuento: codigoDescuento,
+            fecha_suscripcion: new Date().toLocaleString('es-AR')
+          }
+        })
+      })
+
+      console.log('Respuesta del email al admin:', adminEmailResponse.status, adminEmailResponse.statusText)
+
+      if (!adminEmailResponse.ok) {
+        const errorText = await adminEmailResponse.text()
+        console.warn('No se pudo enviar email de notificación al admin:', errorText)
+      } else {
+        console.log('✅ Email de notificación al admin enviado exitosamente')
+      }
+
+      // Enviar email de agradecimiento al usuario
+      const userEmailResponse = await fetch(`${baseUrl}/api/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: 'suscripcion_usuario',
+          datos: {
+            email: email,
+            telefono: telefono || null,
+            tipo_suscripcion: tipoSuscripcion,
+            descuento_porcentaje: descuentoPorcentaje,
+            codigo_descuento: codigoDescuento,
+            fecha_suscripcion: new Date().toLocaleString('es-AR')
+          }
+        })
+      })
+
+      console.log('Respuesta del email al usuario:', userEmailResponse.status, userEmailResponse.statusText)
+
+      if (!userEmailResponse.ok) {
+        const errorText = await userEmailResponse.text()
+        console.warn('No se pudo enviar email de agradecimiento al usuario:', errorText)
+      } else {
+        console.log('✅ Email de agradecimiento al usuario enviado exitosamente')
+      }
+
+    } catch (emailError) {
+      console.warn('Error al enviar emails:', emailError)
+      // No fallar la suscripción por error de email
+    }
+
     // Preparar respuesta
     const mensaje = descuentoPorcentaje > 0 
       ? '¡Te has suscrito exitosamente! Recibiste un 10% de descuento en tu primera compra.'

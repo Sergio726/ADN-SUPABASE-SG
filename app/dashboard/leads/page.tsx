@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createServerClient } from '@/lib/supabaseServer'
 import { formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -6,13 +6,15 @@ import { Mail, Phone, Clock, MessageSquare } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 async function getLeads() {
+  const supabase = createServerClient()
+  
   const { data, error } = await supabase
     .from('leads')
     .select('*')
     .order('creado_en', { ascending: false })
 
   if (error) {
-    console.error('Error:', error)
+    console.error('Error al cargar leads:', error)
     return []
   }
 
@@ -25,9 +27,9 @@ export default async function LeadsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Leads y Consultas</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Leads y Suscriptores</h2>
         <p className="text-muted-foreground mt-2">
-          Consultas recibidas desde el sitio web
+          Consultas recibidas desde el sitio web y suscriptores del newsletter
         </p>
       </div>
 
@@ -88,11 +90,33 @@ export default async function LeadsPage() {
                   )}
                 </div>
 
+                {/* Mostrar información especial para suscriptores con descuento */}
+                {lead.origen === 'newsletter' && lead.mensaje?.includes('descuento') && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-green-600 font-bold">🎁 Suscriptor con Descuento</span>
+                    </div>
+                    <div className="text-sm text-green-700">
+                      {lead.mensaje.includes('10%') && (
+                        <p className="font-semibold">✅ 10% de descuento aplicado</p>
+                      )}
+                      {lead.mensaje.includes('DESC') && (
+                        <p className="mt-1">
+                          <span className="font-medium">Código:</span> 
+                          <span className="bg-green-100 px-2 py-1 rounded font-mono text-xs ml-1">
+                            {lead.mensaje.match(/DESC[A-Z0-9]+/)?.[0]}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {lead.mensaje && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      Mensaje
+                      {lead.origen === 'newsletter' ? 'Detalles de Suscripción' : 'Mensaje'}
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">
@@ -111,7 +135,7 @@ export default async function LeadsPage() {
             <Mail className="h-16 w-16 text-muted-foreground mb-4" />
             <CardTitle className="mb-2">No hay leads todavía</CardTitle>
             <CardDescription className="text-center">
-              Los clientes que completen el formulario de contacto aparecerán aquí
+              Los clientes que completen el formulario de contacto o se suscriban al newsletter aparecerán aquí
             </CardDescription>
           </CardContent>
         </Card>
