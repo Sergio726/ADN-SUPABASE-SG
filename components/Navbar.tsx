@@ -47,7 +47,7 @@ export default function Navbar() {
               <span className="relative z-10">Contacto</span>
               <div className="absolute inset-0 bg-gradient-to-r from-brand-red/5 to-transparent rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
             </Link>
-            <div className="ml-4 pl-4 border-l border-gray-200">
+            <div className="ml-4 pl-4 border-l border-gray-200 hidden">
               <Link
                 href="/login"
                 className="bg-gradient-to-r from-brand-red to-brand-darkred text-white px-6 py-2.5 rounded-lg hover:from-brand-darkred hover:to-brand-red transition-all duration-200 font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -87,7 +87,7 @@ export default function Navbar() {
               <Link href="/contacto" className="px-4 py-3 text-gray-700 hover:text-brand-red hover:bg-red-50 rounded-lg transition-all duration-200 font-medium">
                 Contacto
               </Link>
-              <div className="pt-2">
+              <div className="pt-2 hidden">
                 <Link
                   href="/login"
                   className="block bg-gradient-to-r from-brand-red to-brand-darkred text-white px-4 py-3 rounded-lg hover:from-brand-darkred hover:to-brand-red text-center font-semibold transition-all duration-200 shadow-md"

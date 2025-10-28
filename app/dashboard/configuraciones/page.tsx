@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { Settings, Mail, TestTube, Save, Eye, EyeOff } from 'lucide-react'
+import { Settings, Mail, TestTube, Save, Eye, EyeOff, Image as ImageIcon } from 'lucide-react'
 
 export default function ConfiguracionesPage() {
   const router = useRouter()
@@ -21,6 +21,8 @@ export default function ConfiguracionesPage() {
   const [mostrarPassword, setMostrarPassword] = useState(false)
   const [configExists, setConfigExists] = useState(false)
   const [configId, setConfigId] = useState<string | null>(null)
+  const [portadaUrl, setPortadaUrl] = useState<string>('')
+  const [uploadingPortada, setUploadingPortada] = useState(false)
 
   const [formData, setFormData] = useState({
     smtp_host: '',
@@ -40,26 +42,39 @@ export default function ConfiguracionesPage() {
 
   async function cargarConfiguracion() {
     try {
-      const { data, error } = await supabase
+      // Cargar configuración SMTP
+      const { data: smtpData, error: smtpError } = await supabase
         .from('configuraciones')
         .select('*')
         .eq('tipo', 'smtp')
         .single()
 
-      if (data) {
+      if (smtpData) {
         setConfigExists(true)
-        setConfigId(data.id)
+        setConfigId(smtpData.id)
         setFormData({
-          smtp_host: data.smtp_host || '',
-          smtp_port: data.smtp_port || 587,
-          smtp_secure: data.smtp_secure || false,
-          smtp_usuario: data.smtp_usuario || '',
-          smtp_password: data.smtp_password || '',
-          email_from: data.email_from || '',
-          email_from_name: data.email_from_name || 'Alambres del Norte',
-          email_to: data.email_to || '',
-          activo: data.activo !== false,
+          smtp_host: smtpData.smtp_host || '',
+          smtp_port: smtpData.smtp_port || 587,
+          smtp_secure: smtpData.smtp_secure || false,
+          smtp_usuario: smtpData.smtp_usuario || '',
+          smtp_password: smtpData.smtp_password || '',
+          email_from: smtpData.email_from || '',
+          email_from_name: smtpData.email_from_name || 'Alambres del Norte',
+          email_to: smtpData.email_to || '',
+          activo: smtpData.activo !== false,
         })
+      }
+
+      // Cargar configuración de portada
+      const { data: portadaData } = await supabase
+        .from('configuraciones')
+        .select('*')
+        .eq('tipo', 'portada_imagen')
+        .eq('clave', 'hero_background')
+        .single()
+
+      if (portadaData?.valor) {
+        setPortadaUrl(portadaData.valor)
       }
     } catch (error) {
       console.error('Error al cargar configuración:', error)
@@ -119,6 +134,93 @@ export default function ConfiguracionesPage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function subirImagenPortada(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      setUploadingPortada(true)
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return
+      }
+
+      const file = event.target.files[0]
+      
+      // Validar tamaño (máximo 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Error de tamaño",
+          description: "La imagen no debe superar 10MB",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Validar tipo
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Tipo de archivo inválido",
+          description: "Solo se permiten imágenes",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Generar nombre único
+      const fileExt = file.name.split('.').pop()
+      const fileName = `portada-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      const filePath = `portadas/${fileName}`
+
+      // Subir a Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('articulos-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
+
+      if (uploadError) throw uploadError
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('articulos-images')
+        .getPublicUrl(filePath)
+
+      // Guardar URL en configuraciones
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Usuario no autenticado')
+
+      const { error: configError } = await supabase
+        .from('configuraciones')
+        .upsert({
+          tipo: 'portada_imagen',
+          clave: 'hero_background',
+          valor: publicUrl,
+          usuario_id: user.id,
+          activo: true
+        }, {
+          onConflict: 'tipo,clave'
+        })
+
+      if (configError) throw configError
+
+      setPortadaUrl(publicUrl)
+      
+      toast({
+        title: "✅ Imagen subida",
+        description: "La imagen de portada se actualizó correctamente",
+      })
+      
+    } catch (error: any) {
+      console.error('Error al subir la imagen:', error)
+      toast({
+        title: "Error al subir imagen",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingPortada(false)
     }
   }
 
@@ -367,6 +469,90 @@ export default function ConfiguracionesPage() {
           </CardContent>
         </Card>
       </form>
+
+      {/* Sección de Imagen de Portada */}
+      <Card className="mt-6">
+        <CardHeader className="bg-gradient-to-r from-brand-red to-brand-darkred text-white">
+          <div className="flex items-center gap-3">
+            <ImageIcon className="w-6 h-6" />
+            <div>
+              <CardTitle>Imagen de Portada</CardTitle>
+              <CardDescription className="text-white/80">
+                Personaliza la imagen de fondo del hero principal
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div>
+              <Label>Imagen de Fondo del Hero</Label>
+              <p className="text-sm text-gray-600 mb-4">
+                Sube una imagen que se mostrará como fondo de la sección hero principal
+              </p>
+            </div>
+
+            {portadaUrl ? (
+              <div className="relative w-full max-w-3xl mx-auto">
+                <div className="relative w-full aspect-video border rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={portadaUrl}
+                    alt="Imagen de portada actual"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/20"></div>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Imagen actual de portada
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border-2 border-dashed rounded-lg p-8 text-center">
+                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-sm text-gray-600 mb-4">
+                  No hay imagen de portada configurada. Se usará el patrón predeterminado.
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <Label
+                htmlFor="portada-upload"
+                className="cursor-pointer"
+              >
+                <div className="space-y-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    disabled={uploadingPortada}
+                    asChild
+                  >
+                    <span>
+                      <ImageIcon className="mr-2 h-4 w-4" />
+                      {uploadingPortada ? 'Subiendo...' : portadaUrl ? 'Cambiar Imagen' : 'Subir Imagen'}
+                    </span>
+                  </Button>
+                  <p className="text-sm text-gray-500">
+                    PNG, JPG, WEBP hasta 10MB
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Recomendado: Imágenes grandes (1920x1080px o superior)
+                  </p>
+                </div>
+              </Label>
+              <input
+                id="portada-upload"
+                type="file"
+                accept="image/*"
+                onChange={subirImagenPortada}
+                disabled={uploadingPortada}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

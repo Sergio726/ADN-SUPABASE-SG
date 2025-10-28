@@ -14,6 +14,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [newsletterLoading, setNewsletterLoading] = useState(false)
   const [newsletterMessage, setNewsletterMessage] = useState('')
+  const [portadaUrl, setPortadaUrl] = useState<string | null>(null)
   const newsletterFormRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -47,7 +48,25 @@ export default function HomePage() {
       setLoading(false)
     }
 
+    async function cargarPortada() {
+      try {
+        const { data } = await supabase
+          .from('configuraciones')
+          .select('valor')
+          .eq('tipo', 'portada_imagen')
+          .eq('clave', 'hero_background')
+          .single()
+
+        if (data?.valor) {
+          setPortadaUrl(data.valor)
+        }
+      } catch (error) {
+        console.error('Error al cargar imagen de portada:', error)
+      }
+    }
+
     cargarArticulos()
+    cargarPortada()
   }, [])
 
   const articulosMostrar = mostrarTodos ? articulos : articulos.slice(0, 6)
@@ -105,11 +124,20 @@ export default function HomePage() {
       
       {/* Hero Premium */}
       <section className="relative bg-gradient-to-br from-brand-red via-brand-darkred to-red-900 text-white py-24 overflow-hidden">
-        {/* Patrón de fondo sutil */}
+        {/* Imagen de fondo o patrón predeterminado */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px)'
-          }}></div>
+          {portadaUrl ? (
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${portadaUrl})`
+              }}
+            ></div>
+          ) : (
+            <div className="absolute inset-0" style={{
+              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px)'
+            }}></div>
+          )}
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
