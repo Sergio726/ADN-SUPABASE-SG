@@ -180,7 +180,13 @@ export default function ConfiguracionesPage() {
           upsert: true
         })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.error('Error detallado de Storage:', {
+          message: uploadError.message,
+          name: uploadError.name
+        })
+        throw uploadError
+      }
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
@@ -191,6 +197,7 @@ export default function ConfiguracionesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuario no autenticado')
 
+      // Guardar URL en configuraciones
       const { error: configError } = await supabase
         .from('configuraciones')
         .upsert({
@@ -214,9 +221,34 @@ export default function ConfiguracionesPage() {
       
     } catch (error: any) {
       console.error('Error al subir la imagen:', error)
+      console.error('Detalles del error:', JSON.stringify(error, null, 2))
+      console.error('Tipo de error:', typeof error)
+      console.error('Stack trace:', error.stack)
+      
+      let errorMessage = 'No se pudo subir la imagen'
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else if (error.error_description) {
+        errorMessage = error.error_description
+      } else if (error.msg) {
+        errorMessage = error.msg
+      }
+      
+      // Mensajes más específicos según el tipo de error
+      if (errorMessage.includes('Bucket') || errorMessage.includes('bucket')) {
+        errorMessage = 'El bucket de almacenamiento no existe. Contacta al administrador.'
+      } else if (errorMessage.includes('permission') || errorMessage.includes('Policy')) {
+        errorMessage = 'No tienes permiso para subir imágenes. Verifica tu autenticación.'
+      } else if (errorMessage.includes('413') || errorMessage.includes('too large')) {
+        errorMessage = 'La imagen es demasiado grande. Máximo 10MB.'
+      }
+      
       toast({
         title: "Error al subir imagen",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
