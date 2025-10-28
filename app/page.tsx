@@ -125,20 +125,28 @@ export default function HomePage() {
       {/* Hero Premium */}
       <section className="relative bg-gradient-to-br from-brand-red via-brand-darkred to-red-900 text-white py-24 overflow-hidden">
         {/* Imagen de fondo o patrón predeterminado */}
-        <div className="absolute inset-0 opacity-10">
-          {portadaUrl ? (
+        {portadaUrl ? (
+          <>
+            {/* Imagen de fondo */}
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{
-                backgroundImage: `url(${portadaUrl})`
+                backgroundImage: `url(${portadaUrl})`,
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover'
               }}
             ></div>
-          ) : (
+            {/* Overlay oscuro para mejorar legibilidad del texto */}
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-red/60 via-brand-darkred/60 to-red-900/60"></div>
+          </>
+        ) : (
+          <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px)'
             }}></div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
