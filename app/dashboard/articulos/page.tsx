@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,7 @@ type Articulo = {
 export default function ArticulosPage() {
   const [articulos, setArticulos] = useState<Articulo[]>([])
   const [loading, setLoading] = useState(true)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -263,6 +264,8 @@ export default function ArticulosPage() {
               searchKey="nombre"
               searchPlaceholder="Buscar artículos..."
               pageSize={20}
+              initialPagination={pagination}
+              onPaginationChange={setPagination}
             />
           </CardContent>
         </Card>

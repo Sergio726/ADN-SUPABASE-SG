@@ -5,6 +5,8 @@ import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
+  PaginationState,
+  Updater,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -37,6 +39,8 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string
   searchPlaceholder?: string
   pageSize?: number
+  onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void
+  initialPagination?: { pageIndex: number; pageSize: number }
 }
 
 export function DataTable<TData, TValue>({
@@ -45,13 +49,41 @@ export function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Buscar...",
   pageSize = 10,
+  onPaginationChange,
+  initialPagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: pageSize,
-  })
+  const [pagination, setPagination] = React.useState(
+    initialPagination || {
+      pageIndex: 0,
+      pageSize: pageSize,
+    }
+  )
+
+  // Sincronizar paginación externa cuando cambia
+  React.useEffect(() => {
+    if (initialPagination) {
+      setPagination(prev => {
+        // Solo actualizar si realmente cambió
+        if (prev.pageIndex !== initialPagination.pageIndex || prev.pageSize !== initialPagination.pageSize) {
+          return initialPagination
+        }
+        return prev
+      })
+    }
+  }, [initialPagination])
+
+  // Notificar cambios de paginación al componente padre
+  const handlePaginationChange = React.useCallback((updaterOrValue: Updater<PaginationState>) => {
+    setPagination(prev => {
+      const newPagination = typeof updaterOrValue === 'function' 
+        ? updaterOrValue(prev) 
+        : updaterOrValue
+      onPaginationChange?.(newPagination)
+      return newPagination
+    })
+  }, [onPaginationChange])
 
   const table = useReactTable({
     data,
@@ -62,7 +94,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     state: {
       sorting,
       columnFilters,
