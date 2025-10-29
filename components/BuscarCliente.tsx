@@ -61,6 +61,8 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
   const [busqueda, setBusqueda] = useState({
     tipo_documento: 'DNI',
     numero_documento: '',
+    nombre: '',
+    telefono: '',
   })
 
   const [nuevoCliente, setNuevoCliente] = useState<ClienteData>({
@@ -79,10 +81,10 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
   })
 
   async function buscarCliente() {
-    if (!busqueda.numero_documento) {
+    if (!busqueda.numero_documento && !busqueda.nombre && !busqueda.telefono) {
       toast({
         title: "Campo requerido",
-        description: "Ingresa el número de documento",
+        description: "Ingresa documento, nombre o teléfono",
         variant: "destructive",
       })
       return
@@ -90,33 +92,58 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
 
     setBuscando(true)
     try {
-      const numeroLimpio = busqueda.numero_documento.replace(/[-\s]/g, '')
+      // 1) Si hay documento, priorizar búsqueda exacta por documento
+      if (busqueda.numero_documento) {
+        const numeroLimpio = busqueda.numero_documento.replace(/[-\s]/g, '')
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('*')
+          .eq('numero_documento', numeroLimpio)
+          .eq('activo', true)
+          .limit(1)
 
-      // Buscar cliente directamente (sin RPC)
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('numero_documento', numeroLimpio)
-        .eq('activo', true)
-        .limit(1)
+        if (error) throw error
 
-      if (error) throw error
+        if (data && data.length > 0) {
+          const cliente = data[0]
+          setClienteEncontrado(cliente)
+          toast({
+            title: "¡Cliente encontrado!",
+            description: `${cliente.nombre_completo} - ${cliente.tipo_documento} ${cliente.numero_documento}`,
+          })
+          return
+        }
+      }
 
-      if (data && data.length > 0) {
-        // Cliente encontrado
-        const cliente = data[0]
+      // 2) Si no hay documento o no encontró, buscar por nombre o teléfono (parcial, case-insensitive)
+      const filtros: any[] = []
+      if (busqueda.nombre) filtros.push({ columna: 'nombre_completo', valor: `%${busqueda.nombre}%` })
+      if (busqueda.telefono) filtros.push({ columna: 'telefono', valor: `%${busqueda.telefono}%` })
+
+      let query = supabase.from('clientes').select('*').eq('activo', true)
+      filtros.forEach((f) => {
+        query = query.ilike(f.columna, f.valor)
+      })
+
+      const { data: dataNombreTel, error: errorNombreTel } = await query.limit(1)
+      if (errorNombreTel) throw errorNombreTel
+
+      if (dataNombreTel && dataNombreTel.length > 0) {
+        const cliente = dataNombreTel[0]
         setClienteEncontrado(cliente)
         toast({
           title: "¡Cliente encontrado!",
-          description: `${cliente.nombre_completo} - ${cliente.tipo_documento} ${cliente.numero_documento}`,
+          description: `${cliente.nombre_completo} - ${cliente.telefono || ''}`,
         })
       } else {
-        // Cliente no encontrado - Abrir dialog
+        // Cliente no encontrado - Abrir dialog con datos precargados si corresponde
         setClienteEncontrado(null)
         setNuevoCliente({
           ...nuevoCliente,
           tipo_documento: busqueda.tipo_documento,
           numero_documento: busqueda.numero_documento.replace(/[-\s]/g, ''),
+          nombre_completo: busqueda.nombre || '',
+          telefono: busqueda.telefono || '',
         })
         setDialogAbierto(true)
         toast({
@@ -239,6 +266,38 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
                   {buscando ? 'Buscando...' : 'Buscar'}
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Búsqueda por nombre / teléfono */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input
+                value={busqueda.nombre}
+                onChange={(e) => setBusqueda({ ...busqueda, nombre: e.target.value })}
+                placeholder="Ej: Juan Pérez"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    buscarCliente()
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Teléfono</Label>
+              <Input
+                value={busqueda.telefono}
+                onChange={(e) => setBusqueda({ ...busqueda, telefono: e.target.value })}
+                placeholder="Ej: 387 123 4567"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    buscarCliente()
+                  }
+                }}
+              />
             </div>
           </div>
 

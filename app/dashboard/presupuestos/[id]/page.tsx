@@ -19,6 +19,7 @@ export default function VerPresupuestoPage() {
   const [presupuesto, setPresupuesto] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [vendedorNombre, setVendedorNombre] = useState<string>('')
 
   useEffect(() => {
     cargarPresupuesto()
@@ -45,6 +46,18 @@ export default function VerPresupuestoPage() {
         .order('orden')
 
       if (itemsError) throw itemsError
+
+      // Cargar vendedor
+      if (presData?.usuario_id) {
+        const { data: vend } = await supabase
+          .from('usuarios')
+          .select('nombre')
+          .eq('id', presData.usuario_id)
+          .single()
+        setVendedorNombre(vend?.nombre || '')
+      } else {
+        setVendedorNombre('')
+      }
 
       setPresupuesto(presData)
       setItems(itemsData || [])
@@ -88,7 +101,7 @@ export default function VerPresupuestoPage() {
 
   function descargarPDF() {
     try {
-      generarPDFPresupuesto(presupuesto, items)
+      generarPDFPresupuesto({ ...presupuesto, vendedor_nombre: vendedorNombre }, items)
       toast({
         title: "¡PDF Generado!",
         description: "El presupuesto se ha descargado correctamente",
@@ -196,6 +209,15 @@ export default function VerPresupuestoPage() {
                   </div>
                 )}
               </div>
+              {vendedorNombre && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vendedor</p>
+                    <p className="font-medium">{vendedorNombre}</p>
+                  </div>
+                </div>
+              )}
               {presupuesto.cliente_email && (
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
@@ -368,6 +390,12 @@ export default function VerPresupuestoPage() {
                 <span className="text-sm text-muted-foreground">Items:</span>
                 <span className="font-semibold">{items.length}</span>
               </div>
+              {vendedorNombre && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Vendedor:</span>
+                  <span className="font-semibold">{vendedorNombre}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Subtotal:</span>
                 <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>

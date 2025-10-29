@@ -1193,3 +1193,28 @@ Este sistema es un **ERP completo** que maneja:
 **Versión:** 1.0.0
 **Estado:** ✅ Producción Ready
 
+
+## Políticas de Precios (Artículos, Postes, Tejido Romboidal)
+
+Estas políticas definen cómo se calculan y utilizan los distintos precios en el sistema.
+
+- Definiciones (aplicadas sobre Precio de Costo):
+  - Precio Efectivo (sin factura): costo × 1.56  (costo + 56%)
+  - Precio Factura / Lista (incluye IVA): costo × 1.70  (costo + 70%)
+  - Precio Tarjeta (incluye IVA): costo × 1.78  (costo + 78%)
+  - E‑cheq 45 días (incluye IVA): costo × 1.70  (costo + 70%)
+  - E‑cheq 60 días (incluye IVA): costo × 1.78  (costo + 78%)
+  - E‑cheq 90 días (incluye IVA): costo × 1.87  (costo + 87%)
+
+- Reglas del sistema:
+  - Precio por defecto del sistema: Precio Factura / Lista (costo × 1.70)
+  - Precio mostrado en la web pública: Precio Factura / Lista
+  - En la edición de precios (dashboard):
+    - Si no se especifica un `precio_venta`, se guarda automáticamente como Precio Factura / Lista
+    - Se muestra un desglose informativo de todos los precios derivados
+  - Presupuestos (artículos):
+    - Antes de cotizar, se debe definir la Forma de Pago de la cotización
+    - Al seleccionar un artículo, se obtiene su Precio de Costo vigente y se calcula el Precio Unitario según la Forma de Pago
+    - Al cambiar la Forma de Pago, se recalculan todos los ítems del presupuesto
+
+> Nota: Estas políticas aplican a artículos, postes y tejido romboidal. Si se requieren excepciones por categoría o por producto, documentarlas aquí y ajustarlas en el código correspondiente.

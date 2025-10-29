@@ -27,6 +27,22 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
     fecha_fin: '',
   })
 
+  // Helpers de formato
+  const fmt = (n: number) => isFinite(n) ? n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'
+  const costoNum = parseFloat(formData.precio_costo) || 0
+
+  // Porcentajes definidos (aplicados sobre costo)
+  // Efectivo (sin factura): costo + 56%
+  const precioEfectivo = costoNum * 1.56
+  // Factura / Lista (incluye IVA): costo + 70%
+  const precioFacturaLista = costoNum * 1.70
+  // Tarjeta (incluye IVA): costo + 78%
+  const precioTarjeta = costoNum * 1.78
+  // E-cheq (incluye IVA):
+  const precioECheq45 = costoNum * 1.70
+  const precioECheq60 = costoNum * 1.78
+  const precioECheq90 = costoNum * 1.87
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: precioData } = await supabase
@@ -42,7 +58,8 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
         setPrecio(precioData)
         setFormData({
           precio_costo: precioData.precio_costo.toString(),
-          precio_venta: precioData.precio_venta.toString(),
+          // si no tiene precio_venta, completar con factura/lista por defecto
+          precio_venta: (precioData.precio_venta || (precioData.precio_costo * 1.70)).toString(),
           vigente: precioData.vigente,
           fecha_inicio: precioData.fecha_inicio || '',
           fecha_fin: precioData.fecha_fin || '',
@@ -67,11 +84,17 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
     setLoading(true)
 
     try {
+      const costo = parseFloat(formData.precio_costo)
+      const ventaIngresada = parseFloat(formData.precio_venta)
+      // Precio Factura/Lista por defecto
+      const listaPorDefecto = isFinite(costo) ? costo * 1.70 : 0
+      const precioVentaFinal = isFinite(ventaIngresada) && ventaIngresada > 0 ? ventaIngresada : listaPorDefecto
+
       const { error } = await supabase
         .from('precios_venta')
         .update({
-          precio_costo: parseFloat(formData.precio_costo),
-          precio_venta: parseFloat(formData.precio_venta),
+          precio_costo: costo,
+          precio_venta: precioVentaFinal,
           vigente: formData.vigente,
           fecha_inicio: formData.fecha_inicio || null,
           fecha_fin: formData.fecha_fin || null,
@@ -203,21 +226,61 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
                   required
                   placeholder="0.00"
                 />
-                <p className="text-xs text-muted-foreground">Costo del producto sin IVA</p>
+                <p className="text-xs text-muted-foreground">Costo del producto (base de cálculo)</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="precio_venta">Precio de Venta *</Label>
+                <Label htmlFor="precio_venta">Precio de Venta (opcional)</Label>
                 <Input
                   id="precio_venta"
                   type="number"
                   step="0.01"
                   value={formData.precio_venta}
                   onChange={(e) => setFormData({ ...formData, precio_venta: e.target.value })}
-                  required
                   placeholder="0.00"
                 />
-                <p className="text-xs text-muted-foreground">Precio al que se vende al cliente</p>
+                <p className="text-xs text-muted-foreground">Si lo dejas vacío, se toman los valores calculados</p>
+              </div>
+            </div>
+
+            {/* Desglose de precios según política definida */}
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Precio Efectivo</p>
+                  <p className="text-xs text-muted-foreground">Costo + 56% (sin factura)</p>
+                  <div className="text-lg font-semibold">${fmt(precioEfectivo)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Precio Factura / Lista</p>
+                  <p className="text-xs text-muted-foreground">Costo + 70% (incluye IVA)</p>
+                  <div className="text-lg font-semibold">${fmt(precioFacturaLista)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Precio Tarjeta</p>
+                  <p className="text-xs text-muted-foreground">Costo + 78% (incluye IVA)</p>
+                  <div className="text-lg font-semibold">${fmt(precioTarjeta)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">E‑cheq 45 días</p>
+                  <p className="text-xs text-muted-foreground">Costo + 70% (incluye IVA)</p>
+                  <div className="text-lg font-semibold">${fmt(precioECheq45)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">E‑cheq 60 días</p>
+                  <p className="text-xs text-muted-foreground">Costo + 78% (incluye IVA)</p>
+                  <div className="text-lg font-semibold">${fmt(precioECheq60)}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">E‑cheq 90 días</p>
+                  <p className="text-xs text-muted-foreground">Costo + 87% (incluye IVA)</p>
+                  <div className="text-lg font-semibold">${fmt(precioECheq90)}</div>
+                </div>
               </div>
             </div>
 
