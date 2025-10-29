@@ -486,12 +486,12 @@ function generarHTMLSuscripcionUsuario(datos: any) {
             </p>
             
             <div style="text-align: center; margin: 20px 0;">
-              <a href="tel:+543874652420" class="btn">📞 Llamar Ahora</a>
-              <a href="https://wa.me/543874652420" class="btn" style="background: #25d366;">💬 WhatsApp</a>
+              <a href="tel:+5493874773393" class="btn">📞 Llamar Ahora</a>
+              <a href="https://wa.me/5493874773393" class="btn" style="background: #25d366;">💬 WhatsApp</a>
             </div>
             
             <p style="margin: 15px 0 0 0; color: #6b7280; font-size: 14px; text-align: center;">
-              📧 Email: <a href="mailto:garciasergio@live.com.ar" style="color: #0277bd;">garciasergio@live.com.ar</a>
+              📧 Email: <a href="mailto:info@alambresdelnortesrl.com.ar" style="color: #0277bd;">garciasergio@live.com.ar</a>
             </p>
           </div>
           
