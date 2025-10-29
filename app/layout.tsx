@@ -3,6 +3,7 @@ import { Montserrat } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { LOGOS, BRAND } from '@/lib/logos'
+import { StructuredData } from '@/components/StructuredData'
 
 const montserrat = Montserrat({ subsets: ['latin'] })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={montserrat.className}>
+        <StructuredData />
         {children}
         <Toaster />
       </body>
