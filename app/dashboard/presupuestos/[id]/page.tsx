@@ -288,6 +288,23 @@ export default function VerPresupuestoPage() {
                         </td>
                       </tr>
                     )}
+                    {/* Mostrar IVA solo si NO es efectivo */}
+                    {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                      <>
+                        <tr className="border-b">
+                          <td colSpan={5} className="p-3 text-right font-semibold">Base imponible (sin IVA):</td>
+                          <td className="p-3 text-right font-semibold">
+                            ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr className="border-b">
+                          <td colSpan={5} className="p-3 text-right font-semibold">IVA 21%:</td>
+                          <td className="p-3 text-right font-semibold">
+                            ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </>
+                    )}
                     <tr className="border-t-2 bg-green-50">
                       <td colSpan={5} className="p-4 text-right font-bold text-lg">TOTAL:</td>
                       <td className="p-4 text-right font-bold text-2xl text-green-600">
@@ -405,6 +422,23 @@ export default function VerPresupuestoPage() {
                   <span className="text-sm">Descuento:</span>
                   <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
                 </div>
+              )}
+              {/* Mostrar IVA solo si NO es efectivo */}
+              {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Base imponible (sin IVA):</span>
+                    <span className="text-sm font-semibold">
+                      ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">IVA 21%:</span>
+                    <span className="text-sm font-semibold">
+                      ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
               )}
               <div className="flex justify-between pt-3 border-t-2">
                 <span className="font-bold">TOTAL:</span>

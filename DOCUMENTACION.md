@@ -145,7 +145,7 @@ fecha_desde     DATE
 ### **Tabla: `tejidos_configuraciones`**
 ```sql
 id                  UUID PRIMARY KEY
-codigo              TEXT UNIQUE AUTO -- TR-{altura}-{calibre}-{rombo}
+codigo              TEXT UNIQUE AUTO -- TR-{altura}-{rombo}-{calibre} (ej: TR-2.0-3.5-14)
 nombre              TEXT
 calibre             INTEGER -- 12, 14
 altura              NUMERIC(3,2) -- 1.0, 1.2, 1.5, 1.8, 2.0
@@ -343,7 +343,7 @@ orden               INTEGER
 
 **Funcionalidades:**
 - ✅ 40 configuraciones (Cal.12/14 × 5 alturas × 4 rombos)
-- ✅ Código auto-generado: `TR-2.0-14-3.5`
+- ✅ Código auto-generado: `TR-2.0-3.5-14` (Altura-Rombo-Calibre)
 - ✅ Cálculo automático de precio
 - ✅ Desglose de costos y materiales
 - ✅ Actualización en cascada
@@ -355,7 +355,7 @@ precio_venta = (cantidad_alambre × precio_alambre_galvanizado) + costo_mano_obr
 
 **Ejemplo:**
 ```
-Tejido: TR-2.0-14-3.5
+Tejido: TR-2.0-3.5-14 (Altura 2.0m, Rombo 3.5", Calibre 14)
 - Alambre necesario: 18 kg
 - Precio alambre: $3,636.36/kg
 - Mano de obra: $0
@@ -623,7 +623,7 @@ Precio/metro:                    =   $64,807
      ✅ Todos los precios recalculados
      ✅ Vista actualizada
      
-6. Ver tejido TR-2.0-14-3.5
+6. Ver tejido TR-2.0-3.5-14
    - Antes: $65,445
    - Ahora: $72,000
 ```

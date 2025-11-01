@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Edit, CheckCircle, XCircle, Package, Ruler, Hash, Weight, DollarSign, TrendingUp, Calendar } from 'lucide-react'
+import { ArrowLeft, Edit, CheckCircle, XCircle, Package, Ruler, Hash, Weight, DollarSign, TrendingUp, Calendar, FileText, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -217,6 +217,7 @@ export default function VerTejidoPage() {
             <CardDescription>Cálculo automático basado en materia prima</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Información de Materia Prima */}
             <div className="p-4 bg-muted rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Alambre Galvanizado:</span>
@@ -224,62 +225,146 @@ export default function VerTejidoPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Precio alambre/kg:</span>
-                <span className="font-semibold">${tejido.alambre_precio_kg?.toLocaleString()}</span>
+                <span className="font-semibold">${tejido.alambre_precio_kg?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Alambre necesario:</span>
                 <span className="font-semibold">{tejido.cantidad_alambre || tejido.peso_kg} kg</span>
               </div>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-sm text-muted-foreground">Costo de alambre:</span>
+                <span className="font-semibold text-orange-600">
+                  ${((tejido.cantidad_alambre || tejido.peso_kg || 0) * (tejido.alambre_precio_kg || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Mano de obra:</span>
-                <span className="font-semibold">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString()}</span>
+                <span className="font-semibold">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
-            <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between">
+            {/* Precio de Costo */}
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-orange-600" />
                   <span className="font-medium">Precio de Costo:</span>
                 </div>
                 <span className="text-2xl font-bold text-orange-600">
-                  ${tejido.precio_costo?.toLocaleString() || 'N/A'}
+                  ${tejido.precio_costo?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Precio de Venta:</span>
-                </div>
-                <span className="text-3xl font-bold text-green-600">
-                  ${tejido.precio_venta?.toLocaleString() || 'N/A'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                <span className="text-sm text-muted-foreground">Margen de ganancia:</span>
-                <Badge variant="outline" className="text-base">
-                  {tejido.margen_porcentaje || 30}%
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Precio por metro:</span>
-                <span className="font-semibold">
-                  ${((tejido.precio_venta || 0) / (tejido.largo || 10)).toLocaleString()}/m
-                </span>
+              <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-orange-300">
+                <p className="flex justify-between">
+                  <span>Alambre ({tejido.cantidad_alambre || tejido.peso_kg} kg × ${tejido.alambre_precio_kg?.toLocaleString()}):</span>
+                  <span className="font-medium">${((tejido.cantidad_alambre || tejido.peso_kg || 0) * (tejido.alambre_precio_kg || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Mano de obra:</span>
+                  <span className="font-medium">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </p>
               </div>
             </div>
 
-            <div className="bg-muted p-3 rounded-lg text-xs space-y-1">
-              <p className="font-semibold mb-2">Fórmula de Cálculo:</p>
-              <p className="text-muted-foreground">
-                Costo = (Peso × Precio Alambre) + Mano de Obra
-              </p>
-              <p className="text-muted-foreground">
-                Venta = Costo × (1 + Margen/100)
-              </p>
+            {/* Precios de Venta */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                {/* Precio Efectivo */}
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="text-xs font-medium text-green-800">Efectivo</span>
+                  </div>
+                  <div className="text-xl font-bold text-green-700">
+                    ${tejido.precio_venta?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
+                  </div>
+                  {tejido.margen_efectivo && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Margen: {tejido.margen_efectivo}%
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    ${((tejido.precio_venta || 0) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
+                  </div>
+                </div>
+
+                {/* Precio Lista/Factura */}
+                {tejido.precio_lista && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-800">Factura/Lista</span>
+                    </div>
+                    <div className="text-xl font-bold text-blue-700">
+                      ${tejido.precio_lista.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    {tejido.margen_factura && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Margen: {tejido.margen_factura}%
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      ${((tejido.precio_lista || 0) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
+                    </div>
+                  </div>
+                )}
+
+                {/* Precio Tarjeta */}
+                {tejido.precio_tarjeta && (
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CreditCard className="h-4 w-4 text-purple-600" />
+                      <span className="text-xs font-medium text-purple-800">Tarjeta</span>
+                    </div>
+                    <div className="text-xl font-bold text-purple-700">
+                      ${tejido.precio_tarjeta.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    {tejido.margen_tarjeta && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Margen: {tejido.margen_tarjeta}%
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      ${((tejido.precio_tarjeta || 0) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Margen de ganancia general */}
+              {(tejido.margen_porcentaje || tejido.margen_efectivo) && (
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">Margen de ganancia (efectivo):</span>
+                  <Badge variant="outline" className="text-base">
+                    {tejido.margen_efectivo || tejido.margen_porcentaje || 30}%
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Fórmulas de Cálculo */}
+            <div className="bg-muted p-4 rounded-lg text-xs space-y-2">
+              <p className="font-semibold mb-2">Fórmulas de Cálculo:</p>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">
+                  <span className="font-medium">Costo:</span> ({tejido.cantidad_alambre || tejido.peso_kg || 0} kg × ${tejido.alambre_precio_kg?.toLocaleString()}) + ${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString()} = ${tejido.precio_costo?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
+                </p>
+                {tejido.precio_venta && (
+                  <p className="text-muted-foreground">
+                    <span className="font-medium">Venta Efectivo:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {(tejido.margen_efectivo || tejido.margen_porcentaje || 30)}/100) = ${tejido.precio_venta?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+                {tejido.precio_lista && (
+                  <p className="text-muted-foreground">
+                    <span className="font-medium">Venta Lista:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {tejido.margen_factura || 57}/100) = ${tejido.precio_lista.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+                {tejido.precio_tarjeta && (
+                  <p className="text-muted-foreground">
+                    <span className="font-medium">Venta Tarjeta:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {tejido.margen_tarjeta || 65}/100) = ${tejido.precio_tarjeta.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
             </div>
 
             {tejido.horas_fabricacion && (

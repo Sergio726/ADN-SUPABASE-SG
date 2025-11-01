@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText, CreditCard, Receipt, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { ProductoCombobox } from '@/components/ProductoCombobox'
@@ -77,6 +77,18 @@ export default function NuevoPresupuestoArticulosPage() {
     }
   }
 
+  function getFormaPagoInfo(fp: typeof formaPago) {
+    const info: Record<typeof formaPago, { label: string; icon: any; color: string; bgColor: string; borderColor: string }> = {
+      efectivo: { label: 'Efectivo', icon: DollarSign, color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
+      lista: { label: 'Factura / Lista', icon: FileText, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
+      tarjeta: { label: 'Tarjeta', icon: CreditCard, color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq45: { label: 'E-cheq 45 días', icon: Receipt, color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-300' },
+      echeq60: { label: 'E-cheq 60 días', icon: Receipt, color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' },
+      echeq90: { label: 'E-cheq 90 días', icon: Receipt, color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300' },
+    }
+    return info[fp] || info.lista
+  }
+
   useEffect(() => {
     cargarUsuario()
     cargarArticulos()
@@ -104,7 +116,7 @@ export default function NuevoPresupuestoArticulosPage() {
   async function cargarTejidos() {
     const { data } = await supabase
       .from('v_tejidos_con_precios')
-      .select('id, codigo, nombre, precio_venta')
+      .select('id, codigo, nombre, precio_venta, precio_lista, precio_tarjeta, precio_echeq45, precio_echeq60, precio_echeq90')
       .eq('activo', true)
       .order('codigo')
 
@@ -140,15 +152,41 @@ export default function NuevoPresupuestoArticulosPage() {
           itemActualizado.precio_total = cantidad * precio
         }
 
-        // Tejido: ya se resuelve con datos precargados
+        // Tejido: obtener precio según forma de pago
         if (campo === 'tejido_id' && valor) {
           const tejido = tejidos.find((t) => t.id === valor)
           if (tejido) {
             itemActualizado.descripcion = `${tejido.codigo} - ${tejido.nombre}`
             itemActualizado.unidad = 'rollo'
-            itemActualizado.precio_unitario = tejido.precio_venta?.toString() || '0'
+            
+            // Obtener precio según forma de pago
+            let precioTejido = 0
+            switch (formaPago) {
+              case 'efectivo':
+                precioTejido = tejido.precio_venta || 0
+                break
+              case 'lista':
+                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
+                break
+              case 'tarjeta':
+                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0
+                break
+              case 'echeq45':
+                precioTejido = tejido.precio_lista || tejido.precio_venta || 0 // Usar precio_lista como base hasta tener e-cheq
+                break
+              case 'echeq60':
+                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0 // Usar precio_tarjeta como base hasta tener e-cheq
+                break
+              case 'echeq90':
+                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0 // Usar precio_tarjeta como base hasta tener e-cheq
+                break
+              default:
+                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
+            }
+            
+            itemActualizado.precio_unitario = precioTejido.toString()
             const cantidad = parseFloat(item.cantidad) || 0
-            itemActualizado.precio_total = cantidad * (tejido.precio_venta || 0)
+            itemActualizado.precio_total = cantidad * precioTejido
           }
         }
 
@@ -196,6 +234,7 @@ export default function NuevoPresupuestoArticulosPage() {
     if (items.length === 0) return
     const recalc = async () => {
       const nuevos = await Promise.all(items.map(async (it) => {
+        // Recalcular artículo según forma de pago
         if (it.articulo_id) {
           const { data } = await supabase
             .from('precios_venta')
@@ -209,17 +248,55 @@ export default function NuevoPresupuestoArticulosPage() {
           const cantidad = parseFloat(it.cantidad) || 0
           return { ...it, precio_unitario: pu.toString(), precio_total: cantidad * pu }
         }
+        
+        // Recalcular tejido según forma de pago
+        if (it.tejido_id) {
+          const tejido = tejidos.find((t) => t.id === it.tejido_id)
+          if (tejido) {
+            let precioTejido = 0
+            switch (formaPago) {
+              case 'efectivo':
+                precioTejido = tejido.precio_venta || 0
+                break
+              case 'lista':
+                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
+                break
+              case 'tarjeta':
+                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0
+                break
+              case 'echeq45':
+                precioTejido = tejido.precio_echeq45 || tejido.precio_lista || tejido.precio_venta || 0
+                break
+              case 'echeq60':
+                precioTejido = tejido.precio_echeq60 || tejido.precio_tarjeta || tejido.precio_venta || 0
+                break
+              case 'echeq90':
+                precioTejido = tejido.precio_echeq90 || tejido.precio_tarjeta || tejido.precio_venta || 0
+                break
+              default:
+                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
+            }
+            const cantidad = parseFloat(it.cantidad) || 0
+            return { ...it, precio_unitario: precioTejido.toString(), precio_total: cantidad * precioTejido }
+          }
+        }
+        
         return it
       }))
       setItems(nuevos)
     }
     recalc()
-  }, [formaPago])
+  }, [formaPago, tejidos])
 
   const subtotal = items.reduce((sum, item) => sum + item.precio_total, 0)
   const descuentoMonto = parseFloat(formData.descuento) || 0
   const total = subtotal - descuentoMonto
-  const baseSinIva = total > 0 ? total / 1.21 : 0
+  
+  // Calcular IVA solo si NO es efectivo
+  // Efectivo: precio final sin IVA
+  // Otros: precio incluye IVA, calcular base imponible
+  const esEfectivo = formaPago === 'efectivo'
+  const baseSinIva = !esEfectivo && total > 0 ? total / 1.21 : 0
   const iva21 = baseSinIva * 0.21
 
   async function handleSubmit(e: React.FormEvent) {
@@ -262,6 +339,7 @@ export default function NuevoPresupuestoArticulosPage() {
         subtotal,
         descuento: descuentoMonto,
         total,
+        forma_pago: formaPago, // Guardar forma de pago seleccionada
         observaciones: formData.observaciones || null,
         condiciones_comerciales: formData.condiciones_comerciales || null,
         validez_dias: parseInt(formData.validez_dias),
@@ -340,32 +418,8 @@ export default function NuevoPresupuestoArticulosPage() {
       {clienteSeleccionado && (
         <form onSubmit={handleSubmit} className="grid gap-6 grid-cols-1">
           <div className="lg:col-span-2 space-y-6">
-            {/* Forma de pago */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Forma de pago para la cotización</CardTitle>
-                <CardDescription>Define la forma de pago para calcular los precios de los items</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-3">
-                  <Select value={formaPago} onValueChange={(v: any) => setFormaPago(v)}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lista">Factura / Lista</SelectItem>
-                      <SelectItem value="efectivo">Efectivo</SelectItem>
-                      <SelectItem value="tarjeta">Tarjeta</SelectItem>
-                      <SelectItem value="echeq45">E‑cheq 45 días</SelectItem>
-                      <SelectItem value="echeq60">E‑cheq 60 días</SelectItem>
-                      <SelectItem value="echeq90">E‑cheq 90 días</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
             {/* Datos del Cliente - Solo lectura */}
-            <Card className="border-2 border-green-300 bg-green-50/50">
+            <Card>
               <CardHeader className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -435,6 +489,87 @@ export default function NuevoPresupuestoArticulosPage() {
               </CardContent>
             </Card>
 
+            {/* Forma de pago - Destacado */}
+            {(() => {
+              const formaPagoInfo = getFormaPagoInfo(formaPago)
+              const IconoFormaPago = formaPagoInfo.icon
+              return (
+                <Card className={`border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} shadow-lg`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className={`h-5 w-5 ${formaPagoInfo.color}`} />
+                      <CardTitle className={formaPagoInfo.color}>⚠️ Forma de Pago para la Cotización</CardTitle>
+                    </div>
+                    <CardDescription className="font-medium">
+                      Define la forma de pago para calcular los precios de los items. Esta selección afectará todos los precios del presupuesto.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <Select value={formaPago} onValueChange={(v: any) => setFormaPago(v)}>
+                        <SelectTrigger className={`h-12 text-base font-semibold border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor}`}>
+                          <div className="flex items-center gap-2">
+                            <IconoFormaPago className={`h-5 w-5 ${formaPagoInfo.color}`} />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lista" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Factura / Lista
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="efectivo" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4" />
+                              Efectivo
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="tarjeta" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              Tarjeta
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="echeq45" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <Receipt className="h-4 w-4" />
+                              E‑cheq 45 días
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="echeq60" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <Receipt className="h-4 w-4" />
+                              E‑cheq 60 días
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="echeq90" className="text-base py-2">
+                            <div className="flex items-center gap-2">
+                              <Receipt className="h-4 w-4" />
+                              E‑cheq 90 días
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Indicador visual de la selección actual */}
+                      <div className={`p-3 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <IconoFormaPago className={`h-5 w-5 ${formaPagoInfo.color}`} />
+                            <span className={`font-semibold ${formaPagoInfo.color}`}>
+                              Forma de pago seleccionada: {formaPagoInfo.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })()}
+
             {/* Items del Presupuesto - Estilo Tabla */}
             <Card>
               <CardHeader>
@@ -467,7 +602,7 @@ export default function NuevoPresupuestoArticulosPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="border-b-2 bg-muted/50">
+                        <tr className="border-b-2">
                           <th className="p-2 text-left font-semibold text-sm w-12">#</th>
                           <th className="p-2 text-left font-semibold text-sm w-32">Tipo</th>
                           <th className="p-2 text-left font-semibold text-sm min-w-[200px]">Producto</th>
@@ -483,7 +618,7 @@ export default function NuevoPresupuestoArticulosPage() {
                         {items.map((item, index) => (
                           <tr 
                             key={item.id} 
-                            className="border-b hover:bg-muted/30 transition-colors"
+                            className="border-b"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault()
@@ -556,7 +691,7 @@ export default function NuevoPresupuestoArticulosPage() {
                                 value={item.cantidad}
                                 onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
                                 placeholder="1"
-                                className="h-9"
+                                className="h-9 text-right"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault()
@@ -586,7 +721,7 @@ export default function NuevoPresupuestoArticulosPage() {
                                 value={item.precio_unitario}
                                 onChange={(e) => actualizarItem(item.id, 'precio_unitario', e.target.value)}
                                 placeholder="0.00"
-                                className="h-9"
+                                className="h-9 text-right"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault()
@@ -716,6 +851,23 @@ export default function NuevoPresupuestoArticulosPage() {
                     <span className="text-muted-foreground">Validez:</span>
                     <span className="font-medium">{formData.validez_dias} días</span>
                   </div>
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span className="text-muted-foreground">Forma de pago:</span>
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const formaPagoInfo = getFormaPagoInfo(formaPago)
+                        const IconoFormaPago = formaPagoInfo.icon
+                        return (
+                          <>
+                            <IconoFormaPago className={`h-4 w-4 ${formaPagoInfo.color}`} />
+                            <span className={`font-semibold ${formaPagoInfo.color}`}>
+                              {formaPagoInfo.label}
+                            </span>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="border-t pt-4 space-y-3">
@@ -738,18 +890,23 @@ export default function NuevoPresupuestoArticulosPage() {
                     />
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Base imponible (sin IVA)</span>
-                    <span className="text-sm font-semibold">
-                      ${baseSinIva.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">IVA 21%</span>
-                    <span className="text-sm font-semibold">
-                      ${iva21.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
+                  {/* Mostrar IVA solo si NO es efectivo */}
+                  {!esEfectivo && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Base imponible (sin IVA)</span>
+                        <span className="text-sm font-semibold">
+                          ${baseSinIva.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">IVA 21%</span>
+                        <span className="text-sm font-semibold">
+                          ${iva21.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </>
+                  )}
 
                   <div className="flex justify-between items-center pt-3 border-t-2">
                     <span className="text-lg font-bold">Total:</span>

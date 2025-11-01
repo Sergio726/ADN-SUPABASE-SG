@@ -26,6 +26,7 @@ interface PresupuestoData {
   subtotal: number
   descuento: number
   total: number
+  forma_pago?: string
   observaciones?: string
   condiciones_comerciales?: string
 }
@@ -207,15 +208,18 @@ export function generarPDFPresupuesto(
     doc.setTextColor(0, 0, 0)
   }
   
-  // Discriminación de IVA (21%)
-  yPos += 6
-  const baseSinIva = presupuesto.total / 1.21
-  const iva21 = baseSinIva * 0.21
-  doc.text('Base imponible (sin IVA):', totalesX, yPos)
-  doc.text(`$${baseSinIva.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
-  yPos += 6
-  doc.text('IVA 21%:', totalesX, yPos)
-  doc.text(`$${iva21.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
+  // Discriminación de IVA (21%) - Solo si NO es efectivo
+  const esEfectivo = presupuesto.forma_pago === 'efectivo'
+  if (!esEfectivo && presupuesto.total > 0) {
+    yPos += 6
+    const baseSinIva = presupuesto.total / 1.21
+    const iva21 = baseSinIva * 0.21
+    doc.text('Base imponible (sin IVA):', totalesX, yPos)
+    doc.text(`$${baseSinIva.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
+    yPos += 6
+    doc.text('IVA 21%:', totalesX, yPos)
+    doc.text(`$${iva21.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
+  }
   
   yPos += 8
   doc.setDrawColor(0, 0, 0)

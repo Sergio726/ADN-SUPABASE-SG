@@ -43,11 +43,11 @@ CREATE TABLE IF NOT EXISTS clientes (
 );
 
 -- Índices
-CREATE UNIQUE INDEX idx_clientes_documento ON clientes(tipo_documento, numero_documento);
-CREATE INDEX idx_clientes_nombre ON clientes(nombre_completo);
-CREATE INDEX idx_clientes_email ON clientes(email);
-CREATE INDEX idx_clientes_activo ON clientes(activo);
-CREATE INDEX idx_clientes_categoria ON clientes(categoria);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_documento ON clientes(tipo_documento, numero_documento);
+CREATE INDEX IF NOT EXISTS idx_clientes_nombre ON clientes(nombre_completo);
+CREATE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email);
+CREATE INDEX IF NOT EXISTS idx_clientes_activo ON clientes(activo);
+CREATE INDEX IF NOT EXISTS idx_clientes_categoria ON clientes(categoria);
 
 -- Trigger para actualizar timestamp
 CREATE OR REPLACE FUNCTION update_clientes_timestamp()
