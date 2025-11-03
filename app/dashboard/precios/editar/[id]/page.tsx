@@ -31,17 +31,17 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
   const fmt = (n: number) => isFinite(n) ? n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00'
   const costoNum = parseFloat(formData.precio_costo) || 0
 
-  // Porcentajes definidos (aplicados sobre costo)
-  // Efectivo (sin factura): costo + 56%
-  const precioEfectivo = costoNum * 1.56
-  // Factura / Lista (incluye IVA): costo + 70%
-  const precioFacturaLista = costoNum * 1.70
-  // Tarjeta (incluye IVA): costo + 78%
-  const precioTarjeta = costoNum * 1.78
-  // E-cheq (incluye IVA):
-  const precioECheq45 = costoNum * 1.70
-  const precioECheq60 = costoNum * 1.78
-  const precioECheq90 = costoNum * 1.87
+  // Política de precios: Los precios derivados se calculan desde precio_base (precio_venta)
+  // precio_base = costo × 1.56 (para artículos, margen editable)
+  const precioBase = formData.precio_venta ? parseFloat(formData.precio_venta) : (costoNum * 1.56)
+  
+  // Precios derivados desde precio_base:
+  const precioEfectivo = precioBase * 1.0 // Efectivo = precio_base × 1.0 (sin IVA)
+  const precioFacturaLista = precioBase * 1.21 // Factura/Lista = precio_base × 1.21 (incluye IVA 21%)
+  const precioTarjeta = precioBase * 1.3 // Tarjeta = precio_base × 1.3 (incluye IVA 21%)
+  const precioECheq45 = precioBase * 1.21 // E-cheq 45 = igual que Factura/Lista (incluye IVA 21%)
+  const precioECheq60 = precioBase * 1.3 // E-cheq 60 = igual que Tarjeta (incluye IVA 21%)
+  const precioECheq90 = precioBase * 1.4 // E-cheq 90 = precio_base × 1.4 (incluye IVA 21%)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,7 +59,7 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
         setFormData({
           precio_costo: precioData.precio_costo.toString(),
           // si no tiene precio_venta, completar con factura/lista por defecto
-          precio_venta: (precioData.precio_venta || (precioData.precio_costo * 1.70)).toString(),
+          precio_venta: (precioData.precio_venta || (precioData.precio_costo * 1.56)).toString(), // Precio base = costo × 1.56 (por defecto)
           vigente: precioData.vigente,
           fecha_inicio: precioData.fecha_inicio || '',
           fecha_fin: precioData.fecha_fin || '',
@@ -86,9 +86,10 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
     try {
       const costo = parseFloat(formData.precio_costo)
       const ventaIngresada = parseFloat(formData.precio_venta)
-      // Precio Factura/Lista por defecto
-      const listaPorDefecto = isFinite(costo) ? costo * 1.70 : 0
-      const precioVentaFinal = isFinite(ventaIngresada) && ventaIngresada > 0 ? ventaIngresada : listaPorDefecto
+      // precio_venta debe ser el precio base (efectivo)
+      // Si no se ingresa, calcular desde costo con margen del 56% (costo * 1.56)
+      const efectivoPorDefecto = isFinite(costo) ? costo * 1.56 : 0
+      const precioVentaFinal = isFinite(ventaIngresada) && ventaIngresada > 0 ? ventaIngresada : efectivoPorDefecto
 
       const { error } = await supabase
         .from('precios_venta')
@@ -245,40 +246,41 @@ export default function EditarPrecioPage({ params }: { params: { id: string } })
 
             {/* Desglose de precios según política definida */}
             <div className="p-4 rounded-lg border bg-muted/30">
+              <p className="text-sm font-semibold mb-3">Precios derivados desde Precio Base (${fmt(precioBase)})</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Precio Efectivo</p>
-                  <p className="text-xs text-muted-foreground">Costo + 56% (sin factura)</p>
+                  <p className="text-xs text-muted-foreground">Precio base × 1.0 (sin IVA)</p>
                   <div className="text-lg font-semibold">${fmt(precioEfectivo)}</div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Precio Factura / Lista</p>
-                  <p className="text-xs text-muted-foreground">Costo + 70% (incluye IVA)</p>
+                  <p className="text-xs text-muted-foreground">Precio base × 1.21 (incluye IVA 21%)</p>
                   <div className="text-lg font-semibold">${fmt(precioFacturaLista)}</div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Precio Tarjeta</p>
-                  <p className="text-xs text-muted-foreground">Costo + 78% (incluye IVA)</p>
+                  <p className="text-xs text-muted-foreground">Precio base × 1.3 (incluye IVA 21%)</p>
                   <div className="text-lg font-semibold">${fmt(precioTarjeta)}</div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium">E‑cheq 45 días</p>
-                  <p className="text-xs text-muted-foreground">Costo + 70% (incluye IVA)</p>
+                  <p className="text-xs text-muted-foreground">Igual que Factura/Lista (incluye IVA 21%)</p>
                   <div className="text-lg font-semibold">${fmt(precioECheq45)}</div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium">E‑cheq 60 días</p>
-                  <p className="text-xs text-muted-foreground">Costo + 78% (incluye IVA)</p>
+                  <p className="text-xs text-muted-foreground">Igual que Tarjeta (incluye IVA 21%)</p>
                   <div className="text-lg font-semibold">${fmt(precioECheq60)}</div>
                 </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium">E‑cheq 90 días</p>
-                  <p className="text-xs text-muted-foreground">Costo + 87% (incluye IVA)</p>
+                  <p className="text-xs text-muted-foreground">Precio base × 1.4 (incluye IVA 21%)</p>
                   <div className="text-lg font-semibold">${fmt(precioECheq90)}</div>
                 </div>
               </div>

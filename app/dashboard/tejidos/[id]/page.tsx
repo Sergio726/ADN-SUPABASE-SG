@@ -298,45 +298,41 @@ export default function VerTejidoPage() {
                     <div className="text-xl font-bold text-blue-700">
                       ${tejido.precio_lista.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    {tejido.margen_factura && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Margen: {tejido.margen_factura}%
-                      </div>
-                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Precio base × 1.21 (incluye IVA)
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       ${((tejido.precio_lista || 0) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
                     </div>
                   </div>
                 )}
 
-                {/* Precio Tarjeta */}
-                {tejido.precio_tarjeta && (
+                {/* Precio Tarjeta - Calculado desde precio base */}
+                {tejido.precio_venta && (
                   <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-purple-600" />
                       <span className="text-xs font-medium text-purple-800">Tarjeta</span>
                     </div>
                     <div className="text-xl font-bold text-purple-700">
-                      ${tejido.precio_tarjeta.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ${((tejido.precio_venta || 0) * 1.3).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    {tejido.margen_tarjeta && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Margen: {tejido.margen_tarjeta}%
-                      </div>
-                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Precio base × 1.3 (incluye IVA 21%)
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      ${((tejido.precio_tarjeta || 0) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
+                      ${(((tejido.precio_venta || 0) * 1.3) / (tejido.largo || 10)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/m
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Margen de ganancia general */}
-              {(tejido.margen_porcentaje || tejido.margen_efectivo) && (
+              {tejido.margen_efectivo && (
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className="text-sm text-muted-foreground">Margen de ganancia (efectivo):</span>
                   <Badge variant="outline" className="text-base">
-                    {tejido.margen_efectivo || tejido.margen_porcentaje || 30}%
+                    {tejido.margen_efectivo}%
                   </Badge>
                 </div>
               )}
@@ -351,17 +347,12 @@ export default function VerTejidoPage() {
                 </p>
                 {tejido.precio_venta && (
                   <p className="text-muted-foreground">
-                    <span className="font-medium">Venta Efectivo:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {(tejido.margen_efectivo || tejido.margen_porcentaje || 30)}/100) = ${tejido.precio_venta?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="font-medium">Venta Efectivo:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {tejido.margen_efectivo || 45}/100) = ${tejido.precio_venta?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 )}
                 {tejido.precio_lista && (
                   <p className="text-muted-foreground">
-                    <span className="font-medium">Venta Lista:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {tejido.margen_factura || 57}/100) = ${tejido.precio_lista.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                )}
-                {tejido.precio_tarjeta && (
-                  <p className="text-muted-foreground">
-                    <span className="font-medium">Venta Tarjeta:</span> ${tejido.precio_costo?.toLocaleString()} × (1 + {tejido.margen_tarjeta || 65}/100) = ${tejido.precio_tarjeta.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <span className="font-medium">Venta Lista:</span> ${tejido.precio_venta?.toLocaleString()} × 1.21 = ${tejido.precio_lista.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 )}
               </div>
