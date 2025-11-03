@@ -198,13 +198,6 @@ export default function LoginPage() {
             </svg>
             Continuar con Google
           </Button>
-
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">👤 Usuario de prueba:</p>
-            <code className="block text-xs bg-muted px-3 py-2 rounded">
-              admin@alambresdelnorte.com
-            </code>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/popover'
 
 interface ProductoComboboxProps {
-  value?: string
+  value?: string | number
   onChange: (value: string) => void
   productos: Array<{
     id: string | number
@@ -42,8 +42,10 @@ export function ProductoCombobox({
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState('')
 
+  const normalizedValue = value !== undefined && value !== null ? value.toString() : ''
+
   const selectedProducto = productos.find(
-    (producto) => producto.id.toString() === value
+    (producto) => producto.id.toString() === normalizedValue
   )
 
   return (
@@ -55,7 +57,7 @@ export function ProductoCombobox({
           aria-expanded={open}
           className={cn(
             'w-full justify-between h-9 font-normal',
-            !value && 'text-muted-foreground',
+            !normalizedValue && 'text-muted-foreground',
             className
           )}
         >
@@ -93,7 +95,7 @@ export function ProductoCombobox({
                     key={producto.id}
                     value={producto.id.toString()}
                     onSelect={(currentValue) => {
-                      onChange(currentValue === value ? '' : currentValue)
+                      onChange(currentValue)
                       setOpen(false)
                       setSearchValue('')
                     }}
@@ -102,7 +104,7 @@ export function ProductoCombobox({
                     <Check
                       className={cn(
                         'mr-2 h-4 w-4',
-                        value === producto.id.toString() ? 'opacity-100' : 'opacity-0'
+                        normalizedValue === producto.id.toString() ? 'opacity-100' : 'opacity-0'
                       )}
                     />
                     <div className="flex flex-col">

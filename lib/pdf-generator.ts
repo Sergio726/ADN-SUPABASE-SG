@@ -11,12 +11,22 @@ interface PresupuestoData {
   cliente_email?: string
   cliente_telefono?: string
   cliente_direccion?: string
+  // Nuevos datos básicos del cliente
+  tipo_documento?: string
+  numero_documento?: string
+  razon_social?: string
+  ciudad?: string
+  provincia?: string
+  codigo_postal?: string
+  // Vendedor
+  vendedor_nombre?: string
   terreno_largo?: number
   terreno_ancho?: number
   metros_lineales_total?: number
   subtotal: number
   descuento: number
   total: number
+  forma_pago?: string
   observaciones?: string
   condiciones_comerciales?: string
 }
@@ -48,7 +58,7 @@ export function generarPDFPresupuesto(
   doc.setFontSize(9)
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
-  doc.text('Cercos y Alambrados de Calidad', 15, yPos + 5)
+  doc.text('Tu seguridad comienza con nosotros', 15, yPos + 5)
   
   // Número de presupuesto (derecha)
   doc.setFontSize(12)
@@ -88,6 +98,16 @@ export function generarPDFPresupuesto(
   doc.setFont('helvetica', 'normal')
   doc.text(presupuesto.cliente_nombre, 15, yPos)
   
+  if (presupuesto.razon_social) {
+    yPos += 5
+    doc.text(`Razón social: ${presupuesto.razon_social}`, 15, yPos)
+  }
+
+  if (presupuesto.tipo_documento && presupuesto.numero_documento) {
+    yPos += 5
+    doc.text(`Documento: ${presupuesto.tipo_documento} ${presupuesto.numero_documento}`, 15, yPos)
+  }
+  
   if (presupuesto.cliente_telefono) {
     yPos += 5
     doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
@@ -101,6 +121,14 @@ export function generarPDFPresupuesto(
   if (presupuesto.cliente_direccion) {
     yPos += 5
     doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
+  }
+
+  if (presupuesto.vendedor_nombre) {
+    yPos += 7
+    doc.setFont('helvetica', 'bold')
+    doc.text('VENDEDOR:', 15, yPos)
+    doc.setFont('helvetica', 'normal')
+    doc.text(presupuesto.vendedor_nombre, 45, yPos)
   }
   
   // Si es cercado, mostrar datos del terreno
@@ -178,6 +206,19 @@ export function generarPDFPresupuesto(
     doc.text('Descuento:', totalesX, yPos)
     doc.text(`-$${presupuesto.descuento.toLocaleString('es-AR')}`, pageWidth - 15, yPos, { align: 'right' })
     doc.setTextColor(0, 0, 0)
+  }
+  
+  // Discriminación de IVA (21%) - Solo si NO es efectivo
+  const esEfectivo = presupuesto.forma_pago === 'efectivo'
+  if (!esEfectivo && presupuesto.total > 0) {
+    yPos += 6
+    const baseSinIva = presupuesto.total / 1.21
+    const iva21 = baseSinIva * 0.21
+    doc.text('Base imponible (sin IVA):', totalesX, yPos)
+    doc.text(`$${baseSinIva.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
+    yPos += 6
+    doc.text('IVA 21%:', totalesX, yPos)
+    doc.text(`$${iva21.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 15, yPos, { align: 'right' })
   }
   
   yPos += 8

@@ -19,6 +19,7 @@ export default function VerPresupuestoPage() {
   const [presupuesto, setPresupuesto] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [vendedorNombre, setVendedorNombre] = useState<string>('')
 
   useEffect(() => {
     cargarPresupuesto()
@@ -45,6 +46,18 @@ export default function VerPresupuestoPage() {
         .order('orden')
 
       if (itemsError) throw itemsError
+
+      // Cargar vendedor
+      if (presData?.usuario_id) {
+        const { data: vend } = await supabase
+          .from('usuarios')
+          .select('nombre')
+          .eq('id', presData.usuario_id)
+          .single()
+        setVendedorNombre(vend?.nombre || '')
+      } else {
+        setVendedorNombre('')
+      }
 
       setPresupuesto(presData)
       setItems(itemsData || [])
@@ -88,7 +101,7 @@ export default function VerPresupuestoPage() {
 
   function descargarPDF() {
     try {
-      generarPDFPresupuesto(presupuesto, items)
+      generarPDFPresupuesto({ ...presupuesto, vendedor_nombre: vendedorNombre }, items)
       toast({
         title: "¡PDF Generado!",
         description: "El presupuesto se ha descargado correctamente",
@@ -196,6 +209,15 @@ export default function VerPresupuestoPage() {
                   </div>
                 )}
               </div>
+              {vendedorNombre && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Vendedor</p>
+                    <p className="font-medium">{vendedorNombre}</p>
+                  </div>
+                </div>
+              )}
               {presupuesto.cliente_email && (
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
@@ -265,6 +287,23 @@ export default function VerPresupuestoPage() {
                           -${presupuesto.descuento?.toLocaleString()}
                         </td>
                       </tr>
+                    )}
+                    {/* Mostrar IVA solo si NO es efectivo */}
+                    {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                      <>
+                        <tr className="border-b">
+                          <td colSpan={5} className="p-3 text-right font-semibold">Base imponible (sin IVA):</td>
+                          <td className="p-3 text-right font-semibold">
+                            ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                        <tr className="border-b">
+                          <td colSpan={5} className="p-3 text-right font-semibold">IVA 21%:</td>
+                          <td className="p-3 text-right font-semibold">
+                            ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </>
                     )}
                     <tr className="border-t-2 bg-green-50">
                       <td colSpan={5} className="p-4 text-right font-bold text-lg">TOTAL:</td>
@@ -368,6 +407,12 @@ export default function VerPresupuestoPage() {
                 <span className="text-sm text-muted-foreground">Items:</span>
                 <span className="font-semibold">{items.length}</span>
               </div>
+              {vendedorNombre && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Vendedor:</span>
+                  <span className="font-semibold">{vendedorNombre}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Subtotal:</span>
                 <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>
@@ -377,6 +422,23 @@ export default function VerPresupuestoPage() {
                   <span className="text-sm">Descuento:</span>
                   <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
                 </div>
+              )}
+              {/* Mostrar IVA solo si NO es efectivo */}
+              {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Base imponible (sin IVA):</span>
+                    <span className="text-sm font-semibold">
+                      ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">IVA 21%:</span>
+                    <span className="text-sm font-semibold">
+                      ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
               )}
               <div className="flex justify-between pt-3 border-t-2">
                 <span className="font-bold">TOTAL:</span>

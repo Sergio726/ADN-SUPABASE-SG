@@ -27,7 +27,10 @@ export default function EditarTejidoPage() {
     costo: 0, 
     efectivo: 0, 
     lista: 0, 
-    tarjeta: 0 
+    tarjeta: 0,
+    echeq45: 0,
+    echeq60: 0,
+    echeq90: 0
   })
 
   const [formData, setFormData] = useState({
@@ -41,6 +44,9 @@ export default function EditarTejidoPage() {
     margen_efectivo: '45.00',
     margen_factura: '57.00',
     margen_tarjeta: '65.00',
+    margen_echeq45: '57.00',
+    margen_echeq60: '65.00',
+    margen_echeq90: '73.00',
     descripcion: '',
     activo: true,
   })
@@ -52,7 +58,7 @@ export default function EditarTejidoPage() {
 
   useEffect(() => {
     calcularPrecio()
-  }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.margen_factura, formData.margen_tarjeta, formData.alambre_articulo_id])
+  }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.margen_factura, formData.margen_tarjeta, formData.margen_echeq45, formData.margen_echeq60, formData.margen_echeq90, formData.alambre_articulo_id])
 
   async function cargarAlambres() {
     const { data, error } = await supabase
@@ -118,6 +124,9 @@ export default function EditarTejidoPage() {
         margen_efectivo: (data.margen_efectivo)?.toString() || '45.00',
         margen_factura: (data.margen_factura)?.toString() || '57.00',
         margen_tarjeta: (data.margen_tarjeta)?.toString() || '65.00',
+        margen_echeq45: (data.margen_echeq45)?.toString() || '57.00',
+        margen_echeq60: (data.margen_echeq60)?.toString() || '65.00',
+        margen_echeq90: (data.margen_echeq90)?.toString() || '73.00',
         descripcion: data.descripcion || '',
         activo: data.activo,
       })
@@ -135,7 +144,7 @@ export default function EditarTejidoPage() {
 
   async function calcularPrecio() {
     if (!formData.peso_kg || !formData.mano_obra || !formData.alambre_articulo_id) {
-      setPrecioCalculado({ costo: 0, efectivo: 0, lista: 0, tarjeta: 0 })
+      setPrecioCalculado({ costo: 0, efectivo: 0, lista: 0, tarjeta: 0, echeq45: 0, echeq60: 0, echeq90: 0 })
       setPrecioAlambre(0)
       return
     }
@@ -154,6 +163,9 @@ export default function EditarTejidoPage() {
         const margenEfectivo = parseFloat(formData.margen_efectivo) || 45
         const margenFactura = parseFloat(formData.margen_factura) || 57
         const margenTarjeta = parseFloat(formData.margen_tarjeta) || 65
+        const margenEcheq45 = parseFloat(formData.margen_echeq45) || 57
+        const margenEcheq60 = parseFloat(formData.margen_echeq60) || 65
+        const margenEcheq90 = parseFloat(formData.margen_echeq90) || 73
 
         setPrecioAlambre(precios.precio_costo)
 
@@ -161,8 +173,11 @@ export default function EditarTejidoPage() {
         const efectivo = costo * (1 + (margenEfectivo / 100))
         const lista = costo * (1 + (margenFactura / 100))
         const tarjeta = costo * (1 + (margenTarjeta / 100))
+        const echeq45 = costo * (1 + (margenEcheq45 / 100))
+        const echeq60 = costo * (1 + (margenEcheq60 / 100))
+        const echeq90 = costo * (1 + (margenEcheq90 / 100))
 
-        setPrecioCalculado({ costo, efectivo, lista, tarjeta })
+        setPrecioCalculado({ costo, efectivo, lista, tarjeta, echeq45, echeq60, echeq90 })
       } else {
         setPrecioAlambre(0)
       }
@@ -176,7 +191,12 @@ export default function EditarTejidoPage() {
     setLoading(true)
 
     try {
-      const codigo = `RC${formData.calibre}x${formData.tamano_rombo}x${formData.altura}`
+      // Formato: TR-{altura}-{rombo}-{calibre}
+      // Ejemplo: TR-2.0-3.5-14
+      const altura = parseFloat(formData.altura).toFixed(1)
+      const romboValor = parseFloat(formData.tamano_rombo).toFixed(1)
+      const calibre = formData.calibre
+      const codigo = `TR-${altura}-${romboValor}-${calibre}`
       const nombre = `Tejido Romboidal Cal.${formData.calibre} - ${formData.altura}m - Rombo ${formData.tamano_rombo}"`
 
       const rombo = parseFloat(formData.tamano_rombo)
@@ -198,6 +218,9 @@ export default function EditarTejidoPage() {
         margen_efectivo: parseFloat(formData.margen_efectivo),
         margen_factura: parseFloat(formData.margen_factura),
         margen_tarjeta: parseFloat(formData.margen_tarjeta),
+        margen_echeq45: parseFloat(formData.margen_echeq45),
+        margen_echeq60: parseFloat(formData.margen_echeq60),
+        margen_echeq90: parseFloat(formData.margen_echeq90),
         categoria_calidad,
         activo: formData.activo,
       }
@@ -528,6 +551,51 @@ export default function EditarTejidoPage() {
                         Precio tarjeta = Costo × 1.65
                       </p>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_echeq45">E-cheq 45 días</Label>
+                      <Input
+                        id="margen_echeq45"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_echeq45}
+                        onChange={(e) => setFormData({ ...formData, margen_echeq45: e.target.value })}
+                        placeholder="57.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio E-cheq 45 días = Costo × 1.57
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_echeq60">E-cheq 60 días</Label>
+                      <Input
+                        id="margen_echeq60"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_echeq60}
+                        onChange={(e) => setFormData({ ...formData, margen_echeq60: e.target.value })}
+                        placeholder="65.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio E-cheq 60 días = Costo × 1.65
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="margen_echeq90">E-cheq 90 días</Label>
+                      <Input
+                        id="margen_echeq90"
+                        type="number"
+                        step="0.01"
+                        value={formData.margen_echeq90}
+                        onChange={(e) => setFormData({ ...formData, margen_echeq90: e.target.value })}
+                        placeholder="73.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Precio E-cheq 90 días = Costo × 1.73
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -627,6 +695,36 @@ export default function EditarTejidoPage() {
                   </div>
                   <p className="text-xs text-purple-700">Pago con tarjeta</p>
                 </div>
+
+                <div className="bg-orange-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-orange-900">E-cheq 45 días ({formData.margen_echeq45}%):</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      ${precioCalculado.echeq45.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-orange-700">E-cheque a 45 días</p>
+                </div>
+
+                <div className="bg-amber-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-amber-900">E-cheq 60 días ({formData.margen_echeq60}%):</span>
+                    <span className="text-lg font-bold text-amber-600">
+                      ${precioCalculado.echeq60.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-700">E-cheque a 60 días</p>
+                </div>
+
+                <div className="bg-yellow-50 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-yellow-900">E-cheq 90 días ({formData.margen_echeq90}%):</span>
+                    <span className="text-lg font-bold text-yellow-600">
+                      ${precioCalculado.echeq90.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-yellow-700">E-cheque a 90 días</p>
+                </div>
               </div>
 
               <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
@@ -635,6 +733,9 @@ export default function EditarTejidoPage() {
                 <p>• Efectivo = Costo × (1 + {formData.margen_efectivo}/100)</p>
                 <p>• Lista = Costo × (1 + {formData.margen_factura}/100)</p>
                 <p>• Tarjeta = Costo × (1 + {formData.margen_tarjeta}/100)</p>
+                <p>• E-cheq 45 días = Costo × (1 + {formData.margen_echeq45}/100)</p>
+                <p>• E-cheq 60 días = Costo × (1 + {formData.margen_echeq60}/100)</p>
+                <p>• E-cheq 90 días = Costo × (1 + {formData.margen_echeq90}/100)</p>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs">

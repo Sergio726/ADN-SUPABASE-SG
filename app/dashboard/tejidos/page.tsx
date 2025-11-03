@@ -59,9 +59,15 @@ export default function TejidosPage() {
   async function cargarTejidos() {
     try {
       setLoading(true)
+      // Consultar directamente desde la tabla base para asegurar que tenemos todos los campos
       const { data, error } = await supabase
-        .from('v_tejidos_con_precios')
-        .select('*')
+        .from('tejidos_configuraciones')
+        .select(`
+          *,
+          alambre:articulos!alambre_articulo_id(id, nombre),
+          articulo:articulos!articulo_id(id, nombre)
+        `)
+        .eq('activo', true)
         .order('calibre')
         .order('altura', { ascending: false })
         .order('tamano_rombo', { ascending: false })
@@ -76,7 +82,20 @@ export default function TejidosPage() {
         return
       }
 
-      setTejidos(data || [])
+      // Transformar datos para mantener compatibilidad con la estructura esperada
+      const tejidosTransformados = (data || []).map((tejido: any) => ({
+        ...tejido,
+        alambre_nombre: tejido.alambre?.nombre || null,
+        articulo_nombre: tejido.articulo?.nombre || null,
+        // Mantener compatibilidad con nombres antiguos
+        peso_kg: tejido.cantidad_alambre, // Para compatibilidad con código que usa peso_kg
+        mano_obra: tejido.costo_mano_obra, // Para compatibilidad con código que usa mano_obra
+        calidad_sugerida: 
+          tejido.tamano_rombo === 3.5 ? 'Económica' :
+          tejido.tamano_rombo === 3.0 ? 'Standard' : 'Reforzada'
+      }))
+
+      setTejidos(tejidosTransformados)
     } catch (error) {
       console.error('Error:', error)
       toast({
@@ -126,7 +145,7 @@ export default function TejidosPage() {
       accessorKey: 'calibre',
       header: ({ column }: any) => <SortableHeader column={column} title="Calibre" />,
       cell: ({ row }: any) => (
-        <Badge variant="outline" className="font-mono">
+        <Badge variant="outline" className="font-mono text-xs">
           Cal. {row.original.calibre}
         </Badge>
       ),
@@ -148,16 +167,28 @@ export default function TejidosPage() {
     {
       accessorKey: 'peso_kg',
       header: ({ column }: any) => <SortableHeader column={column} title="Peso" />,
-      cell: ({ row }: any) => (
-        <span className="text-muted-foreground">{row.original.peso_kg} kg</span>
-      ),
+      cell: ({ row }: any) => {
+        const peso = row.original.cantidad_alambre || row.original.peso_kg
+        if (peso == null || peso === undefined) {
+          return <span className="text-muted-foreground">—</span>
+        }
+        return (
+          <span className="text-muted-foreground">{Number(peso).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
+        )
+      },
     },
     {
       accessorKey: 'mano_obra',
       header: ({ column }: any) => <SortableHeader column={column} title="M. Obra" />,
-      cell: ({ row }: any) => (
-        <span className="text-sm">${row.original.mano_obra?.toLocaleString()}</span>
-      ),
+      cell: ({ row }: any) => {
+        const manoObra = row.original.costo_mano_obra || row.original.mano_obra
+        if (manoObra == null || manoObra === undefined) {
+          return <span className="text-sm text-muted-foreground">—</span>
+        }
+        return (
+          <span className="text-sm">${Number(manoObra).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        )
+      },
     },
     {
       accessorKey: 'precio_costo',
@@ -186,14 +217,14 @@ export default function TejidosPage() {
           calidad === 'Económica' ? 'secondary' :
           calidad === 'Standard' ? 'default' :
           'destructive'
-        return <Badge variant={variant}>{calidad}</Badge>
+        return <Badge variant={variant} className="text-xs whitespace-nowrap">{calidad}</Badge>
       },
     },
     {
       accessorKey: 'activo',
       header: 'Estado',
       cell: ({ row }: any) => (
-        <Badge variant={row.original.activo ? 'default' : 'outline'}>
+        <Badge variant={row.original.activo ? 'default' : 'outline'} className="text-xs whitespace-nowrap">
           {row.original.activo ? (
             <><CheckCircle className="h-3 w-3 mr-1" /> Activo</>
           ) : (
@@ -206,13 +237,13 @@ export default function TejidosPage() {
       id: 'acciones',
       header: 'Acciones',
       cell: ({ row }: any) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
                   <Link href={`/dashboard/tejidos/${row.original.id}`}>
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Link>
                 </Button>
               </TooltipTrigger>
@@ -225,9 +256,9 @@ export default function TejidosPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
                   <Link href={`/dashboard/tejidos/editar/${row.original.id}`}>
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Link>
                 </Button>
               </TooltipTrigger>
@@ -243,12 +274,13 @@ export default function TejidosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                   onClick={() => toggleActivo(row.original.id, row.original.activo)}
                 >
                   {row.original.activo ? (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
                   ) : (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
                   )}
                 </Button>
               </TooltipTrigger>

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createServerClient } from '@/lib/supabaseServer'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Package, Building2, Mail, AlertTriangle, Plus, DollarSign, TrendingUp, ArrowRight } from 'lucide-react'
 
 async function getStats() {
+  const supabase = createServerClient()
   const [
     { count: totalArticulos },
     { count: totalProveedores },
