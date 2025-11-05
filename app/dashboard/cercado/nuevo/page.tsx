@@ -450,7 +450,7 @@ export default function NuevaConfiguracionCercadoPage() {
 
     // Arena
     if (formData.cordon_arena_id) {
-      const arena = materialesConstruccion.find(m => m.id === formData.cordon_arena_id)
+      const arena = materialesConstruccion.find(m => String(m.id) === formData.cordon_arena_id)
       const precioArena = arena?.precio_venta || 0
       const m3Arena = parseFloat(formData.cordon_arena_m3) || 0
       total += precioArena * m3Arena
@@ -458,7 +458,7 @@ export default function NuevaConfiguracionCercadoPage() {
 
     // Ripio
     if (formData.cordon_ripio_id) {
-      const ripio = materialesConstruccion.find(m => m.id === formData.cordon_ripio_id)
+      const ripio = materialesConstruccion.find(m => String(m.id) === formData.cordon_ripio_id)
       const precioRipio = ripio?.precio_venta || 0
       const m3Ripio = parseFloat(formData.cordon_ripio_m3) || 0
       total += precioRipio * m3Ripio
@@ -466,7 +466,7 @@ export default function NuevaConfiguracionCercadoPage() {
 
     // Cemento
     if (formData.cordon_cemento_id) {
-      const cemento = materialesConstruccion.find(m => m.id === formData.cordon_cemento_id)
+      const cemento = materialesConstruccion.find(m => String(m.id) === formData.cordon_cemento_id)
       const precioCemento = cemento?.precio_venta || 0
       const bolsasCemento = parseFloat(formData.cordon_cemento_bolsas) || 0
       total += precioCemento * bolsasCemento
@@ -891,7 +891,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <Select
                       value={formData.poste_esquinero_id}
                       onValueChange={(value) => {
-                        const posteSeleccionado = postes.find(p => p.id === value)
+                        const posteSeleccionado = postes.find(p => String(p.id) === value)
                         setFormData({
                           ...formData,
                           poste_esquinero_id: value,
@@ -905,7 +905,7 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectContent>
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('esquinero').map((poste) => (
-                            <SelectItem key={poste.id} value={poste.id}>
+                            <SelectItem key={poste.id} value={String(poste.id)}>
                               {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
                             </SelectItem>
                           ))
@@ -940,7 +940,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <Select
                       value={formData.poste_refuerzo_id}
                       onValueChange={(value) => {
-                        const posteSeleccionado = postes.find(p => p.id === value)
+                        const posteSeleccionado = postes.find(p => String(p.id) === value)
                         setFormData({
                           ...formData,
                           poste_refuerzo_id: value,
@@ -954,14 +954,14 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectContent>
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('refuerzo').map((poste) => (
-                            <SelectItem key={poste.id} value={poste.id}>
+                            <SelectItem key={poste.id} value={String(poste.id)}>
                               {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                             No hay postes disponibles
-                  </div>
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
@@ -989,7 +989,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <Select
                       value={formData.poste_intermedio_id}
                       onValueChange={(value) => {
-                        const posteSeleccionado = postes.find(p => p.id === value)
+                        const posteSeleccionado = postes.find(p => String(p.id) === value)
                         setFormData({
                           ...formData,
                           poste_intermedio_id: value,
@@ -1003,14 +1003,14 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectContent>
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('intermedio').map((poste) => (
-                            <SelectItem key={poste.id} value={poste.id}>
+                            <SelectItem key={poste.id} value={String(poste.id)}>
                               {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                             No hay postes disponibles
-                  </div>
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
@@ -1038,7 +1038,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <Select
                       value={formData.poste_puntal_id}
                       onValueChange={(value) => {
-                        const posteSeleccionado = postes.find(p => p.id === value)
+                        const posteSeleccionado = postes.find(p => String(p.id) === value)
                         setFormData({
                           ...formData,
                           poste_puntal_id: value,
@@ -1052,14 +1052,14 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectContent>
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('puntal').map((poste) => (
-                            <SelectItem key={poste.id} value={poste.id}>
+                            <SelectItem key={poste.id} value={String(poste.id)}>
                               {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                             No hay postes disponibles
-                  </div>
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
@@ -1136,7 +1136,7 @@ export default function NuevaConfiguracionCercadoPage() {
                           <SelectContent>
                             {materialesConstruccion.length > 0 ? (
                               filtrarMaterialesPorTipo('arena').map((material) => (
-                                <SelectItem key={material.id} value={material.id}>
+                                <SelectItem key={material.id} value={String(material.id)}>
                                   {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
                                 </SelectItem>
                               ))
@@ -1178,7 +1178,7 @@ export default function NuevaConfiguracionCercadoPage() {
                           <SelectContent>
                             {materialesConstruccion.length > 0 ? (
                               filtrarMaterialesPorTipo('ripio').map((material) => (
-                                <SelectItem key={material.id} value={material.id}>
+                                <SelectItem key={material.id} value={String(material.id)}>
                                   {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
                                 </SelectItem>
                               ))
@@ -1221,7 +1221,7 @@ export default function NuevaConfiguracionCercadoPage() {
                         <SelectContent>
                           {materialesConstruccion.length > 0 ? (
                             filtrarMaterialesPorTipo('cemento').map((material) => (
-                              <SelectItem key={material.id} value={material.id}>
+                              <SelectItem key={material.id} value={String(material.id)}>
                                 {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
                               </SelectItem>
                             ))
@@ -1274,7 +1274,7 @@ export default function NuevaConfiguracionCercadoPage() {
                   <Select
                     value={formData.pua_id}
                     onValueChange={(value) => {
-                      const accesorioSeleccionado = accesorios.find(a => a.id === value)
+                      const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
                       const precioUnitario = accesorioSeleccionado?.precio_venta || 0
                       // Si la unidad es "metro" o "rollo", calcular precio por metro
                       // Asumimos que si es rollo, tiene 500m
@@ -1294,7 +1294,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('pua').map((accesorio) => (
-                          <SelectItem key={accesorio.id} value={accesorio.id}>
+                          <SelectItem key={accesorio.id} value={String(accesorio.id)}>
                             {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
                           </SelectItem>
                         ))
@@ -1345,7 +1345,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <Select
                       value={formData[item.id as keyof typeof formData] as string}
                       onValueChange={(value) => {
-                        const accesorioSeleccionado = accesorios.find(a => a.id === value)
+                        const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
                         setFormData({
                           ...formData,
                           [item.id]: value,
@@ -1359,7 +1359,7 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectContent>
                         {accesorios.length > 0 ? (
                           filtrarAccesoriosPorTipo(item.tipo).map((accesorio) => (
-                            <SelectItem key={accesorio.id} value={accesorio.id}>
+                            <SelectItem key={accesorio.id} value={String(accesorio.id)}>
                               {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()}
                             </SelectItem>
                           ))
@@ -1391,7 +1391,7 @@ export default function NuevaConfiguracionCercadoPage() {
                   <Select
                     value={formData.alambre_ar_id}
                     onValueChange={(value) => {
-                      const accesorioSeleccionado = accesorios.find(a => a.id === value)
+                      const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
                       // Si el artículo tiene precio por unidad, calcular precio por metro
                       // Asumimos que el precio es por rollo/unidad, necesitamos saber la unidad
                       const precioUnitario = accesorioSeleccionado?.precio_venta || 0
@@ -1413,7 +1413,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('alambre').map((accesorio) => (
-                          <SelectItem key={accesorio.id} value={accesorio.id}>
+                          <SelectItem key={accesorio.id} value={String(accesorio.id)}>
                             {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
                           </SelectItem>
                         ))
@@ -1445,7 +1445,7 @@ export default function NuevaConfiguracionCercadoPage() {
                   <Select
                     value={formData.clavo_id}
                     onValueChange={(value) => {
-                      const accesorioSeleccionado = accesorios.find(a => a.id === value)
+                      const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
                       const precioUnitario = accesorioSeleccionado?.precio_venta || 0
                       // Si la unidad es "kg", usar directamente; si es otra, ajustar
                       const precioPorKg = accesorioSeleccionado?.unidad?.toLowerCase().includes('kg') 
@@ -1464,7 +1464,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('clavo').map((accesorio) => (
-                          <SelectItem key={accesorio.id} value={accesorio.id}>
+                          <SelectItem key={accesorio.id} value={String(accesorio.id)}>
                             {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
                           </SelectItem>
                         ))
@@ -1496,7 +1496,7 @@ export default function NuevaConfiguracionCercadoPage() {
                   <Select
                     value={formData.alambre_negro_id}
                     onValueChange={(value) => {
-                      const accesorioSeleccionado = accesorios.find(a => a.id === value)
+                      const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
                       const precioUnitario = accesorioSeleccionado?.precio_venta || 0
                       // Si la unidad es "kg", usar directamente; si es otra, ajustar
                       const precioPorKg = accesorioSeleccionado?.unidad?.toLowerCase().includes('kg') 
@@ -1515,7 +1515,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('alambre').map((accesorio) => (
-                          <SelectItem key={accesorio.id} value={accesorio.id}>
+                          <SelectItem key={accesorio.id} value={String(accesorio.id)}>
                             {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
                           </SelectItem>
                         ))
