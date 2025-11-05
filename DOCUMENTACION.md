@@ -129,6 +129,7 @@ publicado               BOOLEAN DEFAULT false
 mostrar_precio_publico  BOOLEAN DEFAULT true
 stock                   INTEGER
 stock_minimo            INTEGER
+altura_compatible       TEXT -- Alturas finales de cerco compatibles (opcional)
 ```
 
 ### **Tabla: `precios_venta`**
@@ -322,6 +323,19 @@ orden               INTEGER
 - ✅ Control de visibilidad pública
 - ✅ Mostrar/ocultar precio público
 - ✅ Búsqueda y ordenamiento
+- ✅ Compatibilidad con alturas finales de cerco (opcional)
+
+**Campo `altura_compatible`:**
+- **Tipo:** TEXT (valores separados por coma o "todas")
+- **Descripción:** Indica para qué alturas finales de cerco es compatible el artículo
+- **IMPORTANTE:** Se refiere a la **altura final del cerco instalado**, no a la altura del tejido romboidal
+- **Cálculo altura final:** altura poste - 40cm enterrado + cordón + tejido + púas
+- **Valores típicos:** 1.3, 1.5, 1.8, 2.3, 2.5, 3.0, 3.5 (metros)
+- **Ejemplos:**
+  - `NULL` o vacío: Compatible con todas las alturas (artículo general)
+  - `"todas"`: Compatible con todas las alturas finales
+  - `"1.5,1.8"`: Compatible solo con alturas finales de 1.5m y 1.8m
+  - `"2.3,2.5,3.0"`: Compatible con alturas finales de 2.3m, 2.5m y 3.0m
 
 **Componente Clave:** `ImageUpload.tsx`
 - Upload a Supabase Storage
@@ -1198,23 +1212,59 @@ Este sistema es un **ERP completo** que maneja:
 
 Estas políticas definen cómo se calculan y utilizan los distintos precios en el sistema.
 
-- Definiciones (aplicadas sobre Precio de Costo):
-  - Precio Efectivo (sin factura): costo × 1.56  (costo + 56%)
-  - Precio Factura / Lista (incluye IVA): costo × 1.70  (costo + 70%)
-  - Precio Tarjeta (incluye IVA): costo × 1.78  (costo + 78%)
-  - E‑cheq 45 días (incluye IVA): costo × 1.70  (costo + 70%)
-  - E‑cheq 60 días (incluye IVA): costo × 1.78  (costo + 78%)
-  - E‑cheq 90 días (incluye IVA): costo × 1.87  (costo + 87%)
+### Políticas Particulares (Cálculo del Precio Base)
 
-- Reglas del sistema:
-  - Precio por defecto del sistema: Precio Factura / Lista (costo × 1.70)
-  - Precio mostrado en la web pública: Precio Factura / Lista
-  - En la edición de precios (dashboard):
-    - Si no se especifica un `precio_venta`, se guarda automáticamente como Precio Factura / Lista
-    - Se muestra un desglose informativo de todos los precios derivados
-  - Presupuestos (artículos):
-    - Antes de cotizar, se debe definir la Forma de Pago de la cotización
-    - Al seleccionar un artículo, se obtiene su Precio de Costo vigente y se calcula el Precio Unitario según la Forma de Pago
-    - Al cambiar la Forma de Pago, se recalculan todos los ítems del presupuesto
+**Artículos:**
+- Precio Base (o precio de venta) = `precio_costo × 1.56` (margen editable, por defecto 56%)
+- El margen de ganancia es configurable por artículo
+
+**Tejidos:**
+- Precio Base (o precio de venta) = `precio_costo × 1.45` (margen editable, por defecto 45%)
+- El margen de ganancia es configurable por tejido
+
+### Políticas Generales (Aplican a Artículos y Tejidos)
+
+Todas las formas de pago se calculan desde el **Precio Base**:
+
+- **Efectivo**: `precio_base × 1.0` (sin IVA)
+- **Factura/Lista**: `precio_base × 1.21` (incluye IVA 21%)
+- **Tarjeta**: `precio_base × 1.3` (incluye IVA 21%)
+- **E-cheq 45 días**: igual que Factura/Lista = `precio_base × 1.21` (incluye IVA 21%)
+- **E-cheq 60 días**: igual que Tarjeta = `precio_base × 1.3` (incluye IVA 21%)
+- **E-cheq 90 días**: `precio_base × 1.4` (incluye IVA 21%)
+
+### Reglas del Sistema
+
+- **Precio por defecto del sistema**: Precio Factura / Lista (`precio_base × 1.21`)
+- **Precio mostrado en la web pública**: Precio Factura / Lista
+- **En la edición de precios (dashboard)**:
+  - Se guarda solo `precio_costo` y `precio_venta` (precio base)
+  - Los demás precios se calculan dinámicamente según la forma de pago
+  - Se muestra un desglose informativo de todos los precios derivados
+- **Presupuestos (artículos y tejidos)**:
+  - Antes de cotizar, se debe definir la Forma de Pago de la cotización
+  - Al seleccionar un artículo o tejido, se obtiene su `precio_venta` (precio base)
+  - Se calcula el Precio Unitario multiplicando el precio base por el factor correspondiente según la Forma de Pago
+  - Al cambiar la Forma de Pago, se recalculan todos los ítems del presupuesto
+
+### Ejemplo de Cálculo
+
+**Artículo con costo $100:**
+- Precio Base: $100 × 1.56 = **$156**
+- Efectivo: $156 × 1.0 = **$156**
+- Factura/Lista: $156 × 1.21 = **$188.76**
+- Tarjeta: $156 × 1.3 = **$202.80**
+- E-cheq 45: $156 × 1.21 = **$188.76**
+- E-cheq 60: $156 × 1.3 = **$202.80**
+- E-cheq 90: $156 × 1.4 = **$218.40**
+
+**Tejido con costo $100:**
+- Precio Base: $100 × 1.45 = **$145**
+- Efectivo: $145 × 1.0 = **$145**
+- Factura/Lista: $145 × 1.21 = **$175.45**
+- Tarjeta: $145 × 1.3 = **$188.50**
+- E-cheq 45: $145 × 1.21 = **$175.45**
+- E-cheq 60: $145 × 1.3 = **$188.50**
+- E-cheq 90: $145 × 1.4 = **$203.00**
 
 > Nota: Estas políticas aplican a artículos, postes y tejido romboidal. Si se requieren excepciones por categoría o por producto, documentarlas aquí y ajustarlas en el código correspondiente.

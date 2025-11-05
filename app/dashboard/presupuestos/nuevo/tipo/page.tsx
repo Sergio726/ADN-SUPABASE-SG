@@ -25,8 +25,8 @@ export default function TipoPresupuestoPage() {
         <Link href="/dashboard/presupuestos/nuevo/articulos" className="group">
           <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-brand-red cursor-pointer">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full group-hover:from-blue-100 group-hover:to-blue-200 transition-all">
-                <Package className="h-16 w-16 text-blue-600" />
+              <div className="mx-auto mb-4 p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-full group-hover:from-red-100 group-hover:to-red-200 transition-all">
+                <Package className="h-16 w-16 text-red-600" />
               </div>
               <CardTitle className="text-2xl group-hover:text-brand-red transition-colors">
                 Presupuesto de Artículos
@@ -38,19 +38,19 @@ export default function TipoPresupuestoPage() {
               </CardDescription>
               <ul className="mt-4 space-y-2 text-sm text-left">
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Artículos del catálogo</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Tejidos romboidales</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Cantidades personalizadas</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Descuentos aplicables</span>
                 </li>
               </ul>
@@ -66,8 +66,8 @@ export default function TipoPresupuestoPage() {
         <Link href="/dashboard/presupuestos/nuevo/cercado" className="group">
           <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-brand-red cursor-pointer">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-full group-hover:from-green-100 group-hover:to-green-200 transition-all">
-                <Grid3x3 className="h-16 w-16 text-green-600" />
+              <div className="mx-auto mb-4 p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-full group-hover:from-red-100 group-hover:to-red-200 transition-all">
+                <Grid3x3 className="h-16 w-16 text-red-600" />
               </div>
               <CardTitle className="text-2xl group-hover:text-brand-red transition-colors">
                 Presupuesto de Cercado
@@ -79,19 +79,19 @@ export default function TipoPresupuestoPage() {
               </CardDescription>
               <ul className="mt-4 space-y-2 text-sm text-left">
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Cálculo por metro lineal</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Incluye materiales y mano de obra</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Múltiples configuraciones</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-600"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Opciones: cordón, púa, postes</span>
                 </li>
               </ul>

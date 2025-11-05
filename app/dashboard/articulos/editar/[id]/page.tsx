@@ -69,12 +69,21 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           altura_compatible: articuloData.altura_compatible || '',
         })
         
-        // Pre-cargar alturas seleccionadas
+        // Pre-cargar alturas seleccionadas (alturas finales del cerco, no del tejido)
+        // Alturas finales típicas: 1.3, 1.5, 1.8, 2.3, 2.5, 3.0, 3.5
+        const alturasDisponibles = ['1.3', '1.5', '1.8', '2.3', '2.5', '3.0', '3.5']
         if (articuloData.altura_compatible) {
           if (articuloData.altura_compatible === 'todas') {
             setAlturasSeleccionadas(['todas'])
           } else {
-            setAlturasSeleccionadas(articuloData.altura_compatible.split(','))
+            // Filtrar solo las alturas que están disponibles en los checkboxes
+            const alturasCargadas = articuloData.altura_compatible.split(',').map((a: string) => a.trim())
+            const alturasValidas = alturasCargadas.filter((a: string) => alturasDisponibles.includes(a))
+            setAlturasSeleccionadas(alturasValidas)
+            // Actualizar formData solo con las alturas válidas
+            if (alturasValidas.length > 0) {
+              setFormData(prev => ({ ...prev, altura_compatible: alturasValidas.join(',') }))
+            }
           }
         }
       }
@@ -234,6 +243,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                     <SelectItem value="Postes">Postes</SelectItem>
                     <SelectItem value="Tejidos">Tejidos</SelectItem>
                     <SelectItem value="Accesorios">Accesorios</SelectItem>
+                    <SelectItem value="Construcción">Construcción</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -254,6 +264,7 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                     <SelectItem value="paquete">Paquete</SelectItem>
                     <SelectItem value="metro">Metro</SelectItem>
                     <SelectItem value="kg">Kilogramo</SelectItem>
+                    <SelectItem value="m3">Metros cúbicos (m³)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -371,12 +382,12 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
           <CardHeader>
             <CardTitle>Compatibilidad con Cercado (Opcional)</CardTitle>
             <CardDescription>
-              Indica para qué alturas de cercado es compatible este artículo
+              Indica para qué alturas finales de cerco es compatible este artículo
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Label>Alturas Compatibles</Label>
+              <Label>Alturas Finales de Cerco Compatibles</Label>
               
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
@@ -402,18 +413,26 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
 
                 {!alturasSeleccionadas.includes('todas') && (
                   <div className="grid grid-cols-2 gap-2 ml-6">
-                    {['1.0', '1.2', '1.5', '1.8', '2.0'].map((altura) => (
-                      <div key={altura} className="flex items-center space-x-2">
+                    {[
+                      { valor: '1.3', label: '1.3m (altura final)' },
+                      { valor: '1.5', label: '1.5m (altura final)' },
+                      { valor: '1.8', label: '1.8m (altura final)' },
+                      { valor: '2.3', label: '2.3m (altura final)' },
+                      { valor: '2.5', label: '2.5m (altura final)' },
+                      { valor: '3.0', label: '3.0m (altura final)' },
+                      { valor: '3.5', label: '3.5m (altura final)' }
+                    ].map(({ valor, label }) => (
+                      <div key={valor} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          id={`altura_${altura}`}
-                          checked={alturasSeleccionadas.includes(altura)}
+                          id={`altura_${valor}`}
+                          checked={alturasSeleccionadas.includes(valor)}
                           onChange={(e) => {
                             let nuevas = [...alturasSeleccionadas]
                             if (e.target.checked) {
-                              nuevas.push(altura)
+                              nuevas.push(valor)
                             } else {
-                              nuevas = nuevas.filter(a => a !== altura)
+                              nuevas = nuevas.filter(a => a !== valor)
                             }
                             setAlturasSeleccionadas(nuevas)
                             setFormData({ 
@@ -423,8 +442,8 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                           }}
                           className="h-4 w-4 rounded border-gray-300"
                         />
-                        <Label htmlFor={`altura_${altura}`}>
-                          {altura} metros
+                        <Label htmlFor={`altura_${valor}`}>
+                          {label}
                         </Label>
                       </div>
                     ))}
@@ -432,21 +451,22 @@ export default function EditarArticuloPage({ params }: { params: { id: string } 
                 )}
               </div>
 
-              {formData.altura_compatible && (
+              {alturasSeleccionadas.length > 0 && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-900">
                     <span className="font-semibold">Compatible con:</span>{' '}
-                    {formData.altura_compatible === 'todas' 
-                      ? 'Todas las alturas de cercado'
-                      : formData.altura_compatible.split(',').map(a => `${a}m`).join(', ')
+                    {alturasSeleccionadas.includes('todas') 
+                      ? 'Todas las alturas finales de cerco'
+                      : alturasSeleccionadas.map(a => `${a}m (altura final)`).join(', ')
                     }
                   </p>
                 </div>
               )}
 
               <p className="text-xs text-muted-foreground">
-                💡 Esto ayudará a filtrar artículos al crear presupuestos de cercado según la altura seleccionada.
-                Si no seleccionas nada, el artículo no aparecerá filtrado por altura (general).
+                💡 <strong>Importante:</strong> Estas alturas se refieren a la <strong>altura final del cerco</strong> (no a la altura del tejido).
+                La altura final = altura poste - 40cm enterrado + cordón + tejido + púas.
+                Si no seleccionas ninguna altura, el artículo será compatible con todas las alturas finales.
               </p>
             </div>
           </CardContent>

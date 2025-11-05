@@ -67,13 +67,13 @@ export default function NuevoPresupuestoArticulosPage() {
 
   function factorFormaPago(fp: typeof formaPago): number {
     switch (fp) {
-      case 'efectivo': return 1.56
-      case 'lista': return 1.70
-      case 'tarjeta': return 1.78
-      case 'echeq45': return 1.70
-      case 'echeq60': return 1.78
-      case 'echeq90': return 1.87
-      default: return 1.70
+      case 'efectivo': return 1.0 // precio_base × 1.0 (sin IVA)
+      case 'lista': return 1.21 // precio_base × 1.21 (incluye IVA 21%)
+      case 'tarjeta': return 1.3 // precio_base × 1.3 (incluye IVA 21%)
+      case 'echeq45': return 1.21 // igual que Factura/Lista (incluye IVA 21%)
+      case 'echeq60': return 1.3 // igual que Tarjeta (incluye IVA 21%)
+      case 'echeq90': return 1.4 // precio_base × 1.4 (incluye IVA 21%)
+      default: return 1.21
     }
   }
 
@@ -82,9 +82,9 @@ export default function NuevoPresupuestoArticulosPage() {
       efectivo: { label: 'Efectivo', icon: DollarSign, color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
       lista: { label: 'Factura / Lista', icon: FileText, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
       tarjeta: { label: 'Tarjeta', icon: CreditCard, color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
-      echeq45: { label: 'E-cheq 45 días', icon: Receipt, color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-300' },
-      echeq60: { label: 'E-cheq 60 días', icon: Receipt, color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300' },
-      echeq90: { label: 'E-cheq 90 días', icon: Receipt, color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300' },
+      echeq45: { label: 'E-cheq 45 días', icon: Receipt, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq60: { label: 'E-cheq 60 días', icon: Receipt, color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq90: { label: 'E-cheq 90 días', icon: Receipt, color: 'text-purple-800', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
     }
     return info[fp] || info.lista
   }
@@ -116,7 +116,7 @@ export default function NuevoPresupuestoArticulosPage() {
   async function cargarTejidos() {
     const { data } = await supabase
       .from('v_tejidos_con_precios')
-      .select('id, codigo, nombre, precio_venta, precio_lista, precio_tarjeta, precio_echeq45, precio_echeq60, precio_echeq90')
+      .select('id, codigo, nombre, precio_venta, precio_lista')
       .eq('activo', true)
       .order('codigo')
 
@@ -159,30 +159,10 @@ export default function NuevoPresupuestoArticulosPage() {
             itemActualizado.descripcion = `${tejido.codigo} - ${tejido.nombre}`
             itemActualizado.unidad = 'rollo'
             
-            // Obtener precio según forma de pago
-            let precioTejido = 0
-            switch (formaPago) {
-              case 'efectivo':
-                precioTejido = tejido.precio_venta || 0
-                break
-              case 'lista':
-                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
-                break
-              case 'tarjeta':
-                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0
-                break
-              case 'echeq45':
-                precioTejido = tejido.precio_lista || tejido.precio_venta || 0 // Usar precio_lista como base hasta tener e-cheq
-                break
-              case 'echeq60':
-                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0 // Usar precio_tarjeta como base hasta tener e-cheq
-                break
-              case 'echeq90':
-                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0 // Usar precio_tarjeta como base hasta tener e-cheq
-                break
-              default:
-                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
-            }
+            // Obtener precio base y calcular según forma de pago
+            const precioBase = tejido.precio_venta || 0 // Precio base (efectivo)
+            const factor = factorFormaPago(formaPago)
+            const precioTejido = precioBase * factor
             
             itemActualizado.precio_unitario = precioTejido.toString()
             const cantidad = parseFloat(item.cantidad) || 0
@@ -204,18 +184,18 @@ export default function NuevoPresupuestoArticulosPage() {
       return nuevos
     })
 
-    // Si es artículo, obtener precio de costo vigente y calcular según forma de pago
+    // Si es artículo, obtener precio base (precio_venta) vigente y calcular según forma de pago
     if (campo === 'articulo_id' && valor) {
       const { data } = await supabase
         .from('precios_venta')
-        .select('precio_costo')
+        .select('precio_venta')
         .eq('articulo_id', valor)
         .eq('vigente', true)
         .single()
 
-      const costo = data?.precio_costo || 0
+      const precioBase = data?.precio_venta || 0
       const factor = factorFormaPago(formaPago)
-      const precioUnidad = costo * factor
+      const precioUnidad = precioBase * factor
 
       setItems((prev) => prev.map((it) => {
         if (it.id !== id) return it
@@ -238,13 +218,13 @@ export default function NuevoPresupuestoArticulosPage() {
         if (it.articulo_id) {
           const { data } = await supabase
             .from('precios_venta')
-            .select('precio_costo')
+            .select('precio_venta')
             .eq('articulo_id', it.articulo_id)
             .eq('vigente', true)
             .single()
-          const costo = data?.precio_costo || 0
+          const precioBase = data?.precio_venta || 0
           const factor = factorFormaPago(formaPago)
-          const pu = costo * factor
+          const pu = precioBase * factor
           const cantidad = parseFloat(it.cantidad) || 0
           return { ...it, precio_unitario: pu.toString(), precio_total: cantidad * pu }
         }
@@ -253,29 +233,9 @@ export default function NuevoPresupuestoArticulosPage() {
         if (it.tejido_id) {
           const tejido = tejidos.find((t) => t.id === it.tejido_id)
           if (tejido) {
-            let precioTejido = 0
-            switch (formaPago) {
-              case 'efectivo':
-                precioTejido = tejido.precio_venta || 0
-                break
-              case 'lista':
-                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
-                break
-              case 'tarjeta':
-                precioTejido = tejido.precio_tarjeta || tejido.precio_venta || 0
-                break
-              case 'echeq45':
-                precioTejido = tejido.precio_echeq45 || tejido.precio_lista || tejido.precio_venta || 0
-                break
-              case 'echeq60':
-                precioTejido = tejido.precio_echeq60 || tejido.precio_tarjeta || tejido.precio_venta || 0
-                break
-              case 'echeq90':
-                precioTejido = tejido.precio_echeq90 || tejido.precio_tarjeta || tejido.precio_venta || 0
-                break
-              default:
-                precioTejido = tejido.precio_lista || tejido.precio_venta || 0
-            }
+            const precioBase = tejido.precio_venta || 0 // Precio base (efectivo)
+            const factor = factorFormaPago(formaPago)
+            const precioTejido = precioBase * factor
             const cantidad = parseFloat(it.cantidad) || 0
             return { ...it, precio_unitario: precioTejido.toString(), precio_total: cantidad * precioTejido }
           }

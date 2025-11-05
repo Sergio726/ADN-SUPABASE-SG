@@ -11,13 +11,16 @@ ALTER TABLE articulos
 ADD COLUMN IF NOT EXISTS altura_compatible TEXT;
 
 COMMENT ON COLUMN articulos.altura_compatible IS 
-'Alturas de cercado compatibles (opcional). 
+'Alturas FINALES DE CERCO compatibles (opcional). 
+IMPORTANTE: Se refiere a la altura final del cerco instalado, no a la altura del tejido romboidal.
+La altura final del cerco = altura poste - 40cm enterrado + cordón + tejido + púas
+
 Valores posibles:
-- NULL: No aplica (artículo general)
-- "todas": Compatible con todas las alturas
-- "1.2": Solo compatible con 1.2m
-- "1.5,1.8,2.0": Compatible con múltiples alturas (separadas por coma)
-Valores válidos: 1.0, 1.2, 1.5, 1.8, 2.0';
+- NULL: No aplica (artículo general, compatible con todas las alturas)
+- "todas": Compatible con todas las alturas finales
+- "1.3": Solo compatible con altura final ~1.3m
+- "1.5,1.8,2.3": Compatible con múltiples alturas finales (separadas por coma)
+Valores típicos: 1.3, 1.5, 1.8, 2.3, 2.5, 3.0, 3.5 (alturas finales aproximadas)';
 
 -- =====================================================
 -- 2. Crear índice para búsquedas rápidas
@@ -53,7 +56,8 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 COMMENT ON FUNCTION es_articulo_compatible_con_altura IS 
-'Verifica si un artículo es compatible con una altura de cercado específica';
+'Verifica si un artículo es compatible con una altura FINAL DE CERCO específica.
+Parámetro p_altura_cercado debe ser la altura final del cerco (no la altura del tejido).';
 
 -- =====================================================
 -- 4. Ejemplos de uso (solo comentarios)

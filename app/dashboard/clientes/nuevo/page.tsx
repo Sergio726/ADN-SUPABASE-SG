@@ -58,7 +58,7 @@ export default function NuevoClientePage() {
 
       const clienteData = {
         tipo_documento: formData.tipo_documento,
-        numero_documento: formData.numero_documento.replace(/[-\s]/g, ''), // Quitar guiones y espacios
+        numero_documento: formData.numero_documento ? formData.numero_documento.replace(/[-\s]/g, '') : null, // Quitar guiones y espacios, o null si está vacío
         nombre_completo: formData.nombre_completo,
         razon_social: formData.razon_social || null,
         email: formData.email || null,
@@ -143,16 +143,15 @@ export default function NuevoClientePage() {
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="numero_doc">Número de Documento *</Label>
+                <Label htmlFor="numero_doc">Número de Documento</Label>
                 <Input
                   id="numero_doc"
                   value={formData.numero_documento}
                   onChange={(e) => setFormData({ ...formData, numero_documento: e.target.value })}
-                  placeholder="12345678 o 20-12345678-9"
-                  required
+                  placeholder="12345678 o 20-12345678-9 (opcional)"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Puedes incluir guiones, se limpiarán automáticamente
+                  Puedes completarlo más tarde. Puedes incluir guiones, se limpiarán automáticamente
                 </p>
               </div>
             </div>

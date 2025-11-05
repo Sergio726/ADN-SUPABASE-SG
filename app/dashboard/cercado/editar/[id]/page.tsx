@@ -386,7 +386,7 @@ export default function EditarConfiguracionCercadoPage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>Altura del Cerco *</Label>
+                  <Label>Altura de Tejido Romboidal *</Label>
                   <Select
                     value={formData.altura}
                     onValueChange={(value) => setFormData({ ...formData, altura: value })}
@@ -396,10 +396,13 @@ export default function EditarConfiguracionCercadoPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1.20">1.2 metros</SelectItem>
-                      <SelectItem value="1.50">1.5 metros</SelectItem>
-                      <SelectItem value="1.80">1.8 metros</SelectItem>
-                      <SelectItem value="2.00">2.0 metros</SelectItem>
+                      <SelectItem value="1.0">1.0 metros</SelectItem>
+                      <SelectItem value="1.2">1.2 metros</SelectItem>
+                      <SelectItem value="1.5">1.5 metros</SelectItem>
+                      <SelectItem value="1.8">1.8 metros</SelectItem>
+                      <SelectItem value="2.0">2.0 metros</SelectItem>
+                      <SelectItem value="2.5">2.5 metros</SelectItem>
+                      <SelectItem value="3.0">3.0 metros</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
