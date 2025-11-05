@@ -542,10 +542,13 @@ export default function NuevoPresupuestoCercadoPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1.20">1.2 metros (altura final ~1.5m)</SelectItem>
-                      <SelectItem value="1.50">1.5 metros (altura final ~1.8m)</SelectItem>
-                      <SelectItem value="1.80">1.8 metros (altura final ~2.3m)</SelectItem>
-                      <SelectItem value="2.00">2.0 metros (altura final ~2.5m)</SelectItem>
+                      <SelectItem value="1.0">1.0 metros (altura final ~1.3m)</SelectItem>
+                      <SelectItem value="1.2">1.2 metros (altura final ~1.5m)</SelectItem>
+                      <SelectItem value="1.5">1.5 metros (altura final ~1.8m)</SelectItem>
+                      <SelectItem value="1.8">1.8 metros (altura final ~2.3m)</SelectItem>
+                      <SelectItem value="2.0">2.0 metros (altura final ~2.5m)</SelectItem>
+                      <SelectItem value="2.5">2.5 metros (altura final ~3.0m)</SelectItem>
+                      <SelectItem value="3.0">3.0 metros (altura final ~3.5m)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

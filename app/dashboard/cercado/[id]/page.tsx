@@ -94,7 +94,7 @@ export default function VerConfiguracionCercadoPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Altura del Cerco</CardDescription>
+            <CardDescription>Altura de Tejido Romboidal</CardDescription>
             <CardTitle className="text-3xl">{configuracion.altura}m</CardTitle>
           </CardHeader>
         </Card>

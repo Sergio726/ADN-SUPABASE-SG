@@ -129,6 +129,7 @@ publicado               BOOLEAN DEFAULT false
 mostrar_precio_publico  BOOLEAN DEFAULT true
 stock                   INTEGER
 stock_minimo            INTEGER
+altura_compatible       TEXT -- Alturas finales de cerco compatibles (opcional)
 ```
 
 ### **Tabla: `precios_venta`**
@@ -322,6 +323,19 @@ orden               INTEGER
 - ✅ Control de visibilidad pública
 - ✅ Mostrar/ocultar precio público
 - ✅ Búsqueda y ordenamiento
+- ✅ Compatibilidad con alturas finales de cerco (opcional)
+
+**Campo `altura_compatible`:**
+- **Tipo:** TEXT (valores separados por coma o "todas")
+- **Descripción:** Indica para qué alturas finales de cerco es compatible el artículo
+- **IMPORTANTE:** Se refiere a la **altura final del cerco instalado**, no a la altura del tejido romboidal
+- **Cálculo altura final:** altura poste - 40cm enterrado + cordón + tejido + púas
+- **Valores típicos:** 1.3, 1.5, 1.8, 2.3, 2.5, 3.0, 3.5 (metros)
+- **Ejemplos:**
+  - `NULL` o vacío: Compatible con todas las alturas (artículo general)
+  - `"todas"`: Compatible con todas las alturas finales
+  - `"1.5,1.8"`: Compatible solo con alturas finales de 1.5m y 1.8m
+  - `"2.3,2.5,3.0"`: Compatible con alturas finales de 2.3m, 2.5m y 3.0m
 
 **Componente Clave:** `ImageUpload.tsx`
 - Upload a Supabase Storage
