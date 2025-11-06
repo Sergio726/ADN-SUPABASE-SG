@@ -76,6 +76,7 @@ COMMENT ON COLUMN clientes.numero_documento IS 'Número sin guiones ni espacios'
 ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
 
 -- Usuarios autenticados pueden ver todos los clientes
+DROP POLICY IF EXISTS "Usuarios autenticados pueden ver clientes" ON clientes;
 CREATE POLICY "Usuarios autenticados pueden ver clientes"
 ON clientes
 FOR SELECT
@@ -83,6 +84,7 @@ TO authenticated
 USING (true);
 
 -- Usuarios autenticados pueden insertar clientes
+DROP POLICY IF EXISTS "Usuarios autenticados pueden crear clientes" ON clientes;
 CREATE POLICY "Usuarios autenticados pueden crear clientes"
 ON clientes
 FOR INSERT
@@ -90,6 +92,7 @@ TO authenticated
 WITH CHECK (true);
 
 -- Usuarios pueden actualizar clientes
+DROP POLICY IF EXISTS "Usuarios autenticados pueden actualizar clientes" ON clientes;
 CREATE POLICY "Usuarios autenticados pueden actualizar clientes"
 ON clientes
 FOR UPDATE
@@ -97,6 +100,7 @@ TO authenticated
 USING (true);
 
 -- Solo admins pueden eliminar
+DROP POLICY IF EXISTS "Solo admins pueden eliminar clientes" ON clientes;
 CREATE POLICY "Solo admins pueden eliminar clientes"
 ON clientes
 FOR DELETE
