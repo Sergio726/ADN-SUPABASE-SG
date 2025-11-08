@@ -116,9 +116,27 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
       }
 
       // 2) Si no hay documento o no encontró, buscar por nombre o teléfono (parcial, case-insensitive)
-      const filtros: any[] = []
-      if (busqueda.nombre) filtros.push({ columna: 'nombre_completo', valor: `%${busqueda.nombre}%` })
-      if (busqueda.telefono) filtros.push({ columna: 'telefono', valor: `%${busqueda.telefono}%` })
+      const filtros: Array<{ columna: string; valor: string }> = []
+      if (busqueda.nombre.trim()) filtros.push({ columna: 'nombre_completo', valor: `%${busqueda.nombre.trim()}%` })
+      if (busqueda.telefono.trim()) filtros.push({ columna: 'telefono', valor: `%${busqueda.telefono.trim()}%` })
+
+      if (filtros.length === 0) {
+        // No hay más criterios para buscar: considerar como no encontrado
+        setClienteEncontrado(null)
+        setNuevoCliente({
+          ...nuevoCliente,
+          tipo_documento: busqueda.tipo_documento,
+          numero_documento: busqueda.numero_documento.replace(/[-\s]/g, ''),
+          nombre_completo: '',
+          telefono: '',
+        })
+        setDialogAbierto(true)
+        toast({
+          title: "Cliente no encontrado",
+          description: "Registra los datos básicos para continuar",
+        })
+        return
+      }
 
       let query = supabase.from('clientes').select('*').eq('activo', true)
       filtros.forEach((f) => {
@@ -135,22 +153,23 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
           title: "¡Cliente encontrado!",
           description: `${cliente.nombre_completo} - ${cliente.telefono || ''}`,
         })
-      } else {
-        // Cliente no encontrado - Abrir dialog con datos precargados si corresponde
-        setClienteEncontrado(null)
-        setNuevoCliente({
-          ...nuevoCliente,
-          tipo_documento: busqueda.tipo_documento,
-          numero_documento: busqueda.numero_documento.replace(/[-\s]/g, ''),
-          nombre_completo: busqueda.nombre || '',
-          telefono: busqueda.telefono || '',
-        })
-        setDialogAbierto(true)
-        toast({
-          title: "Cliente no encontrado",
-          description: "Registra los datos básicos para continuar",
-        })
+        return
       }
+
+      // Cliente no encontrado - Abrir dialog con datos precargados si corresponde
+      setClienteEncontrado(null)
+      setNuevoCliente({
+        ...nuevoCliente,
+        tipo_documento: busqueda.tipo_documento,
+        numero_documento: busqueda.numero_documento.replace(/[-\s]/g, ''),
+        nombre_completo: busqueda.nombre || '',
+        telefono: busqueda.telefono || '',
+      })
+      setDialogAbierto(true)
+      toast({
+        title: "Cliente no encontrado",
+        description: "Registra los datos básicos para continuar",
+      })
     } catch (error: any) {
       console.error('Error:', error)
       toast({
