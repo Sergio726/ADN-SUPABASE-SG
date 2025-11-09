@@ -5,7 +5,22 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Package, Building2, DollarSign, Mail, Menu, X, ExternalLink, LogOut, Grid3x3, FileText, Users, Shield, Settings } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Package,
+  Building2,
+  DollarSign,
+  Mail,
+  Menu,
+  X,
+  ExternalLink,
+  LogOut,
+  Grid3x3,
+  FileText,
+  Users,
+  Shield,
+  Settings,
+} from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 
 export default function DashboardLayout({
@@ -46,17 +61,40 @@ export default function DashboardLayout({
     )
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Artículos', href: '/dashboard/articulos', icon: Package },
-    { name: 'Tejidos', href: '/dashboard/tejidos', icon: Grid3x3 },
-    { name: 'Cercado', href: '/dashboard/cercado', icon: Shield },
-    { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
-    { name: 'Proveedores', href: '/dashboard/proveedores', icon: Building2 },
-    { name: 'Precios', href: '/dashboard/precios', icon: DollarSign },
-    { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
-    { name: 'Leads', href: '/dashboard/leads', icon: Mail },
-    { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
+  const navSections = [
+    {
+      title: 'Panel',
+      links: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }],
+    },
+    {
+      title: 'Catálogo',
+      links: [
+        { name: 'Artículos', href: '/dashboard/articulos', icon: Package },
+        { name: 'Tejidos', href: '/dashboard/tejidos', icon: Grid3x3 },
+        { name: 'Cercado', href: '/dashboard/cercado', icon: Shield },
+      ],
+    },
+    {
+      title: 'Ventas y atención',
+      links: [
+        { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
+        { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
+        { name: 'Leads', href: '/dashboard/leads', icon: Mail },
+      ],
+    },
+    {
+      title: 'Operaciones',
+      links: [
+        { name: 'Precios', href: '/dashboard/precios', icon: DollarSign },
+        { name: 'Proveedores', href: '/dashboard/proveedores', icon: Building2 },
+      ],
+    },
+    {
+      title: 'Administración',
+      links: [
+        { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
+      ],
+    },
   ]
 
   return (
@@ -108,28 +146,38 @@ export default function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-              const Icon = item.icon
-              return (
-                <Button
-                  key={item.name}
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full justify-start gap-3 ${
-                    isActive
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  asChild
-                >
-                  <Link href={item.href}>
-                    <Icon className="h-5 w-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                </Button>
-              )
-            })}
+          <nav className="flex-1 px-4 py-6 space-y-5">
+            {navSections.map((section) => (
+              <div key={section.title} className="space-y-2">
+                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  {section.title}
+                </p>
+                <div className="space-y-1">
+                  {section.links.map((item) => {
+                    const isActive =
+                      pathname === item.href || pathname?.startsWith(item.href + '/')
+                    const Icon = item.icon
+                    return (
+                      <Button
+                        key={item.name}
+                        variant="ghost"
+                        className={`w-full justify-start gap-3 text-sm font-medium transition ${
+                          isActive
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                        asChild
+                      >
+                        <Link href={item.href}>
+                          <Icon className="h-5 w-5" />
+                          <span>{item.name}</span>
+                        </Link>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* User info */}

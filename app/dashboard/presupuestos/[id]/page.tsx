@@ -51,15 +51,51 @@ export default function VerPresupuestoPage() {
       if (presData?.usuario_id) {
         const { data: vend } = await supabase
           .from('usuarios')
-          .select('nombre')
+          .select('nombre, email')
           .eq('id', presData.usuario_id)
           .single()
-        setVendedorNombre(vend?.nombre || '')
+        setVendedorNombre(vend?.nombre || vend?.email || '')
       } else {
         setVendedorNombre('')
       }
 
-      setPresupuesto(presData)
+      let clienteInfo: any = null
+      if (presData?.cliente_id) {
+        const { data: clienteData } = await supabase
+          .from('clientes')
+          .select('nombre_completo, telefono, email, direccion, tipo_documento, numero_documento')
+          .eq('id', presData.cliente_id)
+          .single()
+        clienteInfo = clienteData
+      }
+
+      setPresupuesto({
+        ...presData,
+        cliente_nombre:
+          presData?.cliente_nombre ||
+          clienteInfo?.nombre_completo ||
+          '',
+        cliente_telefono:
+          presData?.cliente_telefono ||
+          clienteInfo?.telefono ||
+          '',
+        cliente_email:
+          presData?.cliente_email ||
+          clienteInfo?.email ||
+          '',
+        cliente_direccion:
+          presData?.cliente_direccion ||
+          clienteInfo?.direccion ||
+          '',
+        tipo_documento:
+          presData?.tipo_documento ||
+          clienteInfo?.tipo_documento ||
+          '',
+        numero_documento:
+          presData?.numero_documento ||
+          clienteInfo?.numero_documento ||
+          '',
+      })
       setItems(itemsData || [])
     } catch (error: any) {
       console.error('Error:', error)
@@ -247,22 +283,7 @@ export default function VerPresupuestoPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={descargarPDF}>
-            <Download className="h-4 w-4 mr-2" />
-            Descargar PDF
-          </Button>
-          <Button variant="outline">
-            <Copy className="h-4 w-4 mr-2" />
-            Duplicar
-          </Button>
-          <Button asChild>
-            <Link href={`/dashboard/presupuestos/editar/${params.id}`}>
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Link>
-          </Button>
-        </div>
+        <div />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
