@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package } from 'lucide-react'
+import { ArrowLeft, Edit, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -125,6 +125,88 @@ export default function VerPresupuestoPage() {
   }
 
   if (!presupuesto) return null
+
+  const formatearMoneda = (valor?: number | null) =>
+    (valor ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  const generarResumenWhatsapp = () => {
+    const lineas: string[] = []
+    lineas.push(`💼 *Presupuesto ${presupuesto.numero}*`)
+    lineas.push(`📅 ${new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')} | Validez: ${presupuesto.validez_dias} días`)
+    lineas.push(`👤 Cliente: ${presupuesto.cliente_nombre}`)
+    if (presupuesto.cliente_telefono) {
+      lineas.push(`📞 Tel: ${presupuesto.cliente_telefono}`)
+    }
+    if (vendedorNombre) {
+      lineas.push(`🧑‍💼 Vendedor: ${vendedorNombre}`)
+    }
+    if (presupuesto.forma_pago) {
+      const etiquetasFormaPago: Record<string, string> = {
+        efectivo: 'Efectivo',
+        lista: 'Factura / Lista',
+        tarjeta: 'Tarjeta',
+        echeq45: 'E-cheq 45 días',
+        echeq60: 'E-cheq 60 días',
+        echeq90: 'E-cheq 90 días',
+      }
+      lineas.push(`💳 Forma de pago: ${etiquetasFormaPago[presupuesto.forma_pago] || presupuesto.forma_pago}`)
+    }
+    lineas.push('')
+    lineas.push('📝 *Detalle:*')
+    if (items.length === 0) {
+      lineas.push('• (sin ítems cargados)')
+    } else {
+      items.forEach((item, index) => {
+        const descripcion = item.descripcion || `Item ${index + 1}`
+        const cantidad = item.cantidad ? `${item.cantidad} ${item.unidad || ''}`.trim() : ''
+        const precioUnitario = item.precio_unitario ? `u$ ${formatearMoneda(item.precio_unitario)}` : ''
+        const total = item.precio_total ? `Total $${formatearMoneda(item.precio_total)}` : ''
+        const partes = [descripcion]
+        if (cantidad) partes.push(cantidad)
+        if (precioUnitario) partes.push(precioUnitario)
+        if (total) partes.push(total)
+        lineas.push(`• ${partes.join(' | ')}`)
+      })
+    }
+    lineas.push('')
+    lineas.push(`💵 Subtotal: $${formatearMoneda(presupuesto.subtotal)}`)
+    if (presupuesto.descuento > 0) {
+      lineas.push(`🎯 Descuento: -$${formatearMoneda(presupuesto.descuento)}`)
+    }
+    if (presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0) {
+      const baseSinIva = presupuesto.total / 1.21
+      const iva = baseSinIva * 0.21
+      lineas.push(`🧾 Base imponible: $${formatearMoneda(baseSinIva)}`)
+      lineas.push(`📈 IVA 21%: $${formatearMoneda(iva)}`)
+    }
+    lineas.push(`✅ *TOTAL: $${formatearMoneda(presupuesto.total)}*`)
+
+    if (presupuesto.condiciones_comerciales) {
+      lineas.push('')
+      lineas.push('📌 Condiciones:')
+      lineas.push(presupuesto.condiciones_comerciales)
+    }
+
+    return lineas.join('\n')
+  }
+
+  const copiarResumen = async () => {
+    try {
+      const texto = generarResumenWhatsapp()
+      await navigator.clipboard.writeText(texto)
+      toast({
+        title: 'Copiado al portapapeles',
+        description: 'Resumen listo para compartir por WhatsApp.',
+      })
+    } catch (error: any) {
+      console.error('Error al copiar:', error)
+      toast({
+        title: 'Error al copiar',
+        description: 'No se pudo copiar el resumen. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const estadoBadgeVariant = (estado: string) => {
     switch (estado) {
@@ -459,10 +541,10 @@ export default function VerPresupuestoPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Descargar PDF
               </Button>
-              <Button className="w-full" variant="outline">
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicar Presupuesto
-              </Button>
+            <Button className="w-full" variant="secondary" onClick={copiarResumen}>
+              <MessageSquareText className="h-4 w-4 mr-2" />
+              Copiar resumen para WhatsApp
+            </Button>
               <Button className="w-full" variant="outline" asChild>
                 <Link href={`/dashboard/presupuestos/editar/${params.id}`}>
                   <Edit className="h-4 w-4 mr-2" />

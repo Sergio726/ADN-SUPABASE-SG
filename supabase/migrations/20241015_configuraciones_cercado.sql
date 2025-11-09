@@ -79,10 +79,10 @@ CREATE TABLE IF NOT EXISTS configuraciones_cercado (
 );
 
 -- Índices
-CREATE INDEX idx_configuraciones_cercado_altura ON configuraciones_cercado(altura);
-CREATE INDEX idx_configuraciones_cercado_tipo_poste ON configuraciones_cercado(tipo_poste);
-CREATE INDEX idx_configuraciones_cercado_activo ON configuraciones_cercado(activo);
-CREATE INDEX idx_configuraciones_cercado_tejido ON configuraciones_cercado(tejido_config_id);
+CREATE INDEX IF NOT EXISTS idx_configuraciones_cercado_altura ON configuraciones_cercado(altura);
+CREATE INDEX IF NOT EXISTS idx_configuraciones_cercado_tipo_poste ON configuraciones_cercado(tipo_poste);
+CREATE INDEX IF NOT EXISTS idx_configuraciones_cercado_activo ON configuraciones_cercado(activo);
+CREATE INDEX IF NOT EXISTS idx_configuraciones_cercado_tejido ON configuraciones_cercado(tejido_config_id);
 
 -- Comentarios
 COMMENT ON TABLE configuraciones_cercado IS 'Configuraciones predefinidas de cercado perimetral';
@@ -360,12 +360,14 @@ EXECUTE FUNCTION update_configuraciones_cercado_timestamp();
 ALTER TABLE configuraciones_cercado ENABLE ROW LEVEL SECURITY;
 
 -- Lectura pública para configuraciones activas
+DROP POLICY IF EXISTS "Configuraciones activas son visibles para todos" ON configuraciones_cercado;
 CREATE POLICY "Configuraciones activas son visibles para todos"
 ON configuraciones_cercado
 FOR SELECT
 USING (activo = true);
 
 -- Usuarios autenticados pueden ver todas
+DROP POLICY IF EXISTS "Usuarios autenticados pueden ver todas las configuraciones" ON configuraciones_cercado;
 CREATE POLICY "Usuarios autenticados pueden ver todas las configuraciones"
 ON configuraciones_cercado
 FOR SELECT
@@ -373,6 +375,7 @@ TO authenticated
 USING (true);
 
 -- Solo admins pueden insertar
+DROP POLICY IF EXISTS "Solo admins pueden insertar configuraciones" ON configuraciones_cercado;
 CREATE POLICY "Solo admins pueden insertar configuraciones"
 ON configuraciones_cercado
 FOR INSERT
@@ -386,6 +389,7 @@ WITH CHECK (
 );
 
 -- Solo admins pueden actualizar
+DROP POLICY IF EXISTS "Solo admins pueden actualizar configuraciones" ON configuraciones_cercado;
 CREATE POLICY "Solo admins pueden actualizar configuraciones"
 ON configuraciones_cercado
 FOR UPDATE
@@ -399,6 +403,7 @@ USING (
 );
 
 -- Solo admins pueden eliminar
+DROP POLICY IF EXISTS "Solo admins pueden eliminar configuraciones" ON configuraciones_cercado;
 CREATE POLICY "Solo admins pueden eliminar configuraciones"
 ON configuraciones_cercado
 FOR DELETE
@@ -414,6 +419,7 @@ USING (
 -- =====================================================
 -- Vista: Configuraciones con detalles completos
 -- =====================================================
+DROP VIEW IF EXISTS v_configuraciones_cercado_completas CASCADE;
 CREATE OR REPLACE VIEW v_configuraciones_cercado_completas AS
 SELECT 
   cc.*,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Button } from '@/components/ui/button'
@@ -45,9 +45,9 @@ export default function NuevoPresupuestoArticulosPage() {
     cliente_telefono: '',
     cliente_direccion: '',
     descuento: '0',
-    validez_dias: '15',
+    validez_dias: '1',
     observaciones: '',
-    condiciones_comerciales: 'Pago: Contado o transferencia\nGarantía: 12 meses\nInstalación no incluida',
+    condiciones_comerciales: 'Pago: Contado o transferencia\nInstalación no incluida',
   })
 
   function handleClienteSeleccionado(cliente: any) {
@@ -64,6 +64,64 @@ export default function NuevoPresupuestoArticulosPage() {
 
   const [items, setItems] = useState<PresupuestoItem[]>([])
   const [formaPago, setFormaPago] = useState<'efectivo'|'lista'|'tarjeta'|'echeq45'|'echeq60'|'echeq90'>('lista')
+
+  const unidadesDisponibles = useMemo(() => {
+    const unidades = new Set<string>()
+    articulos.forEach((articulo) => {
+      if (articulo?.unidad) unidades.add(articulo.unidad)
+    })
+    items.forEach((item) => {
+      if (item.unidad) unidades.add(item.unidad)
+    })
+    return Array.from(unidades).sort((a, b) => a.localeCompare(b))
+  }, [articulos, items])
+
+  const filtrosTejidos = useMemo(() => {
+    const alturas = new Set<string>()
+    const rombos = new Set<string>()
+    const calibres = new Set<string>()
+
+    tejidos.forEach((tejido) => {
+      if (tejido?.altura !== undefined && tejido?.altura !== null) {
+        alturas.add(tejido.altura.toString())
+      }
+      if (tejido?.tamano_rombo !== undefined && tejido?.tamano_rombo !== null) {
+        rombos.add(tejido.tamano_rombo.toString())
+      }
+      if (tejido?.calibre !== undefined && tejido?.calibre !== null) {
+        calibres.add(tejido.calibre.toString())
+      }
+    })
+
+    const formatOptions = (values: Set<string>, suffix?: string) => {
+      const arr = Array.from(values).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+      return [
+        { value: 'todos', label: 'Todos' },
+        ...arr.map((value) => ({
+          value,
+          label: suffix ? `${value}${suffix}` : value,
+        })),
+      ]
+    }
+
+    return [
+      {
+        key: 'altura',
+        label: 'Altura',
+        options: formatOptions(alturas, 'm'),
+      },
+      {
+        key: 'tamano_rombo',
+        label: 'Rombo',
+        options: formatOptions(rombos),
+      },
+      {
+        key: 'calibre',
+        label: 'Calibre',
+        options: formatOptions(calibres),
+      },
+    ]
+  }, [tejidos])
 
   function factorFormaPago(fp: typeof formaPago): number {
     switch (fp) {
@@ -104,11 +162,20 @@ export default function NuevoPresupuestoArticulosPage() {
   }
 
   async function cargarArticulos() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('articulos')
-      .select('id, nombre, unidad')
-      .eq('publicado', true)
+      .select('id, nombre, unidad, publicado')
       .order('nombre')
+
+    if (error) {
+      console.error('Error cargando artículos:', error)
+      toast({
+        title: 'Error al cargar artículos',
+        description: 'No se pudieron obtener los artículos. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setArticulos(data || [])
   }
@@ -116,7 +183,7 @@ export default function NuevoPresupuestoArticulosPage() {
   async function cargarTejidos() {
     const { data } = await supabase
       .from('v_tejidos_con_precios')
-      .select('id, codigo, nombre, precio_venta, precio_lista')
+      .select('id, codigo, nombre, precio_venta, precio_lista, altura, tamano_rombo, calibre')
       .eq('activo', true)
       .order('codigo')
 
@@ -442,7 +509,7 @@ export default function NuevoPresupuestoArticulosPage() {
                     type="number"
                     value={formData.validez_dias}
                     onChange={(e) => setFormData({ ...formData, validez_dias: e.target.value })}
-                    placeholder="15"
+                    placeholder="1"
                     className="mt-1 max-w-[200px] h-9"
                   />
                 </div>
@@ -614,6 +681,7 @@ export default function NuevoPresupuestoArticulosPage() {
                                     sublabel: art.unidad
                                   }))}
                                   placeholder="Buscar artículo..."
+                                  searchPlaceholder="Buscar artículo..."
                                   emptyMessage="No se encontraron artículos"
                                 />
                               ) : (
@@ -623,10 +691,24 @@ export default function NuevoPresupuestoArticulosPage() {
                                   productos={tejidos.map((tej) => ({
                                     id: tej.id,
                                     label: tej.codigo,
-                                    sublabel: `$${tej.precio_venta?.toLocaleString()}`
+                                    sublabel: [
+                                      tej.nombre,
+                                      tej.altura ? `${tej.altura}m` : null,
+                                      tej.tamano_rombo ? `Rombo ${tej.tamano_rombo}` : null,
+                                      tej.calibre ? `Calibre ${tej.calibre}` : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' • '),
+                                    meta: {
+                                      altura: tej.altura !== undefined && tej.altura !== null ? tej.altura.toString() : '',
+                                      tamano_rombo: tej.tamano_rombo !== undefined && tej.tamano_rombo !== null ? tej.tamano_rombo.toString() : '',
+                                      calibre: tej.calibre !== undefined && tej.calibre !== null ? tej.calibre.toString() : '',
+                                    },
                                   }))}
                                   placeholder="Buscar tejido..."
+                                  searchPlaceholder="Buscar tejido..."
                                   emptyMessage="No se encontraron tejidos"
+                                  filters={filtrosTejidos}
                                 />
                               )}
                             </td>
@@ -647,7 +729,8 @@ export default function NuevoPresupuestoArticulosPage() {
                             <td className="p-2">
                               <Input
                                 type="number"
-                                step="0.01"
+                                min="1"
+                                step="1"
                                 value={item.cantidad}
                                 onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
                                 placeholder="1"
@@ -661,34 +744,40 @@ export default function NuevoPresupuestoArticulosPage() {
                               />
                             </td>
                             <td className="p-2">
-                              <Input
+                              <Select
                                 value={item.unidad}
-                                onChange={(e) => actualizarItem(item.id, 'unidad', e.target.value)}
-                                placeholder="un"
-                                className="h-9"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    agregarItem()
-                                  }
-                                }}
-                              />
+                                onValueChange={(value) => actualizarItem(item.id, 'unidad', value)}
+                              >
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Seleccionar unidad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {unidadesDisponibles.length === 0 && (
+                                    <div className="px-2 py-2 text-xs text-muted-foreground">
+                                      No hay unidades disponibles
+                                    </div>
+                                  )}
+                                  {unidadesDisponibles.map((unidad) => (
+                                    <SelectItem key={unidad} value={unidad}>
+                                      {unidad}
+                                    </SelectItem>
+                                  ))}
+                                  {item.unidad &&
+                                    !unidadesDisponibles.includes(item.unidad) && (
+                                      <SelectItem value={item.unidad}>
+                                        {item.unidad}
+                                      </SelectItem>
+                                    )}
+                                </SelectContent>
+                              </Select>
                             </td>
                             <td className="p-2">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={item.precio_unitario}
-                                onChange={(e) => actualizarItem(item.id, 'precio_unitario', e.target.value)}
-                                placeholder="0.00"
-                                className="h-9 text-right"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    agregarItem()
-                                  }
-                                }}
-                              />
+                              <span className="block h-9 leading-9 text-right text-sm font-semibold text-muted-foreground">
+                                ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
                             </td>
                             <td className="p-2">
                               <div className="font-bold text-green-600 text-right">
@@ -842,8 +931,9 @@ export default function NuevoPresupuestoArticulosPage() {
                     <Label htmlFor="descuento">Descuento ($)</Label>
                     <Input
                       id="descuento"
-                      type="number"
-                      step="0.01"
+                    type="number"
+                    min="0"
+                    step="1"
                       value={formData.descuento}
                       onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
                       placeholder="0.00"

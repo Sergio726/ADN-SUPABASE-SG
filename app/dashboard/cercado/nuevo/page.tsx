@@ -12,6 +12,9 @@ import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft, Save, Calculator } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function NuevaConfiguracionCercadoPage() {
   const router = useRouter()
@@ -22,7 +25,13 @@ export default function NuevaConfiguracionCercadoPage() {
   const [postes, setPostes] = useState<any[]>([])
   const [accesorios, setAccesorios] = useState<any[]>([])
   const [materialesConstruccion, setMaterialesConstruccion] = useState<any[]>([])
+  const [servicios, setServicios] = useState<any[]>([])
   const [descripcionEditadaManualmente, setDescripcionEditadaManualmente] = useState(false)
+  const [formularioModificado, setFormularioModificado] = useState(false)
+  const [mostrarConfirmacionSalir, setMostrarConfirmacionSalir] = useState(false)
+  const [rutaPendiente, setRutaPendiente] = useState<string | null>(null)
+  const [desglosePostesExpandido, setDesglosePostesExpandido] = useState(false)
+  const [desgloseAccesoriosExpandido, setDesgloseAccesoriosExpandido] = useState(false)
   const [precioCalculado, setPrecioCalculado] = useState({
     accesorios: 0,
     total_180m: 0,
@@ -100,6 +109,9 @@ export default function NuevaConfiguracionCercadoPage() {
     // Mano de obra y transporte
     precio_mano_obra_por_metro: '11438.00',
     precio_transporte_por_metro: '3580.50',
+    // Servicios seleccionados (IDs de artículos)
+    mano_obra_id: '',
+    transporte_id: '',
   })
 
   // Definir funciones de carga primero
@@ -232,6 +244,40 @@ export default function NuevaConfiguracionCercadoPage() {
     }
   }
 
+  async function cargarServicios() {
+    try {
+      const { data, error } = await supabase
+        .from('articulos')
+        .select(`
+          id,
+          nombre,
+          categoria,
+          unidad,
+          precios_venta(id, precio_venta, vigente)
+        `)
+        .order('nombre')
+
+      if (error) throw error
+
+      const serviciosConPrecio = (data || []).map((art: any) => {
+        const precioVigente = art.precios_venta?.find((p: any) => p.vigente === true)
+        return {
+          ...art,
+          precio_venta: precioVigente?.precio_venta || 0
+        }
+      }).filter((a: any) => a.precio_venta > 0)
+
+      setServicios(serviciosConPrecio)
+    } catch (error: any) {
+      console.error('Error al cargar servicios:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los servicios (mano de obra, transporte).",
+        variant: "destructive",
+      })
+    }
+  }
+
   useEffect(() => {
     async function cargarDatosIniciales() {
       setLoadingInicial(true)
@@ -240,7 +286,8 @@ export default function NuevaConfiguracionCercadoPage() {
           cargarTejidos(),
           cargarPostes(),
           cargarAccesorios(),
-          cargarMaterialesConstruccion()
+          cargarMaterialesConstruccion(),
+          cargarServicios()
         ])
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error)
@@ -256,6 +303,52 @@ export default function NuevaConfiguracionCercadoPage() {
     cargarDatosIniciales()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Detectar cambios en el formulario
+  useEffect(() => {
+    const tieneDatos = formData.nombre.trim() !== '' || 
+                       formData.tejido_config_id !== '' ||
+                       formData.poste_esquinero_id !== ''
+    setFormularioModificado(tieneDatos)
+  }, [formData])
+
+  // Prevenir salida sin guardar (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (formularioModificado && !loading) {
+        e.preventDefault()
+        e.returnValue = '¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [formularioModificado, loading])
+
+  // Función para manejar navegación con confirmación
+  const manejarNavegacion = (ruta: string) => {
+    if (formularioModificado && !loading) {
+      setRutaPendiente(ruta)
+      setMostrarConfirmacionSalir(true)
+    } else {
+      router.push(ruta)
+    }
+  }
+
+  const confirmarSalir = () => {
+    setMostrarConfirmacionSalir(false)
+    setFormularioModificado(false)
+    if (rutaPendiente) {
+      router.push(rutaPendiente)
+      setRutaPendiente(null)
+    }
+  }
+
+  const cancelarSalir = () => {
+    setMostrarConfirmacionSalir(false)
+    setRutaPendiente(null)
+  }
 
 
   // Optimizar cálculo de precios con useMemo
@@ -273,7 +366,9 @@ export default function NuevaConfiguracionCercadoPage() {
     // Obtener precio del tejido
     const tejidoSeleccionado = tejidos.find(t => t.id === formData.tejido_config_id)
     const precioTejido = tejidoSeleccionado?.precio_venta || 0
-    const rollosNecesarios = Math.ceil(180 / 10) // 18 rollos para 180m
+    // Usar la longitud real del rollo del tejido (campo 'largo', por defecto 10.00m)
+    const largoRollo = tejidoSeleccionado?.largo || 10.00
+    const rollosNecesarios = Math.ceil(180 / largoRollo)
     const costoTejido = rollosNecesarios * precioTejido
 
     // Calcular total de postes
@@ -399,6 +494,15 @@ export default function NuevaConfiguracionCercadoPage() {
     setFormData(prev => ({ ...prev, descripcion: descripcionAuto }))
   }, [formData.altura, formData.tipo_poste, formData.cordon_tipo, formData.tejido_config_id, formData.hilos_pua, tejidos, descripcionEditadaManualmente])
 
+  // Función helper para formatear precios de manera consistente
+  function formatearPrecio(precio: number | string | null | undefined, mostrarDecimales: boolean = true): string {
+    const valor = typeof precio === 'string' ? parseFloat(precio) : (precio || 0)
+    if (mostrarDecimales) {
+      return valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+    return valor.toLocaleString('es-AR')
+  }
+
   // Función helper para obtener todos los postes (sin filtrar por tipo)
   function filtrarPostesPorTipo(tipo: 'esquinero' | 'refuerzo' | 'intermedio' | 'puntal'): any[] {
     // Retornar todos los postes disponibles sin filtrar
@@ -422,6 +526,21 @@ export default function NuevaConfiguracionCercadoPage() {
       }
       
       return false
+    })
+  }
+
+  // Función helper para filtrar servicios (mano de obra, transporte)
+  function filtrarServiciosPorTipo(tipo: 'mano_obra' | 'transporte'): any[] {
+    const keywords = tipo === 'mano_obra'
+      ? ['mano', 'obra', 'colocación', 'instalación']
+      : ['transporte', 'flete', 'envío']
+    return servicios.filter((s) => {
+      const nombre = (s.nombre || '').toLowerCase()
+      const categoria = (s.categoria || '').toLowerCase()
+      // Preferir categoría Servicios si existe, pero priorizar por keywords
+      const coincideKeyword = keywords.some(k => nombre.includes(k))
+      const esServicio = categoria.includes('servicio')
+      return (coincideKeyword || esServicio)
     })
   }
 
@@ -607,33 +726,57 @@ export default function NuevaConfiguracionCercadoPage() {
         precio_poste_intermedio: parseFloat(formData.precio_poste_intermedio),
         precio_puntal: parseFloat(formData.precio_puntal),
         
+        // IDs de postes (para recálculo dinámico)
+        poste_esquinero_id: formData.poste_esquinero_id || null,
+        poste_refuerzo_id: formData.poste_refuerzo_id || null,
+        poste_intermedio_id: formData.poste_intermedio_id || null,
+        poste_puntal_id: formData.poste_puntal_id || null,
+        
         cordon_tipo: formData.cordon_tipo,
         // Mantener compatibilidad con campos antiguos (se calcularán desde los nuevos)
         cordon_bolsas_ripio: parseFloat(formData.cordon_ripio_m3) || 0, // Usar m3 como aproximación
         cordon_bolsas_cemento: parseFloat(formData.cordon_cemento_bolsas) || 0,
         cordon_precio_total: parseFloat(formData.cordon_precio_total),
         
+        // IDs y cantidades de cordón (para recálculo dinámico)
+        cordon_arena_id: formData.cordon_arena_id || null,
+        cordon_ripio_id: formData.cordon_ripio_id || null,
+        cordon_cemento_id: formData.cordon_cemento_id || null,
+        cordon_arena_m3: parseFloat(formData.cordon_arena_m3) || null,
+        cordon_ripio_m3: parseFloat(formData.cordon_ripio_m3) || null,
+        cordon_cemento_bolsas: parseFloat(formData.cordon_cemento_bolsas) || null,
+        
         hilos_pua: parseInt(formData.hilos_pua),
         precio_pua_por_metro: parseFloat(formData.precio_pua_por_metro),
+        pua_id: formData.pua_id || null,
         
         cantidad_ganchos: parseInt(formData.cantidad_ganchos),
         precio_unitario_ganchos: parseFloat(formData.precio_unitario_ganchos),
+        ganchos_id: formData.gancho_id || null,
         cantidad_planchuelas: parseInt(formData.cantidad_planchuelas),
         precio_unitario_planchuelas: parseFloat(formData.precio_unitario_planchuelas),
+        planchuelas_id: formData.planchuela_id || null,
         cantidad_torniquetes: parseInt(formData.cantidad_torniquetes),
         precio_unitario_torniquetes: parseFloat(formData.precio_unitario_torniquetes),
+        torniquetes_id: formData.torniquete_id || null,
         cantidad_esparragos: parseInt(formData.cantidad_esparragos),
         precio_unitario_esparragos: parseFloat(formData.precio_unitario_esparragos),
+        esparragos_id: formData.esparrago_id || null,
         metros_alambre_ar: parseInt(formData.metros_alambre_ar),
         precio_metro_alambre_ar: parseFloat(formData.precio_metro_alambre_ar),
+        alambre_ar_id: formData.alambre_ar_id || null,
         kg_clavos: parseInt(formData.kg_clavos),
         precio_kg_clavos: parseFloat(formData.precio_kg_clavos),
+        clavos_id: formData.clavo_id || null,
         kg_alambre_negro: parseInt(formData.kg_alambre_negro),
         precio_kg_alambre_negro: parseFloat(formData.precio_kg_alambre_negro),
+        alambre_negro_id: formData.alambre_negro_id || null,
         
         precio_total_accesorios: precioCalculado.accesorios,
         precio_mano_obra_por_metro: parseFloat(formData.precio_mano_obra_por_metro),
         precio_transporte_por_metro: parseFloat(formData.precio_transporte_por_metro),
+        mano_obra_id: formData.mano_obra_id || null,
+        transporte_id: formData.transporte_id || null,
         
         precio_base_180m: precioCalculado.total_180m,
         precio_por_metro_lineal: precioCalculado.precio_metro,
@@ -653,6 +796,7 @@ export default function NuevaConfiguracionCercadoPage() {
         description: "Configuración creada correctamente",
       })
 
+      setFormularioModificado(false) // Marcar como guardado
       setTimeout(() => {
         router.push('/dashboard/cercado')
       }, 1000)
@@ -681,11 +825,9 @@ export default function NuevaConfiguracionCercadoPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" asChild>
-          <Link href="/dashboard/cercado">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Link>
+        <Button variant="outline" onClick={() => manejarNavegacion('/dashboard/cercado')}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Nueva Configuración de Cercado</h1>
@@ -800,7 +942,7 @@ export default function NuevaConfiguracionCercadoPage() {
                         })
                         .map((tejido) => (
                           <SelectItem key={tejido.id} value={tejido.id}>
-                            {tejido.codigo} - ${tejido.precio_venta?.toLocaleString()}
+                            {tejido.codigo} - ${formatearPrecio(tejido.precio_venta, false)}
                           </SelectItem>
                             ))
                         ) : (
@@ -811,10 +953,55 @@ export default function NuevaConfiguracionCercadoPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Filtra tejidos según altura seleccionada. Se necesitan 18 rollos para 180m.
+                    {(() => {
+                      const tejidoSel = tejidos.find(t => t.id === formData.tejido_config_id)
+                      const largoRollo = tejidoSel?.largo || 10.00
+                      const rollosNecesarios = Math.ceil(180 / largoRollo)
+                      return `Filtra tejidos según altura seleccionada. Se necesitan ${rollosNecesarios} rollos de ${largoRollo}m para 180m.`
+                    })()}
                   </p>
                 </div>
               </div>
+
+              {/* Info Box - Totales del Tejido */}
+              {formData.tejido_config_id && (() => {
+                const tejidoSel = tejidos.find(t => t.id === formData.tejido_config_id)
+                if (!tejidoSel) return null
+                
+                const largoRollo = tejidoSel.largo || 10.00
+                const rollosNecesarios = Math.ceil(180 / largoRollo)
+                const precioTejido = tejidoSel.precio_venta || 0
+                const subtotalTejido = rollosNecesarios * precioTejido
+                
+                return (
+                  <div className="p-3 bg-muted rounded">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold">Total Tejido:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        ${formatearPrecio(subtotalTejido, false)}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs text-muted-foreground mt-2">
+                      <div className="flex justify-between">
+                        <span>Tejido seleccionado:</span>
+                        <span className="font-medium text-foreground">{tejidoSel.codigo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Precio unitario:</span>
+                        <span className="font-medium text-foreground">${formatearPrecio(precioTejido, false)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Cantidad de rollos ({largoRollo}m c/u):</span>
+                        <span className="font-medium text-foreground">{rollosNecesarios} rollos</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-muted-foreground/20">
+                        <span className="font-semibold">Subtotal:</span>
+                        <span className="font-bold text-foreground">${formatearPrecio(subtotalTejido, false)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
 
@@ -906,7 +1093,7 @@ export default function NuevaConfiguracionCercadoPage() {
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('esquinero').map((poste) => (
                             <SelectItem key={poste.id} value={String(poste.id)}>
-                              {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
+                              {poste.nombre} - ${formatearPrecio(poste.precio_venta, false)}
                             </SelectItem>
                           ))
                         ) : (
@@ -918,7 +1105,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Cantidad y poste seleccionado (precio: ${formData.precio_poste_esquinero ? parseFloat(formData.precio_poste_esquinero).toLocaleString() : '0'})
+                    Precio: ${formatearPrecio(formData.precio_poste_esquinero, false)}
                   </p>
                 </div>
 
@@ -955,19 +1142,19 @@ export default function NuevaConfiguracionCercadoPage() {
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('refuerzo').map((poste) => (
                             <SelectItem key={poste.id} value={String(poste.id)}>
-                              {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
+                              {poste.nombre} - ${formatearPrecio(poste.precio_venta, false)}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No hay postes disponibles
+                            No hay postes disponibles. Crea postes en el catálogo de artículos.
                           </div>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Precio: ${formData.precio_poste_refuerzo ? parseFloat(formData.precio_poste_refuerzo).toLocaleString() : '0'}
+                    Precio: ${formatearPrecio(formData.precio_poste_refuerzo, false)}
                   </p>
                 </div>
 
@@ -1004,19 +1191,19 @@ export default function NuevaConfiguracionCercadoPage() {
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('intermedio').map((poste) => (
                             <SelectItem key={poste.id} value={String(poste.id)}>
-                              {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
+                              {poste.nombre} - ${formatearPrecio(poste.precio_venta, false)}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No hay postes disponibles
+                            No hay postes disponibles. Crea postes en el catálogo de artículos.
                           </div>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Precio: ${formData.precio_poste_intermedio ? parseFloat(formData.precio_poste_intermedio).toLocaleString() : '0'}
+                    Precio: ${formatearPrecio(formData.precio_poste_intermedio, false)}
                   </p>
                 </div>
 
@@ -1053,22 +1240,49 @@ export default function NuevaConfiguracionCercadoPage() {
                         {postes.length > 0 ? (
                           filtrarPostesPorTipo('puntal').map((poste) => (
                             <SelectItem key={poste.id} value={String(poste.id)}>
-                              {poste.nombre} - ${poste.precio_venta?.toLocaleString()}
+                              {poste.nombre} - ${formatearPrecio(poste.precio_venta, false)}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                            No hay postes disponibles
+                            No hay postes disponibles. Crea postes en el catálogo de artículos.
                           </div>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Precio: ${formData.precio_puntal ? parseFloat(formData.precio_puntal).toLocaleString() : '0'}
+                    Precio: ${formatearPrecio(formData.precio_puntal, false)}
                   </p>
                 </div>
               </div>
+
+              {/* Info Box - Resumen de Postes */}
+              {(formData.poste_esquinero_id || formData.poste_refuerzo_id || formData.poste_intermedio_id || formData.poste_puntal_id) && (
+                <div className="p-3 bg-muted rounded">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold">Total Postes:</span>
+                    <span className="text-2xl font-bold text-primary">
+                      ${formatearPrecio(
+                        (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
+                        (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
+                        (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
+                        (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal)),
+                        false
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(() => {
+                      const totalPostes = parseInt(formData.cantidad_postes_esquineros) + 
+                                        parseInt(formData.cantidad_postes_refuerzos) + 
+                                        parseInt(formData.cantidad_postes_intermedios) + 
+                                        parseInt(formData.cantidad_puntales)
+                      return `${totalPostes} postes en total para 180 metros lineales`
+                    })()}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1137,7 +1351,7 @@ export default function NuevaConfiguracionCercadoPage() {
                             {materialesConstruccion.length > 0 ? (
                               filtrarMaterialesPorTipo('arena').map((material) => (
                                 <SelectItem key={material.id} value={String(material.id)}>
-                                  {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
+                                  {material.nombre} - ${formatearPrecio(material.precio_venta, false)} ({material.unidad})
                                 </SelectItem>
                               ))
                             ) : (
@@ -1179,12 +1393,12 @@ export default function NuevaConfiguracionCercadoPage() {
                             {materialesConstruccion.length > 0 ? (
                               filtrarMaterialesPorTipo('ripio').map((material) => (
                                 <SelectItem key={material.id} value={String(material.id)}>
-                                  {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
+                                  {material.nombre} - ${formatearPrecio(material.precio_venta, false)} ({material.unidad})
                                 </SelectItem>
                               ))
                             ) : (
                               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                No hay ripio disponible
+                                No hay ripio disponible. Crea artículos en el catálogo.
                               </div>
                             )}
                           </SelectContent>
@@ -1222,12 +1436,12 @@ export default function NuevaConfiguracionCercadoPage() {
                           {materialesConstruccion.length > 0 ? (
                             filtrarMaterialesPorTipo('cemento').map((material) => (
                               <SelectItem key={material.id} value={String(material.id)}>
-                                {material.nombre} - ${material.precio_venta?.toLocaleString()} ({material.unidad})
+                                {material.nombre} - ${formatearPrecio(material.precio_venta, false)} ({material.unidad})
                               </SelectItem>
                             ))
                           ) : (
                             <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                              No hay cemento disponible
+                              No hay cemento disponible. Crea artículos en el catálogo.
                             </div>
                           )}
                         </SelectContent>
@@ -1239,7 +1453,7 @@ export default function NuevaConfiguracionCercadoPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-semibold">Precio Total Cordón:</span>
                       <span className="text-2xl font-bold text-primary">
-                        ${parseFloat(formData.cordon_precio_total).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ${formatearPrecio(formData.cordon_precio_total)}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1295,18 +1509,18 @@ export default function NuevaConfiguracionCercadoPage() {
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('pua').map((accesorio) => (
                           <SelectItem key={accesorio.id} value={String(accesorio.id)}>
-                            {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
+                            {accesorio.nombre} - ${formatearPrecio(accesorio.precio_venta, false)} ({accesorio.unidad})
                           </SelectItem>
                         ))
-                      ) : (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No hay alambre de púa disponible
-                        </div>
-                      )}
+                        ) : (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No hay alambre de púa disponible. Crea artículos en el catálogo.
+                          </div>
+                        )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Precio por metro: ${formData.precio_pua_por_metro ? parseFloat(formData.precio_pua_por_metro).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                    Precio por metro: ${formatearPrecio(formData.precio_pua_por_metro)}
                   </p>
                 </div>
               </div>
@@ -1319,7 +1533,7 @@ export default function NuevaConfiguracionCercadoPage() {
               <CardTitle>Accesorios (para 180m)</CardTitle>
               <CardDescription>Materiales complementarios necesarios</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="space-y-3">
                 {[
                   { label: 'Ganchos', cant: 'cantidad_ganchos', precio: 'precio_unitario_ganchos', id: 'gancho_id', default: '48', tipo: 'gancho' },
@@ -1353,14 +1567,14 @@ export default function NuevaConfiguracionCercadoPage() {
                         })
                       }}
                     >
-                      <SelectTrigger className="text-sm h-9">
+                      <SelectTrigger>
                         <SelectValue placeholder="Seleccionar artículo" />
                       </SelectTrigger>
                       <SelectContent>
                         {accesorios.length > 0 ? (
                           filtrarAccesoriosPorTipo(item.tipo).map((accesorio) => (
                             <SelectItem key={accesorio.id} value={String(accesorio.id)}>
-                              {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()}
+                              {accesorio.nombre} - ${formatearPrecio(accesorio.precio_venta, false)}
                             </SelectItem>
                           ))
                         ) : (
@@ -1392,14 +1606,31 @@ export default function NuevaConfiguracionCercadoPage() {
                     value={formData.alambre_ar_id}
                     onValueChange={(value) => {
                       const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
-                      // Si el artículo tiene precio por unidad, calcular precio por metro
-                      // Asumimos que el precio es por rollo/unidad, necesitamos saber la unidad
                       const precioUnitario = accesorioSeleccionado?.precio_venta || 0
-                      // Si la unidad es "rollo" o similar, dividir por metros estándar
-                      // Por ahora usamos el precio directamente si la unidad es "metro"
-                      const precioPorMetro = accesorioSeleccionado?.unidad?.toLowerCase().includes('metro') 
-                        ? precioUnitario 
-                        : precioUnitario / 500 // Asumimos rollos de 500m
+                      
+                      // Calcular precio por metro según la unidad
+                      let precioPorMetro = 0
+                      const unidad = accesorioSeleccionado?.unidad?.toLowerCase() || ''
+                      const nombre = accesorioSeleccionado?.nombre?.toLowerCase() || ''
+                      
+                      if (unidad.includes('metro') || unidad === 'm') {
+                        // Si la unidad es metro, usar directamente
+                        precioPorMetro = precioUnitario
+                      } else if (unidad.includes('rollo') || unidad.includes('roll')) {
+                        // Intentar extraer metros del nombre (ej: "rollo de 500m", "rollo 1000m")
+                        const metrosMatch = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
+                        if (metrosMatch) {
+                          const metrosPorRollo = parseInt(metrosMatch[1])
+                          precioPorMetro = metrosPorRollo > 0 ? precioUnitario / metrosPorRollo : precioUnitario / 500
+                        } else {
+                          // Valor por defecto según tipo común
+                          precioPorMetro = precioUnitario / 500 // Rollos estándar de 500m
+                        }
+                      } else {
+                        // Para otras unidades, asumir que el precio ya es por metro o usar valor por defecto
+                        precioPorMetro = precioUnitario
+                      }
+                      
                       setFormData({
                         ...formData,
                         alambre_ar_id: value,
@@ -1407,21 +1638,21 @@ export default function NuevaConfiguracionCercadoPage() {
                       })
                     }}
                   >
-                    <SelectTrigger className="text-sm h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder="Seleccionar artículo" />
                     </SelectTrigger>
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('alambre').map((accesorio) => (
                           <SelectItem key={accesorio.id} value={String(accesorio.id)}>
-                            {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
+                            {accesorio.nombre} - ${formatearPrecio(accesorio.precio_venta, false)} ({accesorio.unidad})
                           </SelectItem>
                         ))
-                      ) : (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No hay accesorios disponibles
-                        </div>
-                      )}
+                        ) : (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No hay accesorios disponibles. Crea artículos en el catálogo.
+                          </div>
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1458,21 +1689,21 @@ export default function NuevaConfiguracionCercadoPage() {
                       })
                     }}
                   >
-                    <SelectTrigger className="text-sm h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder="Seleccionar artículo" />
                     </SelectTrigger>
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('clavo').map((accesorio) => (
                           <SelectItem key={accesorio.id} value={String(accesorio.id)}>
-                            {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
+                            {accesorio.nombre} - ${formatearPrecio(accesorio.precio_venta, false)} ({accesorio.unidad})
                           </SelectItem>
                         ))
-                      ) : (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No hay accesorios disponibles
-                        </div>
-                      )}
+                        ) : (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No hay accesorios disponibles. Crea artículos en el catálogo.
+                          </div>
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1509,21 +1740,21 @@ export default function NuevaConfiguracionCercadoPage() {
                       })
                     }}
                   >
-                    <SelectTrigger className="text-sm h-9">
+                    <SelectTrigger>
                       <SelectValue placeholder="Seleccionar artículo" />
                     </SelectTrigger>
                     <SelectContent>
                       {accesorios.length > 0 ? (
                         filtrarAccesoriosPorTipo('alambre').map((accesorio) => (
                           <SelectItem key={accesorio.id} value={String(accesorio.id)}>
-                            {accesorio.nombre} - ${accesorio.precio_venta?.toLocaleString()} ({accesorio.unidad})
+                            {accesorio.nombre} - ${formatearPrecio(accesorio.precio_venta, false)} ({accesorio.unidad})
                           </SelectItem>
                         ))
-                      ) : (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No hay accesorios disponibles
-                        </div>
-                      )}
+                        ) : (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No hay accesorios disponibles. Crea artículos en el catálogo.
+                          </div>
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1531,7 +1762,7 @@ export default function NuevaConfiguracionCercadoPage() {
                 <div className="p-3 bg-muted rounded mt-2">
                   <p className="text-sm font-semibold">Total Accesorios:</p>
                   <p className="text-2xl font-bold text-primary">
-                    ${precioCalculado.accesorios.toLocaleString()}
+                    ${formatearPrecio(precioCalculado.accesorios, false)}
                   </p>
                 </div>
               </div>
@@ -1548,27 +1779,71 @@ export default function NuevaConfiguracionCercadoPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Mano de Obra ($/metro)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.precio_mano_obra_por_metro}
-                    onChange={(e) => setFormData({ ...formData, precio_mano_obra_por_metro: e.target.value })}
-                  />
+                  <Select
+                    value={formData.mano_obra_id}
+                    onValueChange={(value) => {
+                      const servicio = servicios.find(s => String(s.id) === value)
+                      setFormData({
+                        ...formData,
+                        mano_obra_id: value,
+                        precio_mano_obra_por_metro: (servicio?.precio_venta || 0).toString(),
+                      })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar servicio de mano de obra" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {servicios.length > 0 ? (
+                        filtrarServiciosPorTipo('mano_obra').map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.nombre} - ${formatearPrecio(s.precio_venta, false)} {s.unidad ? `(${s.unidad})` : ''}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          No hay servicios disponibles. Crea artículos de tipo servicio.
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    180m × ${formData.precio_mano_obra_por_metro} = ${(180 * parseFloat(formData.precio_mano_obra_por_metro)).toLocaleString()}
+                    180m × ${formatearPrecio(formData.precio_mano_obra_por_metro)} = ${formatearPrecio(180 * parseFloat(formData.precio_mano_obra_por_metro), false)}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Transporte ($/metro)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.precio_transporte_por_metro}
-                    onChange={(e) => setFormData({ ...formData, precio_transporte_por_metro: e.target.value })}
-                  />
+                  <Select
+                    value={formData.transporte_id}
+                    onValueChange={(value) => {
+                      const servicio = servicios.find(s => String(s.id) === value)
+                      setFormData({
+                        ...formData,
+                        transporte_id: value,
+                        precio_transporte_por_metro: (servicio?.precio_venta || 0).toString(),
+                      })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar servicio de transporte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {servicios.length > 0 ? (
+                        filtrarServiciosPorTipo('transporte').map((s) => (
+                          <SelectItem key={s.id} value={String(s.id)}>
+                            {s.nombre} - ${formatearPrecio(s.precio_venta, false)} {s.unidad ? `(${s.unidad})` : ''}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          No hay servicios disponibles. Crea artículos de tipo servicio.
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    180m × ${formData.precio_transporte_por_metro} = ${(180 * parseFloat(formData.precio_transporte_por_metro)).toLocaleString()}
+                    180m × ${formatearPrecio(formData.precio_transporte_por_metro)} = ${formatearPrecio(180 * parseFloat(formData.precio_transporte_por_metro), false)}
                   </p>
                 </div>
               </div>
@@ -1596,46 +1871,196 @@ export default function NuevaConfiguracionCercadoPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tejido (18 rollos):</span>
+                  <span className="text-muted-foreground">
+                    {(() => {
+                      const tejidoSel = tejidos.find(t => t.id === formData.tejido_config_id)
+                      const largoRollo = tejidoSel?.largo || 10.00
+                      const rollosNecesarios = Math.ceil(180 / largoRollo)
+                      return `Tejido (${rollosNecesarios} rollos de ${largoRollo}m):`
+                    })()}
+                  </span>
                   <span className="font-semibold">
-                    ${((tejidos.find(t => t.id === formData.tejido_config_id)?.precio_venta || 0) * 18).toLocaleString()}
+                    ${(() => {
+                      const tejidoSel = tejidos.find(t => t.id === formData.tejido_config_id)
+                      const precioTejido = tejidoSel?.precio_venta || 0
+                      const largoRollo = tejidoSel?.largo || 10.00
+                      const rollosNecesarios = Math.ceil(180 / largoRollo)
+                      return formatearPrecio(precioTejido * rollosNecesarios, false)
+                    })()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Postes:</span>
-                  <span className="font-semibold">
-                    ${(
-                      (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
-                      (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
-                      (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
-                      (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal))
-                    ).toLocaleString()}
-                  </span>
-                </div>
+                <Collapsible open={desglosePostesExpandido} onOpenChange={setDesglosePostesExpandido}>
+                  <CollapsibleTrigger className="flex justify-between items-center w-full hover:bg-muted/50 rounded px-2 py-1 -mx-2">
+                    <span className="text-muted-foreground">Postes:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">
+                        ${formatearPrecio(
+                          (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
+                          (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
+                          (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
+                          (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal)),
+                          false
+                        )}
+                      </span>
+                      {desglosePostesExpandido ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1 pl-4 border-l-2 border-muted">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {formData.cantidad_postes_esquineros} esquineros × ${formatearPrecio(formData.precio_poste_esquinero, false)}
+                      </span>
+                      <span className="font-medium">
+                        ${formatearPrecio(parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero), false)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {formData.cantidad_postes_refuerzos} refuerzos × ${formatearPrecio(formData.precio_poste_refuerzo, false)}
+                      </span>
+                      <span className="font-medium">
+                        ${formatearPrecio(parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo), false)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {formData.cantidad_postes_intermedios} intermedios × ${formatearPrecio(formData.precio_poste_intermedio, false)}
+                      </span>
+                      <span className="font-medium">
+                        ${formatearPrecio(parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio), false)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {formData.cantidad_puntales} puntales × ${formatearPrecio(formData.precio_puntal, false)}
+                      </span>
+                      <span className="font-medium">
+                        ${formatearPrecio(parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal), false)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-2 mt-2 border-t border-muted">
+                      <span className="font-semibold">Subtotal Postes:</span>
+                      <span className="font-bold">
+                        ${formatearPrecio(
+                          (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
+                          (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
+                          (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
+                          (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal)),
+                          false
+                        )}
+                      </span>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cordón:</span>
-                  <span className="font-semibold">${parseFloat(formData.cordon_precio_total).toLocaleString()}</span>
+                  <span className="font-semibold">${formatearPrecio(formData.cordon_precio_total, false)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Púa:</span>
                   <span className="font-semibold">
-                    ${(180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro)).toLocaleString()}
+                    ${formatearPrecio(180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro), false)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Accesorios:</span>
-                  <span className="font-semibold">${precioCalculado.accesorios.toLocaleString()}</span>
-                </div>
+                <Collapsible open={desgloseAccesoriosExpandido} onOpenChange={setDesgloseAccesoriosExpandido}>
+                  <CollapsibleTrigger className="flex justify-between items-center w-full hover:bg-muted/50 rounded px-2 py-1 -mx-2">
+                    <span className="text-muted-foreground">Accesorios:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">${formatearPrecio(precioCalculado.accesorios, false)}</span>
+                      {desgloseAccesoriosExpandido ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1 pl-4 border-l-2 border-muted">
+                    {parseFloat(formData.cantidad_ganchos) > 0 && parseFloat(formData.precio_unitario_ganchos) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.cantidad_ganchos} ganchos × ${formatearPrecio(formData.precio_unitario_ganchos, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.cantidad_ganchos) * parseFloat(formData.precio_unitario_ganchos), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.cantidad_planchuelas) > 0 && parseFloat(formData.precio_unitario_planchuelas) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.cantidad_planchuelas} planchuelas × ${formatearPrecio(formData.precio_unitario_planchuelas, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.cantidad_planchuelas) * parseFloat(formData.precio_unitario_planchuelas), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.cantidad_torniquetes) > 0 && parseFloat(formData.precio_unitario_torniquetes) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.cantidad_torniquetes} torniquetes × ${formatearPrecio(formData.precio_unitario_torniquetes, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.cantidad_torniquetes) * parseFloat(formData.precio_unitario_torniquetes), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.cantidad_esparragos) > 0 && parseFloat(formData.precio_unitario_esparragos) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.cantidad_esparragos} esparragos × ${formatearPrecio(formData.precio_unitario_esparragos, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.cantidad_esparragos) * parseFloat(formData.precio_unitario_esparragos), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.metros_alambre_ar) > 0 && parseFloat(formData.precio_metro_alambre_ar) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.metros_alambre_ar}m alambre A/R × ${formatearPrecio(formData.precio_metro_alambre_ar)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.metros_alambre_ar) * parseFloat(formData.precio_metro_alambre_ar), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.kg_clavos) > 0 && parseFloat(formData.precio_kg_clavos) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.kg_clavos}kg clavos × ${formatearPrecio(formData.precio_kg_clavos, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.kg_clavos) * parseFloat(formData.precio_kg_clavos), false)}
+                        </span>
+                      </div>
+                    )}
+                    {parseFloat(formData.kg_alambre_negro) > 0 && parseFloat(formData.precio_kg_alambre_negro) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">
+                          {formData.kg_alambre_negro}kg alambre negro × ${formatearPrecio(formData.precio_kg_alambre_negro, false)}
+                        </span>
+                        <span className="font-medium">
+                          ${formatearPrecio(parseFloat(formData.kg_alambre_negro) * parseFloat(formData.precio_kg_alambre_negro), false)}
+                        </span>
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Mano de Obra:</span>
                   <span className="font-semibold">
-                    ${(180 * parseFloat(formData.precio_mano_obra_por_metro)).toLocaleString()}
+                    ${formatearPrecio(180 * parseFloat(formData.precio_mano_obra_por_metro), false)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transporte:</span>
                   <span className="font-semibold">
-                    ${(180 * parseFloat(formData.precio_transporte_por_metro)).toLocaleString()}
+                    ${formatearPrecio(180 * parseFloat(formData.precio_transporte_por_metro), false)}
                   </span>
                 </div>
               </div>
@@ -1644,19 +2069,19 @@ export default function NuevaConfiguracionCercadoPage() {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-bold">Total 180m:</span>
                   <span className="text-2xl font-bold text-green-600">
-                    ${precioCalculado.total_180m.toLocaleString()}
+                    ${formatearPrecio(precioCalculado.total_180m, false)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-sm">Precio/metro:</span>
                   <span className="text-lg font-bold text-primary">
-                    ${precioCalculado.precio_metro.toLocaleString()}
+                    ${formatearPrecio(precioCalculado.precio_metro)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t">
                   <span className="text-xs text-muted-foreground">Precio/metro (&lt;50m):</span>
                   <span className="text-sm font-bold text-orange-600">
-                    ${precioCalculado.precio_metro_menor_50.toLocaleString()}
+                    ${formatearPrecio(precioCalculado.precio_metro_menor_50)}
                   </span>
                 </div>
               </div>
@@ -1671,6 +2096,27 @@ export default function NuevaConfiguracionCercadoPage() {
           </Card>
         </div>
       </form>
+
+      {/* Dialog de confirmación para salir sin guardar */}
+      <Dialog open={mostrarConfirmacionSalir} onOpenChange={setMostrarConfirmacionSalir}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Salir sin guardar?</DialogTitle>
+            <DialogDescription>
+              Tienes cambios sin guardar. Si sales ahora, perderás todos los cambios realizados.
+              ¿Estás seguro de que quieres continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelarSalir}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmarSalir}>
+              Salir sin guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

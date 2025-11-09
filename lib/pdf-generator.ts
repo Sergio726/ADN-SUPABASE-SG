@@ -48,17 +48,19 @@ export function generarPDFPresupuesto(
   const pageHeight = doc.internal.pageSize.getHeight()
   let yPos = 20
 
+  try {
+    const logo = new Image()
+    logo.src = '/logos/logo-color.png'
+    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
+  } catch (error) {
+    console.warn('No se pudo cargar el logo para el PDF', error)
+  }
+
   // ===== HEADER =====
-  // Logo (simulado con texto por ahora)
-  doc.setFontSize(20)
-  doc.setTextColor(220, 38, 38) // Brand red
-  doc.setFont('helvetica', 'bold')
-  doc.text('ALAMBRES DEL NORTE SRL', 15, yPos)
-  
   doc.setFontSize(9)
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
-  doc.text('Tu seguridad comienza con nosotros', 15, yPos + 5)
+  doc.text('Tu seguridad comienza con nosotros', 15, yPos + 15)
   
   // Número de presupuesto (derecha)
   doc.setFontSize(12)
@@ -228,13 +230,13 @@ export function generarPDFPresupuesto(
   
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.text('TOTAL:', totalesX, yPos)
+  doc.text('TOTAL:', totalesX, yPos + 4)
   doc.setTextColor(34, 139, 34) // Verde
   doc.setFontSize(14)
-  doc.text(`$${presupuesto.total.toLocaleString('es-AR')}`, pageWidth - 15, yPos, { align: 'right' })
+  doc.text(`$${presupuesto.total.toLocaleString('es-AR')}`, pageWidth - 15, yPos + 4, { align: 'right' })
   doc.setTextColor(0, 0, 0)
   
-  yPos += 15
+  yPos += 19
 
   // ===== CONDICIONES COMERCIALES =====
   if (presupuesto.condiciones_comerciales && yPos < pageHeight - 60) {
@@ -279,7 +281,7 @@ export function generarPDFPresupuesto(
   doc.line(15, footerY - 5, pageWidth - 15, footerY - 5)
   
   doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
-  doc.text('Tel: +54 387 XXX-XXXX | Email: info@alambresdelnorte.com', pageWidth / 2, footerY + 4, { align: 'center' })
+  doc.text('Tel: +54 387 77-3393 | Email: info@alambresdelnortesrl.com.ar', pageWidth / 2, footerY + 4, { align: 'center' })
   doc.text(`Validez: ${presupuesto.validez_dias} días`, pageWidth / 2, footerY + 8, { align: 'center' })
 
   // Descargar

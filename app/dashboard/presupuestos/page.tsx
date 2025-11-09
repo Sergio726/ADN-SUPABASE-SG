@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, FileText, RefreshCw, Download, Copy } from 'lucide-react'
+import { Plus, Edit, Eye, FileText, RefreshCw, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -182,18 +182,6 @@ export default function PresupuestosPage() {
             </Tooltip>
           </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Duplicar</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
       ),
     },

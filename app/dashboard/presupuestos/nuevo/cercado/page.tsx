@@ -62,7 +62,7 @@ export default function NuevoPresupuestoCercadoPage() {
     // Otros
     validez_dias: '15',
     observaciones: '',
-    condiciones_comerciales: 'Pago: Contado o transferencia\nGarantía: 12 meses\nIncluye materiales y mano de obra',
+    condiciones_comerciales: 'Pago: Contado o transferencia\nIncluye materiales y mano de obra',
   })
 
   useEffect(() => {
