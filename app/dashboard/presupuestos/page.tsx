@@ -97,10 +97,10 @@ export default function PresupuestosPage() {
       if (presupuesto.usuario_id) {
         const { data: vendedor } = await supabase
           .from('usuarios')
-          .select('nombre, email')
+          .select('nombre')
           .eq('id', presupuesto.usuario_id)
           .single()
-        vendedorNombre = vendedor?.nombre || vendedor?.email || ''
+        vendedorNombre = vendedor?.nombre || ''
       }
 
       let clienteInfo: any = null

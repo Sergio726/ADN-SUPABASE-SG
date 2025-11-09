@@ -51,10 +51,10 @@ export default function VerPresupuestoPage() {
       if (presData?.usuario_id) {
         const { data: vend } = await supabase
           .from('usuarios')
-          .select('nombre, email')
+          .select('nombre')
           .eq('id', presData.usuario_id)
           .single()
-        setVendedorNombre(vend?.nombre || vend?.email || '')
+        setVendedorNombre(vend?.nombre || '')
       } else {
         setVendedorNombre('')
       }
