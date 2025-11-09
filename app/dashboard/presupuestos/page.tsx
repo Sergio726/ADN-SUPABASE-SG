@@ -11,10 +11,12 @@ import { SortableHeader } from '@/components/ui/sortable-header'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { generarPDFPresupuesto } from '@/lib/pdf-generator'
 
 export default function PresupuestosPage() {
   const [presupuestos, setPresupuestos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -65,6 +67,107 @@ export default function PresupuestosPage() {
 
   const tipoBadgeVariant = (tipo: string) => {
     return tipo === 'cercado' ? 'default' : 'secondary'
+  }
+
+  async function descargarPresupuesto(presupuestoId: string) {
+    try {
+      setDownloadingId(presupuestoId)
+
+      const { data: presupuesto, error: presupuestoError } = await supabase
+        .from('presupuestos')
+        .select('*')
+        .eq('id', presupuestoId)
+        .single()
+
+      if (presupuestoError || !presupuesto) {
+        throw presupuestoError || new Error('No se encontró el presupuesto')
+      }
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('presupuestos_items')
+        .select('*')
+        .eq('presupuesto_id', presupuestoId)
+        .order('orden')
+
+      if (itemsError) {
+        throw itemsError
+      }
+
+      let vendedorNombre = ''
+      if (presupuesto.usuario_id) {
+        const { data: vendedor } = await supabase
+          .from('usuarios')
+          .select('nombre, email')
+          .eq('id', presupuesto.usuario_id)
+          .single()
+        vendedorNombre = vendedor?.nombre || vendedor?.email || ''
+      }
+
+      let clienteInfo: any = null
+      if (presupuesto.cliente_id) {
+        const { data: cliente } = await supabase
+          .from('clientes')
+          .select(
+            'nombre_completo, telefono, email, direccion, tipo_documento, numero_documento'
+          )
+          .eq('id', presupuesto.cliente_id)
+          .single()
+        clienteInfo = cliente
+      }
+
+      const presupuestoParaPdf = {
+        ...presupuesto,
+        cliente_nombre:
+          presupuesto.cliente_nombre ||
+          clienteInfo?.nombre_completo ||
+          '',
+        cliente_telefono:
+          presupuesto.cliente_telefono ||
+          clienteInfo?.telefono ||
+          '',
+        cliente_email:
+          presupuesto.cliente_email ||
+          clienteInfo?.email ||
+          '',
+        cliente_direccion:
+          presupuesto.cliente_direccion ||
+          clienteInfo?.direccion ||
+          '',
+        tipo_documento:
+          presupuesto.tipo_documento ||
+          clienteInfo?.tipo_documento ||
+          '',
+        numero_documento:
+          presupuesto.numero_documento ||
+          clienteInfo?.numero_documento ||
+          '',
+        vendedor_nombre: vendedorNombre,
+      }
+
+      const itemsParaPdf =
+        itemsData?.map((item) => ({
+          descripcion: item.descripcion,
+          cantidad: Number(item.cantidad) || 0,
+          unidad: item.unidad,
+          precio_unitario: Number(item.precio_unitario) || 0,
+          precio_total: Number(item.precio_total) || 0,
+        })) || []
+
+      generarPDFPresupuesto(presupuestoParaPdf, itemsParaPdf)
+      toast({
+        title: 'PDF generado',
+        description: `Se descargó el presupuesto ${presupuesto.numero}`,
+      })
+    } catch (error: any) {
+      console.error('Error al descargar PDF:', error)
+      toast({
+        title: 'Error al generar PDF',
+        description: error.message || 'No se pudo generar el PDF',
+        variant: 'destructive',
+      })
+    } finally {
+      setDownloadingId(null)
+    }
   }
 
   const columns = [
@@ -172,8 +275,13 @@ export default function PresupuestosPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Download className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => descargarPresupuesto(row.original.id)}
+                  disabled={downloadingId === row.original.id}
+                >
+                  <Download className={`h-4 w-4 ${downloadingId === row.original.id ? 'animate-pulse' : ''}`} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

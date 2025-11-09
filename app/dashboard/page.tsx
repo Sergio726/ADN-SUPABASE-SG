@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { Package, Building2, Mail, AlertTriangle, Plus, DollarSign, TrendingUp, ArrowRight } from 'lucide-react'
+import { Package, Building2, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler } from 'lucide-react'
 
 async function getStats() {
   const supabase = createServerClient()
@@ -39,13 +39,49 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          Bienvenido al Panel de Control
-        </h2>
-        <p className="text-muted-foreground mt-2">
-          Resumen general del sistema
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Bienvenido al Panel de Control
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            Resumen general del sistema
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/presupuestos/nuevo/articulos"
+            className="group flex items-center gap-3 rounded-xl border border-red-300 bg-gradient-to-br from-red-500 via-red-400 to-red-600 px-5 py-4 text-white shadow-md transition hover:shadow-lg"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
+              <Calculator className="h-6 w-6 text-white" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-sm uppercase tracking-wide text-white/80">
+                Cotizar
+              </div>
+              <div className="text-lg font-semibold">
+                Artículos
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/presupuestos/nuevo/cercado"
+            className="group flex items-center gap-3 rounded-xl border border-red-200 bg-gradient-to-br from-red-200 via-red-100 to-red-300 px-5 py-4 text-red-900 shadow-md transition hover:shadow-lg"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-900/10">
+              <Ruler className="h-6 w-6 text-red-900" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-sm uppercase tracking-wide text-red-900/70">
+                Cotizar
+              </div>
+              <div className="text-lg font-semibold">
+                Cercos
+              </div>
+            </div>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -158,51 +194,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Acciones Rápidas</CardTitle>
-          <CardDescription>
-            Operaciones frecuentes del sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 p-6 hover:bg-primary/5 hover:border-primary"
-              asChild
-            >
-              <Link href="/dashboard/articulos/nuevo">
-                <Plus className="h-8 w-8" />
-                <span className="font-medium">Nuevo Artículo</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 p-6 hover:bg-primary/5 hover:border-primary"
-              asChild
-            >
-              <Link href="/dashboard/proveedores">
-                <Building2 className="h-8 w-8" />
-                <span className="font-medium">Gestionar Proveedores</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 p-6 hover:bg-primary/5 hover:border-primary"
-              asChild
-            >
-              <Link href="/dashboard/precios">
-                <DollarSign className="h-8 w-8" />
-                <span className="font-medium">Actualizar Precios</span>
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Actions removed */}
     </div>
   )
 }

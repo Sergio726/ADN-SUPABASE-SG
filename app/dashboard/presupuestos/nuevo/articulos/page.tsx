@@ -634,7 +634,7 @@ export default function NuevoPresupuestoArticulosPage() {
                           <th className="p-2 text-left font-semibold text-sm w-32">Tipo</th>
                           <th className="p-2 text-left font-semibold text-sm min-w-[200px]">Producto</th>
                           <th className="p-2 text-left font-semibold text-sm min-w-[250px]">Descripción</th>
-                          <th className="p-2 text-left font-semibold text-sm w-24">Cant.</th>
+                          <th className="p-2 text-left font-semibold text-sm w-28">Cant.</th>
                           <th className="p-2 text-left font-semibold text-sm w-20">Unidad</th>
                           <th className="p-2 text-left font-semibold text-sm w-32">P. Unit.</th>
                           <th className="p-2 text-left font-semibold text-sm w-32">Total</th>
