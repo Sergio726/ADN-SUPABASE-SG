@@ -290,23 +290,24 @@ export default function PresupuestosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Presupuestos</h1>
-          <p className="text-muted-foreground mt-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Presupuestos</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
             Gestión de presupuestos de artículos y cercado
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button
             variant="outline"
             onClick={cargarPresupuestos}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/dashboard/presupuestos/nuevo/tipo">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Presupuesto

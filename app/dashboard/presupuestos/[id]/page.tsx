@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { generarPDFPresupuesto } from '@/lib/pdf-generator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 export default function VerPresupuestoPage() {
   const params = useParams()
@@ -21,6 +23,8 @@ export default function VerPresupuestoPage() {
   const [loading, setLoading] = useState(true)
   const [vendedorNombre, setVendedorNombre] = useState<string>('')
   const [eliminando, setEliminando] = useState(false)
+  const [confirmacionAbierta, setConfirmacionAbierta] = useState(false)
+  const [textoConfirmacion, setTextoConfirmacion] = useState('')
 
   useEffect(() => {
     cargarPresupuesto()
@@ -153,7 +157,7 @@ export default function VerPresupuestoPage() {
     }
   }
 
-  async function darDeBajaPresupuesto() {
+  function abrirDialogoBaja() {
     if (!presupuesto || presupuesto.estado === 'baja') {
       if (presupuesto?.estado === 'baja') {
         toast({
@@ -163,10 +167,34 @@ export default function VerPresupuestoPage() {
       }
       return
     }
-    const confirmar = window.confirm(
-      '¿Estás seguro de que quieres dar de baja este presupuesto? Esta acción no eliminará el registro, pero lo marcará como no vigente.'
-    )
-    if (!confirmar) return
+    setTextoConfirmacion('')
+    setConfirmacionAbierta(true)
+  }
+
+  async function confirmarBaja() {
+    if (!presupuesto || presupuesto.estado === 'baja') {
+      if (presupuesto?.estado === 'baja') {
+        toast({
+          title: 'El presupuesto ya está dado de baja',
+          description: 'No es necesario realizar ninguna acción adicional.',
+        })
+      }
+      return
+    }
+    if (textoConfirmacion.trim().toUpperCase() !== 'BAJA') {
+      toast({
+        title: 'Acción cancelada',
+        description: 'Debes escribir la palabra BAJA para confirmar la operación.',
+      })
+      return
+    }
+    await darDeBajaPresupuesto()
+  }
+
+  async function darDeBajaPresupuesto() {
+    if (!presupuesto || presupuesto.estado === 'baja') {
+      return
+    }
     try {
       setEliminando(true)
       const { error } = await supabase
@@ -181,6 +209,8 @@ export default function VerPresupuestoPage() {
         description: `El presupuesto ${presupuesto.numero} fue marcado como baja.`,
       })
 
+      setConfirmacionAbierta(false)
+      setTextoConfirmacion('')
       router.push('/dashboard/presupuestos')
     } catch (error: any) {
       console.error('Error al dar de baja:', error)
@@ -306,18 +336,17 @@ export default function VerPresupuestoPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" asChild>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <Button variant="outline" asChild className="w-full sm:w-auto">
             <Link href="/dashboard/presupuestos">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Link>
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{presupuesto.numero}</h1>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="text-2xl font-bold sm:text-3xl">{presupuesto.numero}</h1>
               <Badge variant={tipoBadge}>
                 {presupuesto.tipo === 'articulos' ? 'Artículos' : 'Cercado'}
               </Badge>
@@ -325,35 +354,48 @@ export default function VerPresupuestoPage() {
                 {presupuesto.estado?.charAt(0).toUpperCase() + presupuesto.estado?.slice(1)}
               </Badge>
             </div>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground sm:text-base">
               Presupuesto para {presupuesto.cliente_nombre}
             </p>
           </div>
         </div>
-        <div />
+        <div className="flex w-full flex-col gap-2 sm:w-auto">
+          <Button className="w-full" onClick={descargarPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Descargar PDF
+          </Button>
+          <Button className="w-full" variant="secondary" onClick={copiarResumen}>
+            <MessageSquareText className="h-4 w-4 mr-2" />
+            Resumen WhatsApp
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           {/* Datos del Cliente */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <User className="h-5 w-5" />
                 Datos del Cliente
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid gap-4 md:grid-cols-2">
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm text-muted-foreground">Nombre</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                    Nombre
+                  </p>
                   <p className="font-semibold">{presupuesto.cliente_nombre}</p>
                 </div>
                 {presupuesto.cliente_telefono && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Teléfono</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                        Teléfono
+                      </p>
                       <p className="font-medium">{presupuesto.cliente_telefono}</p>
                     </div>
                   </div>
@@ -363,7 +405,9 @@ export default function VerPresupuestoPage() {
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Vendedor</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                      Vendedor
+                    </p>
                     <p className="font-medium">{vendedorNombre}</p>
                   </div>
                 </div>
@@ -372,7 +416,9 @@ export default function VerPresupuestoPage() {
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                      Email
+                    </p>
                     <p className="font-medium">{presupuesto.cliente_email}</p>
                   </div>
                 </div>
@@ -381,7 +427,9 @@ export default function VerPresupuestoPage() {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Dirección</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
+                      Dirección
+                    </p>
                     <p className="font-medium">{presupuesto.cliente_direccion}</p>
                   </div>
                 </div>
@@ -392,88 +440,112 @@ export default function VerPresupuestoPage() {
           {/* Items del Presupuesto */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Package className="h-5 w-5" />
                 Items del Presupuesto
               </CardTitle>
-              <CardDescription>{items.length} items en total</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">{items.length} items en total</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 bg-muted/50">
-                      <th className="p-3 text-left font-semibold text-sm">#</th>
-                      <th className="p-3 text-left font-semibold text-sm">Descripción</th>
-                      <th className="p-3 text-right font-semibold text-sm">Cant.</th>
-                      <th className="p-3 text-left font-semibold text-sm">Unidad</th>
-                      <th className="p-3 text-right font-semibold text-sm">P. Unit.</th>
-                      <th className="p-3 text-right font-semibold text-sm">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="p-3 text-muted-foreground">{index + 1}</td>
-                        <td className="p-3">{item.descripcion}</td>
-                        <td className="p-3 text-right font-medium">{item.cantidad}</td>
-                        <td className="p-3">{item.unidad}</td>
-                        <td className="p-3 text-right">${item.precio_unitario?.toLocaleString()}</td>
-                        <td className="p-3 text-right font-bold text-green-600">
+              <div className="rounded-lg border">
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="p-3 text-left font-semibold">#</th>
+                        <th className="p-3 text-left font-semibold">Descripción</th>
+                        <th className="p-3 text-right font-semibold">Cant.</th>
+                        <th className="p-3 text-left font-semibold">Unidad</th>
+                        <th className="p-3 text-right font-semibold">P. Unit.</th>
+                        <th className="p-3 text-right font-semibold">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <tr key={item.id} className="border-b">
+                          <td className="p-3 text-muted-foreground">{index + 1}</td>
+                          <td className="p-3">{item.descripcion}</td>
+                          <td className="p-3 text-right font-medium">{item.cantidad}</td>
+                          <td className="p-3">{item.unidad}</td>
+                          <td className="p-3 text-right">${item.precio_unitario?.toLocaleString()}</td>
+                          <td className="p-3 text-right font-bold text-green-600">
+                            ${item.precio_total?.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="divide-y sm:hidden">
+                  {items.map((item, index) => (
+                    <div key={item.id} className="p-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
+                        <span className="font-bold text-green-600">
                           ${item.precio_total?.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="border-t-2 bg-muted/30">
-                      <td colSpan={5} className="p-3 text-right font-semibold">Subtotal:</td>
-                      <td className="p-3 text-right font-bold text-lg">
-                        ${presupuesto.subtotal?.toLocaleString()}
-                      </td>
-                    </tr>
-                    {presupuesto.descuento > 0 && (
-                      <tr className="border-b">
-                        <td colSpan={5} className="p-3 text-right font-semibold">Descuento:</td>
-                        <td className="p-3 text-right font-bold text-red-600">
-                          -${presupuesto.descuento?.toLocaleString()}
-                        </td>
-                      </tr>
-                    )}
-                    {/* Mostrar IVA solo si NO es efectivo */}
-                    {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
-                      <>
-                        <tr className="border-b">
-                          <td colSpan={5} className="p-3 text-right font-semibold">Base imponible (sin IVA):</td>
-                          <td className="p-3 text-right font-semibold">
-                            ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                        <tr className="border-b">
-                          <td colSpan={5} className="p-3 text-right font-semibold">IVA 21%:</td>
-                          <td className="p-3 text-right font-semibold">
-                            ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      </>
-                    )}
-                    <tr className="border-t-2 bg-green-50">
-                      <td colSpan={5} className="p-4 text-right font-bold text-lg">TOTAL:</td>
-                      <td className="p-4 text-right font-bold text-2xl text-green-600">
-                        ${presupuesto.total?.toLocaleString()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                        </span>
+                      </div>
+                      <p className="font-medium leading-snug">{item.descripcion}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <div>
+                          <p className="font-semibold uppercase">Cant.</p>
+                          <p>{item.cantidad}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold uppercase">Unidad</p>
+                          <p>{item.unidad}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="font-semibold uppercase">P. Unit.</p>
+                          <p>${item.precio_unitario?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 rounded-lg bg-muted/40 p-3 text-sm sm:text-base">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-muted-foreground">Subtotal:</span>
+                  <span className="font-bold">${presupuesto.subtotal?.toLocaleString()}</span>
+                </div>
+                {presupuesto.descuento > 0 && (
+                  <div className="flex items-center justify-between text-red-600">
+                    <span className="font-semibold">Descuento:</span>
+                    <span className="font-bold">-${presupuesto.descuento?.toLocaleString()}</span>
+                  </div>
+                )}
+                {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                  <>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
+                      <span>Base imponible (sin IVA)</span>
+                      <span className="font-semibold">
+                        ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
+                      <span>IVA 21%</span>
+                      <span className="font-semibold">
+                        ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div className="flex items-center justify-between border-t border-muted pt-2 text-base font-bold text-green-600 sm:text-xl">
+                  <span>TOTAL:</span>
+                  <span>${presupuesto.total?.toLocaleString()}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Observaciones y Condiciones */}
           {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (
             <div className="grid gap-6 md:grid-cols-2">
               {presupuesto.observaciones && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Observaciones</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Observaciones</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm whitespace-pre-line">{presupuesto.observaciones}</p>
@@ -483,7 +555,7 @@ export default function VerPresupuestoPage() {
               {presupuesto.condiciones_comerciales && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Condiciones Comerciales</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Condiciones Comerciales</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm whitespace-pre-line">{presupuesto.condiciones_comerciales}</p>
@@ -496,17 +568,16 @@ export default function VerPresupuestoPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Información General */}
           <Card>
             <CardHeader>
-              <CardTitle>Información</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Información</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Fecha Emisión</p>
-                  <p className="font-medium">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Fecha Emisión</p>
+                  <p className="text-sm font-medium">
                     {new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')}
                   </p>
                 </div>
@@ -515,8 +586,8 @@ export default function VerPresupuestoPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Vencimiento</p>
-                  <p className="font-medium">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Vencimiento</p>
+                  <p className="text-sm font-medium">
                     {new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')}
                   </p>
                 </div>
@@ -525,12 +596,12 @@ export default function VerPresupuestoPage() {
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Validez</p>
-                  <p className="font-medium">{presupuesto.validez_dias} días</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Validez</p>
+                  <p className="text-sm font-medium">{presupuesto.validez_dias} días</p>
                 </div>
               </div>
 
-              <div className="pt-3 border-t">
+              <div className="border-t pt-3">
                 <p className="text-xs text-muted-foreground mb-2">Estado del Presupuesto</p>
                 <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
                   <SelectTrigger>
@@ -547,50 +618,48 @@ export default function VerPresupuestoPage() {
             </CardContent>
           </Card>
 
-          {/* Totales */}
           <Card>
             <CardHeader>
-              <CardTitle>Resumen</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Resumen</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 text-sm sm:text-base">
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Items:</span>
+                <span className="text-muted-foreground">Items:</span>
                 <span className="font-semibold">{items.length}</span>
               </div>
               {vendedorNombre && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Vendedor:</span>
+                  <span className="text-muted-foreground">Vendedor:</span>
                   <span className="font-semibold">{vendedorNombre}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Subtotal:</span>
+                <span className="text-muted-foreground">Subtotal:</span>
                 <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>
               </div>
               {presupuesto.descuento > 0 && (
                 <div className="flex justify-between text-red-600">
-                  <span className="text-sm">Descuento:</span>
+                  <span>Descuento:</span>
                   <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
                 </div>
               )}
-              {/* Mostrar IVA solo si NO es efectivo */}
               {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Base imponible (sin IVA):</span>
-                    <span className="text-sm font-semibold">
+                    <span className="text-muted-foreground">Base imponible (sin IVA):</span>
+                    <span className="font-semibold">
                       ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">IVA 21%:</span>
-                    <span className="text-sm font-semibold">
+                    <span className="text-muted-foreground">IVA 21%:</span>
+                    <span className="font-semibold">
                       ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </>
               )}
-              <div className="flex justify-between pt-3 border-t-2">
+              <div className="flex justify-between border-t-2 pt-3">
                 <span className="font-bold">TOTAL:</span>
                 <span className="text-2xl font-bold text-green-600">
                   ${presupuesto.total?.toLocaleString()}
@@ -599,37 +668,72 @@ export default function VerPresupuestoPage() {
             </CardContent>
           </Card>
 
-          {/* Acciones */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Acciones</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Acciones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full" onClick={descargarPDF}>
-                <Download className="h-4 w-4 mr-2" />
-                Descargar PDF
+              <Button className="w-full" variant="destructive" onClick={abrirDialogoBaja} disabled={eliminando || presupuesto.estado === 'baja'}>
+                <Trash className="h-4 w-4 mr-2" />
+                {presupuesto.estado === 'baja'
+                  ? 'Presupuesto dado de baja'
+                  : eliminando
+                    ? 'Marcando como baja...'
+                    : 'Dar de baja'}
               </Button>
-            <Button className="w-full" variant="secondary" onClick={copiarResumen}>
-              <MessageSquareText className="h-4 w-4 mr-2" />
-              Copiar resumen para WhatsApp
-            </Button>
-            <Button
-              className="w-full"
-              variant="destructive"
-              onClick={darDeBajaPresupuesto}
-              disabled={eliminando || presupuesto.estado === 'baja'}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              {presupuesto.estado === 'baja'
-                ? 'Presupuesto dado de baja'
-                : eliminando
-                  ? 'Marcando como baja...'
-                  : 'Dar de baja'}
-            </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <Dialog
+        open={confirmacionAbierta}
+        onOpenChange={(abierta) => {
+          setConfirmacionAbierta(abierta)
+          if (!abierta) {
+            setTextoConfirmacion('')
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar baja del presupuesto</DialogTitle>
+            <DialogDescription>
+              Esta acción marcará el presupuesto como no vigente. Escribe la palabra "BAJA" para confirmar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              autoFocus
+              placeholder="Escribe BAJA para confirmar"
+              value={textoConfirmacion}
+              onChange={(event) => setTextoConfirmacion(event.target.value)}
+              className="uppercase tracking-[0.2em]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta operación es irreversible. El presupuesto seguirá disponible en modo lectura, pero no podrá utilizarse.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmacionAbierta(false)
+                setTextoConfirmacion('')
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmarBaja}
+              disabled={eliminando}
+            >
+              {eliminando ? 'Marcando...' : 'Confirmar baja'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
