@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText } from 'lucide-react'
+import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +20,7 @@ export default function VerPresupuestoPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [vendedorNombre, setVendedorNombre] = useState<string>('')
+  const [eliminando, setEliminando] = useState(false)
 
   useEffect(() => {
     cargarPresupuesto()
@@ -152,6 +153,46 @@ export default function VerPresupuestoPage() {
     }
   }
 
+  async function darDeBajaPresupuesto() {
+    if (!presupuesto || presupuesto.estado === 'baja') {
+      if (presupuesto?.estado === 'baja') {
+        toast({
+          title: 'El presupuesto ya está dado de baja',
+          description: 'No es necesario realizar ninguna acción adicional.',
+        })
+      }
+      return
+    }
+    const confirmar = window.confirm(
+      '¿Estás seguro de que quieres dar de baja este presupuesto? Esta acción no eliminará el registro, pero lo marcará como no vigente.'
+    )
+    if (!confirmar) return
+    try {
+      setEliminando(true)
+      const { error } = await supabase
+        .from('presupuestos')
+        .update({ estado: 'baja' })
+        .eq('id', presupuesto.id)
+
+      if (error) throw error
+
+      toast({
+        title: 'Presupuesto dado de baja',
+        description: `El presupuesto ${presupuesto.numero} fue marcado como baja.`,
+      })
+
+      router.push('/dashboard/presupuestos')
+    } catch (error: any) {
+      console.error('Error al dar de baja:', error)
+      toast({
+        title: 'Error al dar de baja',
+        description: error.message,
+        variant: 'destructive',
+      })
+      setEliminando(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -246,12 +287,18 @@ export default function VerPresupuestoPage() {
 
   const estadoBadgeVariant = (estado: string) => {
     switch (estado) {
-      case 'aprobado': return 'default'
-      case 'enviado': return 'secondary'
-      case 'borrador': return 'outline'
-      case 'rechazado': return 'destructive'
-      case 'vencido': return 'destructive'
-      default: return 'outline'
+      case 'aprobado':
+        return 'default'
+      case 'enviado':
+        return 'secondary'
+      case 'borrador':
+        return 'outline'
+      case 'rechazado':
+      case 'vencido':
+      case 'baja':
+        return 'destructive'
+      default:
+        return 'outline'
     }
   }
 
@@ -566,12 +613,19 @@ export default function VerPresupuestoPage() {
               <MessageSquareText className="h-4 w-4 mr-2" />
               Copiar resumen para WhatsApp
             </Button>
-              <Button className="w-full" variant="outline" asChild>
-                <Link href={`/dashboard/presupuestos/editar/${params.id}`}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Link>
-              </Button>
+            <Button
+              className="w-full"
+              variant="destructive"
+              onClick={darDeBajaPresupuesto}
+              disabled={eliminando || presupuesto.estado === 'baja'}
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              {presupuesto.estado === 'baja'
+                ? 'Presupuesto dado de baja'
+                : eliminando
+                  ? 'Marcando como baja...'
+                  : 'Dar de baja'}
+            </Button>
             </CardContent>
           </Card>
         </div>
