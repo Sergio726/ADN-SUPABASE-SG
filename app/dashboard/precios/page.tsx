@@ -10,7 +10,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { SortableHeader } from '@/components/ui/sortable-header'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle, PlusCircle } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Precio = {
@@ -205,11 +205,19 @@ async function getTodosLosPrecios() {
 
   return (
     <div className="space-y-6">
-    <div>
-        <h2 className="text-3xl font-bold tracking-tight">Gestión de Precios</h2>
-        <p className="text-muted-foreground mt-2">
-          Total: {precios.length} precios ({preciosVigentes} vigentes, {preciosNoVigentes} no vigentes)
-        </p>
+    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Gestión de Precios</h2>
+          <p className="text-muted-foreground mt-2">
+            Total: {precios.length} precios ({preciosVigentes} vigentes, {preciosNoVigentes} no vigentes)
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/dashboard/precios/nuevo">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nuevo precio
+          </Link>
+        </Button>
       </div>
 
       {precios.length > 0 ? (
@@ -234,11 +242,19 @@ async function getTodosLosPrecios() {
             <p className="text-muted-foreground mb-6 text-center">
             Agrega precios a tus artículos desde la gestión de artículos
           </p>
-            <Button asChild>
-              <Link href="/dashboard/articulos">
-            Ir a Artículos
-          </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/articulos">
+                  Ir a Artículos
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/dashboard/precios/nuevo">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Crear precio
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

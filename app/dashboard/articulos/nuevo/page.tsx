@@ -79,14 +79,26 @@ export default function NuevoArticuloPage() {
 
       if (articuloError) throw articuloError
 
-      // Crear precio si se proporcionó
-      if (formData.precio_costo && formData.precio_venta) {
+      const costoNumerico = parseFloat(formData.precio_costo)
+      const ventaNumerica = parseFloat(formData.precio_venta)
+      const tieneCosto = !Number.isNaN(costoNumerico) && Number.isFinite(costoNumerico) && costoNumerico > 0
+      const tieneVenta = !Number.isNaN(ventaNumerica) && Number.isFinite(ventaNumerica) && ventaNumerica > 0
+
+      if (tieneCosto || tieneVenta) {
+        const costoCalculado = tieneCosto
+          ? costoNumerico
+          : parseFloat((ventaNumerica / 1.56).toFixed(2))
+
+        const ventaCalculada = tieneVenta
+          ? ventaNumerica
+          : parseFloat((costoCalculado * 1.56).toFixed(2))
+
         const { error: precioError } = await supabase
           .from('precios_venta')
           .insert({
             articulo_id: articulo.id,
-            precio_costo: parseFloat(formData.precio_costo),
-            precio_venta: parseFloat(formData.precio_venta),
+            precio_costo: costoCalculado,
+            precio_venta: ventaCalculada,
             vigente: true,
           })
 

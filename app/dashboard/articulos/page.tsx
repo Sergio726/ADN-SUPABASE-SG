@@ -162,7 +162,9 @@ export default function ArticulosPage() {
         return precioVigente ? (
           <span className="font-medium">${precioVigente.precio_venta.toLocaleString('es-AR')}</span>
         ) : (
-          <span className="text-muted-foreground">Sin precio</span>
+          <Link href={`/dashboard/precios/nuevo?articulo=${row.original.id}`} className="text-primary hover:underline">
+            Agregar precio
+          </Link>
         )
       },
     },
