@@ -218,7 +218,7 @@ export default function NuevoPresupuestoArticulosPage() {
           const precio = parseFloat(campo === 'precio_unitario' ? valor : item.precio_unitario) || 0
           itemActualizado.precio_total = cantidad * precio
         }
-
+        
         // Tejido: obtener precio según forma de pago
         if (campo === 'tejido_id' && valor) {
           const tejido = tejidos.find((t) => t.id === valor)
@@ -254,11 +254,11 @@ export default function NuevoPresupuestoArticulosPage() {
     // Si es artículo, obtener precio base (precio_venta) vigente y calcular según forma de pago
     if (campo === 'articulo_id' && valor) {
       const { data } = await supabase
-        .from('precios_venta')
-        .select('precio_venta')
-        .eq('articulo_id', valor)
-        .eq('vigente', true)
-        .single()
+              .from('precios_venta')
+              .select('precio_venta')
+              .eq('articulo_id', valor)
+              .eq('vigente', true)
+              .single()
 
       const precioBase = data?.precio_venta || 0
       const factor = factorFormaPago(formaPago)
@@ -423,16 +423,18 @@ export default function NuevoPresupuestoArticulosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" asChild>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <Button variant="outline" asChild className="w-full sm:w-auto">
           <Link href="/dashboard/presupuestos/nuevo/tipo">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Presupuesto de Artículos</h1>
-          <p className="text-muted-foreground">Crear presupuesto de productos individuales</p>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold sm:text-3xl">Presupuesto de Artículos</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Crear presupuesto de productos individuales
+          </p>
         </div>
       </div>
 
@@ -521,57 +523,59 @@ export default function NuevoPresupuestoArticulosPage() {
               const formaPagoInfo = getFormaPagoInfo(formaPago)
               const IconoFormaPago = formaPagoInfo.icon
               return (
-                <Card className={`border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} shadow-lg`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
+                <Card className={`w-full border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} shadow-lg`}>
+                  <CardHeader className="pb-3 space-y-2 sm:space-y-1">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                       <AlertCircle className={`h-5 w-5 ${formaPagoInfo.color}`} />
-                      <CardTitle className={formaPagoInfo.color}>⚠️ Forma de Pago para la Cotización</CardTitle>
+                      <CardTitle className={`text-base sm:text-lg font-semibold ${formaPagoInfo.color}`}>
+                        ⚠️ Forma de Pago para la Cotización
+                      </CardTitle>
                     </div>
-                    <CardDescription className="font-medium">
+                    <CardDescription className="text-xs leading-relaxed text-muted-foreground sm:text-sm sm:leading-relaxed">
                       Define la forma de pago para calcular los precios de los items. Esta selección afectará todos los precios del presupuesto.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <Select value={formaPago} onValueChange={(v: any) => setFormaPago(v)}>
-                        <SelectTrigger className={`h-12 text-base font-semibold border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor}`}>
-                          <div className="flex items-center gap-2">
+                        <SelectTrigger className={`w-full h-11 sm:h-12 text-sm sm:text-base font-semibold border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor}`}>
+                          <div className="flex items-center gap-2 truncate">
                             <IconoFormaPago className={`h-5 w-5 ${formaPagoInfo.color}`} />
                             <SelectValue />
                           </div>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="lista" className="text-base py-2">
+                          <SelectItem value="lista" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               Factura / Lista
                             </div>
                           </SelectItem>
-                          <SelectItem value="efectivo" className="text-base py-2">
+                          <SelectItem value="efectivo" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4" />
                               Efectivo
                             </div>
                           </SelectItem>
-                          <SelectItem value="tarjeta" className="text-base py-2">
+                          <SelectItem value="tarjeta" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <CreditCard className="h-4 w-4" />
                               Tarjeta
                             </div>
                           </SelectItem>
-                          <SelectItem value="echeq45" className="text-base py-2">
+                          <SelectItem value="echeq45" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <Receipt className="h-4 w-4" />
                               E‑cheq 45 días
                             </div>
                           </SelectItem>
-                          <SelectItem value="echeq60" className="text-base py-2">
+                          <SelectItem value="echeq60" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <Receipt className="h-4 w-4" />
                               E‑cheq 60 días
                             </div>
                           </SelectItem>
-                          <SelectItem value="echeq90" className="text-base py-2">
+                          <SelectItem value="echeq90" className="py-2 text-sm sm:text-base">
                             <div className="flex items-center gap-2">
                               <Receipt className="h-4 w-4" />
                               E‑cheq 90 días
@@ -581,9 +585,9 @@ export default function NuevoPresupuestoArticulosPage() {
                       </Select>
                       
                       {/* Indicador visual de la selección actual */}
-                      <div className={`p-3 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                      <div className={`rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} p-3 sm:p-4`}>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2 text-sm sm:text-base">
                             <IconoFormaPago className={`h-5 w-5 ${formaPagoInfo.color}`} />
                             <span className={`font-semibold ${formaPagoInfo.color}`}>
                               Forma de pago seleccionada: {formaPagoInfo.label}
@@ -597,100 +601,100 @@ export default function NuevoPresupuestoArticulosPage() {
               )
             })()}
 
-            {/* Items del Presupuesto - Estilo Tabla */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Items del Presupuesto</CardTitle>
-                    <CardDescription>
-                      Presiona Tab para navegar | Enter para agregar fila | Clic en ❌ para eliminar
-                    </CardDescription>
-                  </div>
-                  <Button type="button" onClick={agregarItem} size="sm">
+          {/* Items del Presupuesto - Estilo Tabla */}
+          <Card>
+            <CardHeader>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg sm:text-xl">Items del Presupuesto</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
+                    Presiona Tab para navegar | Enter para agregar fila | Clic en ❌ para eliminar
+                  </CardDescription>
+                </div>
+                  <Button type="button" onClick={agregarItem} size="sm" className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Fila
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {items.length === 0 ? (
+                  <div className="rounded-lg border-2 border-dashed py-10 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="mb-4 text-sm text-muted-foreground">
+                    No hay items en el presupuesto
+                  </p>
+                    <Button type="button" onClick={agregarItem} variant="outline" className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar Fila
+                    Agregar Primer Item
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {items.length === 0 ? (
-                  <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      No hay items en el presupuesto
-                    </p>
-                    <Button type="button" onClick={agregarItem} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar Primer Item
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
                         <tr className="border-b-2">
-                          <th className="p-2 text-left font-semibold text-sm w-12">#</th>
-                          <th className="p-2 text-left font-semibold text-sm w-32">Tipo</th>
-                          <th className="p-2 text-left font-semibold text-sm min-w-[200px]">Producto</th>
-                          <th className="p-2 text-left font-semibold text-sm min-w-[250px]">Descripción</th>
-                          <th className="p-2 text-left font-semibold text-sm w-28">Cant.</th>
-                          <th className="p-2 text-left font-semibold text-sm w-20">Unidad</th>
-                          <th className="p-2 text-left font-semibold text-sm w-32">P. Unit.</th>
-                          <th className="p-2 text-left font-semibold text-sm w-32">Total</th>
-                          <th className="p-2 text-center font-semibold text-sm w-12"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item, index) => (
-                          <tr 
-                            key={item.id} 
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-10 sm:w-12">#</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-32">Tipo</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[180px] sm:min-w-[200px]">Producto</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[200px] sm:min-w-[250px]">Descripción</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-28">Cant.</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-20">Unidad</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">P. Unit.</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">Total</th>
+                          <th className="p-2 text-center text-xs font-semibold sm:text-sm w-10 sm:w-12"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <tr 
+                          key={item.id} 
                             className="border-b"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                agregarItem()
-                              }
-                            }}
-                          >
-                            <td className="p-2 text-center text-muted-foreground font-medium">
-                              {index + 1}
-                            </td>
-                            <td className="p-2">
-                              <Select
-                                value={item.tipo}
-                                onValueChange={(value: any) => actualizarItem(item.id, 'tipo', value)}
-                              >
-                                <SelectTrigger className="h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="articulo">Artículo</SelectItem>
-                                  <SelectItem value="tejido">Tejido</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="p-2">
-                              {item.tipo === 'articulo' ? (
-                                <ProductoCombobox
-                                  value={item.articulo_id?.toString()}
-                                  onChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
-                                  productos={articulos.map((art) => ({
-                                    id: art.id,
-                                    label: art.nombre,
-                                    sublabel: art.unidad
-                                  }))}
-                                  placeholder="Buscar artículo..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              agregarItem()
+                            }
+                          }}
+                        >
+                          <td className="p-2 text-center text-muted-foreground font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="p-2">
+                            <Select
+                              value={item.tipo}
+                              onValueChange={(value: any) => actualizarItem(item.id, 'tipo', value)}
+                            >
+                              <SelectTrigger className="h-9 w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="articulo">Artículo</SelectItem>
+                                <SelectItem value="tejido">Tejido</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            {item.tipo === 'articulo' ? (
+                              <ProductoCombobox
+                                value={item.articulo_id?.toString()}
+                                onChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
+                                productos={articulos.map((art) => ({
+                                  id: art.id,
+                                  label: art.nombre,
+                                  sublabel: art.unidad
+                                }))}
+                                placeholder="Buscar artículo..."
                                   searchPlaceholder="Buscar artículo..."
-                                  emptyMessage="No se encontraron artículos"
-                                />
-                              ) : (
-                                <ProductoCombobox
-                                  value={item.tejido_id}
-                                  onChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
-                                  productos={tejidos.map((tej) => ({
-                                    id: tej.id,
-                                    label: tej.codigo,
+                                emptyMessage="No se encontraron artículos"
+                              />
+                            ) : (
+                              <ProductoCombobox
+                                value={item.tejido_id}
+                                onChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
+                                productos={tejidos.map((tej) => ({
+                                  id: tej.id,
+                                  label: tej.codigo,
                                     sublabel: [
                                       tej.nombre,
                                       tej.altura ? `${tej.altura}m` : null,
@@ -704,51 +708,51 @@ export default function NuevoPresupuestoArticulosPage() {
                                       tamano_rombo: tej.tamano_rombo !== undefined && tej.tamano_rombo !== null ? tej.tamano_rombo.toString() : '',
                                       calibre: tej.calibre !== undefined && tej.calibre !== null ? tej.calibre.toString() : '',
                                     },
-                                  }))}
-                                  placeholder="Buscar tejido..."
+                                }))}
+                                placeholder="Buscar tejido..."
                                   searchPlaceholder="Buscar tejido..."
-                                  emptyMessage="No se encontraron tejidos"
+                                emptyMessage="No se encontraron tejidos"
                                   filters={filtrosTejidos}
-                                />
-                              )}
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                value={item.descripcion}
-                                onChange={(e) => actualizarItem(item.id, 'descripcion', e.target.value)}
-                                placeholder="Descripción..."
-                                className="h-9"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    agregarItem()
-                                  }
-                                }}
                               />
-                            </td>
-                            <td className="p-2">
-                              <Input
-                                type="number"
+                            )}
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={item.descripcion}
+                              onChange={(e) => actualizarItem(item.id, 'descripcion', e.target.value)}
+                              placeholder="Descripción..."
+                                className="h-9 w-full"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
                                 min="1"
                                 step="1"
-                                value={item.cantidad}
-                                onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
-                                placeholder="1"
-                                className="h-9 text-right"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    agregarItem()
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="p-2">
+                              value={item.cantidad}
+                              onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
+                              placeholder="1"
+                                className="h-9 w-full text-right"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  agregarItem()
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="p-2">
                               <Select
-                                value={item.unidad}
+                              value={item.unidad}
                                 onValueChange={(value) => actualizarItem(item.id, 'unidad', value)}
                               >
-                                <SelectTrigger className="h-9">
+                                <SelectTrigger className="h-9 w-full">
                                   <SelectValue placeholder="Seleccionar unidad" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -770,136 +774,136 @@ export default function NuevoPresupuestoArticulosPage() {
                                     )}
                                 </SelectContent>
                               </Select>
-                            </td>
-                            <td className="p-2">
-                              <span className="block h-9 leading-9 text-right text-sm font-semibold text-muted-foreground">
+                          </td>
+                          <td className="p-2">
+                              <span className="block h-9 w-full leading-9 text-right text-sm font-semibold text-muted-foreground">
                                 ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
                               </span>
-                            </td>
-                            <td className="p-2">
-                              <div className="font-bold text-green-600 text-right">
-                                ${item.precio_total.toLocaleString()}
-                              </div>
-                            </td>
-                            <td className="p-2 text-center">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => eliminarItem(item.id)}
-                                className="h-8 w-8 p-0 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                        {/* Fila de totales */}
-                        <tr className="border-t-2 bg-muted/30">
-                          <td colSpan={7} className="p-3 text-right font-semibold">
-                            Subtotal:
                           </td>
-                          <td className="p-3 font-bold text-lg text-green-600">
-                            ${subtotal.toLocaleString()}
+                          <td className="p-2">
+                            <div className="font-bold text-green-600 text-right">
+                              ${item.precio_total.toLocaleString()}
+                            </div>
                           </td>
-                          <td></td>
+                          <td className="p-2 text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => eliminarItem(item.id)}
+                              className="h-8 w-8 p-0 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </td>
                         </tr>
-                      </tbody>
-                    </table>
+                      ))}
+                      {/* Fila de totales */}
+                      <tr className="border-t-2 bg-muted/30">
+                        <td colSpan={7} className="p-3 text-right font-semibold">
+                          Subtotal:
+                        </td>
+                        <td className="p-3 font-bold text-lg text-green-600">
+                          ${subtotal.toLocaleString()}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
 
-                    <div className="mt-4 flex justify-end">
-                      <Button 
-                        type="button" 
-                        onClick={agregarItem} 
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Nueva Fila (Enter)
-                      </Button>
-                    </div>
-
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                      <p className="font-semibold mb-1">💡 Atajos de teclado:</p>
-                      <ul className="space-y-1">
-                        <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Tab</kbd> - Navegar entre columnas</li>
-                        <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Enter</kbd> - Agregar nueva fila</li>
-                        <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Clic en ❌</kbd> - Eliminar fila</li>
-                      </ul>
-                    </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      type="button" 
+                      onClick={agregarItem} 
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nueva Fila (Enter)
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
 
-            {/* Observaciones y Condiciones */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Observaciones y Condiciones</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="observaciones">Observaciones</Label>
-                  <Textarea
-                    id="observaciones"
-                    value={formData.observaciones}
-                    onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
-                    placeholder="Observaciones adicionales..."
-                    rows={3}
-                  />
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                    <p className="font-semibold mb-1">💡 Atajos de teclado:</p>
+                    <ul className="space-y-1">
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Tab</kbd> - Navegar entre columnas</li>
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Enter</kbd> - Agregar nueva fila</li>
+                      <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Clic en ❌</kbd> - Eliminar fila</li>
+                    </ul>
+                  </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="condiciones">Condiciones Comerciales</Label>
-                  <Textarea
-                    id="condiciones"
-                    value={formData.condiciones_comerciales}
-                    onChange={(e) => setFormData({ ...formData, condiciones_comerciales: e.target.value })}
-                    placeholder="Condiciones de pago, garantía, etc."
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Observaciones y Condiciones */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Observaciones y Condiciones</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="observaciones">Observaciones</Label>
+                <Textarea
+                  id="observaciones"
+                  value={formData.observaciones}
+                  onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                  placeholder="Observaciones adicionales..."
+                  rows={3}
+                />
+              </div>
 
-          {/* Preview Lateral */}
-          <div>
+              <div className="space-y-2">
+                <Label htmlFor="condiciones">Condiciones Comerciales</Label>
+                <Textarea
+                  id="condiciones"
+                  value={formData.condiciones_comerciales}
+                  onChange={(e) => setFormData({ ...formData, condiciones_comerciales: e.target.value })}
+                  placeholder="Condiciones de pago, garantía, etc."
+                  rows={4}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Preview Lateral */}
+        <div>
             <Card className="">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Resumen
-                </CardTitle>
-                <CardDescription>
-                  Preview del presupuesto
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Cliente:</span>
-                    <span className="font-medium text-right">
-                      {formData.cliente_nombre || 'Sin nombre'}
-                    </span>
-                  </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Resumen
+              </CardTitle>
+              <CardDescription>
+                Preview del presupuesto
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Cliente:</span>
+                  <span className="font-medium text-right">
+                    {formData.cliente_nombre || 'Sin nombre'}
+                  </span>
+                </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Vendedor:</span>
                     <span className="font-medium text-right">
                       {userEmail || '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Items:</span>
-                    <span className="font-medium">{items.length}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Validez:</span>
-                    <span className="font-medium">{formData.validez_dias} días</span>
-                  </div>
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Items:</span>
+                  <span className="font-medium">{items.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Validez:</span>
+                  <span className="font-medium">{formData.validez_dias} días</span>
+                </div>
                   <div className="flex justify-between text-sm pt-2 border-t">
                     <span className="text-muted-foreground">Forma de pago:</span>
                     <div className="flex items-center gap-2">
@@ -916,29 +920,29 @@ export default function NuevoPresupuestoArticulosPage() {
                         )
                       })()}
                     </div>
-                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Subtotal:</span>
+                  <span className="text-lg font-bold">
+                    ${subtotal.toLocaleString()}
+                  </span>
                 </div>
 
-                <div className="border-t pt-4 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Subtotal:</span>
-                    <span className="text-lg font-bold">
-                      ${subtotal.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="descuento">Descuento ($)</Label>
-                    <Input
-                      id="descuento"
+                <div className="space-y-2">
+                  <Label htmlFor="descuento">Descuento ($)</Label>
+                  <Input
+                    id="descuento"
                     type="number"
                     min="0"
                     step="1"
-                      value={formData.descuento}
-                      onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
+                    value={formData.descuento}
+                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
 
                   {/* Mostrar IVA solo si NO es efectivo */}
                   {!esEfectivo && (
@@ -958,40 +962,40 @@ export default function NuevoPresupuestoArticulosPage() {
                     </>
                   )}
 
-                  <div className="flex justify-between items-center pt-3 border-t-2">
-                    <span className="text-lg font-bold">Total:</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      ${total.toLocaleString()}
-                    </span>
-                  </div>
+                <div className="flex justify-between items-center pt-3 border-t-2">
+                  <span className="text-lg font-bold">Total:</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    ${total.toLocaleString()}
+                  </span>
                 </div>
+              </div>
 
-                <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
-                  <p className="font-semibold mb-2">Items incluidos:</p>
-                  {items.length === 0 ? (
-                    <p>No hay items agregados</p>
-                  ) : (
-                    <ul className="space-y-1">
-                      {items.map((item, index) => (
-                        <li key={item.id}>
-                          {index + 1}. {item.descripcion || 'Sin descripción'} ({item.cantidad} {item.unidad})
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {items.length > 0 && (
-                  <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-xs">
-                    <p className="font-semibold text-green-900 mb-1">✅ Listo para guardar</p>
-                    <p className="text-green-800">
-                      El presupuesto se guardará como borrador y podrás generar el PDF después.
-                    </p>
-                  </div>
+              <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
+                <p className="font-semibold mb-2">Items incluidos:</p>
+                {items.length === 0 ? (
+                  <p>No hay items agregados</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {items.map((item, index) => (
+                      <li key={item.id}>
+                        {index + 1}. {item.descripcion || 'Sin descripción'} ({item.cantidad} {item.unidad})
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+
+              {items.length > 0 && (
+                <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-xs">
+                  <p className="font-semibold text-green-900 mb-1">✅ Listo para guardar</p>
+                  <p className="text-green-800">
+                    El presupuesto se guardará como borrador y podrás generar el PDF después.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
           {/* Botones al final */}
           <div className="flex gap-2 justify-end">
@@ -1002,7 +1006,7 @@ export default function NuevoPresupuestoArticulosPage() {
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Guardando...' : 'Guardar Presupuesto'}
             </Button>
-          </div>
+        </div>
         </form>
       )}
     </div>

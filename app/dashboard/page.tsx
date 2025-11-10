@@ -48,10 +48,10 @@ export default async function DashboardPage() {
             Resumen general del sistema
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
             href="/dashboard/presupuestos/nuevo/articulos"
-            className="group flex items-center gap-3 rounded-xl border border-red-300 bg-gradient-to-br from-red-500 via-red-400 to-red-600 px-5 py-4 text-white shadow-md transition hover:shadow-lg"
+            className="group flex items-center gap-3 rounded-xl border border-red-300 bg-gradient-to-br from-red-500 via-red-400 to-red-600 px-5 py-4 text-white shadow-md transition hover:shadow-lg w-full sm:w-auto"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
               <Calculator className="h-6 w-6 text-white" />
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
           </Link>
           <Link
             href="/dashboard/presupuestos/nuevo/cercado"
-            className="group flex items-center gap-3 rounded-xl border border-red-200 bg-gradient-to-br from-red-200 via-red-100 to-red-300 px-5 py-4 text-red-900 shadow-md transition hover:shadow-lg"
+            className="group flex items-center gap-3 rounded-xl border border-red-200 bg-gradient-to-br from-red-200 via-red-100 to-pink-200 px-5 py-4 text-red-900 shadow-md transition hover:shadow-lg w-full sm:w-auto"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-900/10">
               <Ruler className="h-6 w-6 text-red-900" />
@@ -170,19 +170,19 @@ export default async function DashboardPage() {
               {stats.articulosBajoStock.map((articulo) => (
                 <div
                   key={articulo.id}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-destructive/5 border-destructive/20"
+                  className="flex flex-col gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="space-y-1">
-                    <p className="font-medium">{articulo.nombre}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <p className="font-medium text-sm sm:text-base">{articulo.nombre}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:text-sm">
                       <Badge variant="destructive" className="text-xs">
                         Stock: {articulo.stock_actual}
                       </Badge>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>Mínimo requerido: {articulo.stock_minimo}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                     <Link href={`/dashboard/articulos/editar/${articulo.id}`}>
                       Editar
                     </Link>
