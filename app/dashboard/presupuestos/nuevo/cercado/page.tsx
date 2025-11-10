@@ -24,6 +24,15 @@ export default function NuevoPresupuestoCercadoPage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null)
   const [tejidos, setTejidos] = useState<any[]>([])
   const [calculoRealizado, setCalculoRealizado] = useState(false)
+  const [formaPago, setFormaPago] = useState<'efectivo'|'lista'|'tarjeta'|'echeq45'|'echeq60'|'echeq90'>('lista')
+
+  const obtenerFechaArgentina = () =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
 
   const [formData, setFormData] = useState({
     // Cliente
@@ -241,6 +250,7 @@ export default function NuevoPresupuestoCercadoPage() {
         validez_dias: parseInt(formData.validez_dias),
         estado: 'borrador',
         usuario_id: userId,
+        fecha_emision: obtenerFechaArgentina(),
       }
 
       const { data: presupuesto, error: errorPres } = await supabase

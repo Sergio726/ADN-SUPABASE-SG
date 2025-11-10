@@ -372,6 +372,7 @@ export default function NuevoPresupuestoArticulosPage() {
         validez_dias: parseInt(formData.validez_dias),
         estado: 'borrador',
         usuario_id: userId,
+        fecha_emision: obtenerFechaArgentina(),
       }
 
       const { data: presupuesto, error: errorPresupuesto } = await supabase
@@ -420,6 +421,14 @@ export default function NuevoPresupuestoArticulosPage() {
       setLoading(false)
     }
   }
+
+  const obtenerFechaArgentina = () =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
 
   return (
     <div className="space-y-6">
