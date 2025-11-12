@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, CheckCircle, XCircle, RefreshCw, Filter } from 'lucide-react'
+import { Plus, Edit, Eye, RefreshCw, Filter, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -23,6 +23,7 @@ export default function TejidosPage() {
   const [filtroCalibre, setFiltroCalibre] = useState('todos')
   const [filtroAltura, setFiltroAltura] = useState('todos')
   const [filtroRombo, setFiltroRombo] = useState('todos')
+  const [filtroEstado, setFiltroEstado] = useState('todos')
 
   useEffect(() => {
     cargarTejidos()
@@ -30,7 +31,7 @@ export default function TejidosPage() {
 
   useEffect(() => {
     aplicarFiltros()
-  }, [tejidos, filtroCalibre, filtroAltura, filtroRombo])
+  }, [tejidos, filtroCalibre, filtroAltura, filtroRombo, filtroEstado])
 
   function aplicarFiltros() {
     let resultado = [...tejidos]
@@ -47,6 +48,10 @@ export default function TejidosPage() {
       resultado = resultado.filter((t: any) => t.tamano_rombo === parseFloat(filtroRombo))
     }
 
+    if (filtroEstado !== 'todos') {
+      resultado = resultado.filter((t: any) => (filtroEstado === 'activos' ? t.activo : !t.activo))
+    }
+
     setTejidosFiltrados(resultado)
   }
 
@@ -54,6 +59,7 @@ export default function TejidosPage() {
     setFiltroCalibre('todos')
     setFiltroAltura('todos')
     setFiltroRombo('todos')
+    setFiltroEstado('todos')
   }
 
   async function cargarTejidos() {
@@ -108,27 +114,52 @@ export default function TejidosPage() {
     }
   }
 
-  async function toggleActivo(id: string, activo: boolean) {
+  const formatearMoneda = (valor?: number | null) =>
+    valor != null && Number.isFinite(valor)
+      ? valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '—'
+
+  const generarResumenWhatsapp = (tejido: any) => {
+    const partes: string[] = []
+    partes.push(`🧱 *${tejido.nombre || tejido.codigo}*`)
+    const detalles: string[] = []
+    if (tejido.altura) detalles.push(`Altura ${tejido.altura} m`)
+    if (tejido.calibre) detalles.push(`Calibre ${tejido.calibre}`)
+    if (tejido.tamano_rombo) detalles.push(`Rombo ${tejido.tamano_rombo}"`)
+    if (tejido.largo) detalles.push(`Largo ${tejido.largo} m`)
+    if (detalles.length) partes.push(detalles.join(' · '))
+    if (tejido.precio_venta != null) {
+      const precioBase = `$${formatearMoneda(Number(tejido.precio_venta))}`
+      partes.push(`Precio efectivo: ${precioBase}`)
+      partes.push(`Factura/lista: $${formatearMoneda(Number(tejido.precio_venta) * 1.21)}`)
+    } else {
+      partes.push('Precio efectivo: Consultar')
+    }
+    return partes.join('\n')
+  }
+
+  const copiarResumen = async (tejido: any) => {
     try {
-      const { error } = await supabase
-        .from('tejidos_configuraciones')
-        .update({ activo: !activo })
-        .eq('id', id)
-
-      if (error) throw error
-
-      toast({
-        title: "¡Actualizado!",
-        description: `Tejido ${!activo ? 'activado' : 'desactivado'} correctamente`,
-      })
-
-      cargarTejidos()
+      const texto = generarResumenWhatsapp(tejido)
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(texto)
+        toast({
+          title: 'Resumen copiado',
+          description: 'Listo para compartir en WhatsApp.',
+        })
+      } else {
+        toast({
+          title: 'No soportado',
+          description: 'Tu navegador no permite copiar automáticamente.',
+          variant: 'destructive',
+        })
+      }
     } catch (error: any) {
-      console.error('Error:', error)
+      console.error('Error al copiar tejido:', error)
       toast({
-        title: "Error al actualizar",
-        description: error.message,
-        variant: "destructive",
+        title: 'No se pudo copiar',
+        description: 'Tu navegador no permitió copiar el texto.',
+        variant: 'destructive',
       })
     }
   }
@@ -138,14 +169,14 @@ export default function TejidosPage() {
       accessorKey: 'codigo',
       header: ({ column }: any) => <SortableHeader column={column} title="Código" />,
       cell: ({ row }: any) => (
-        <div className="font-mono font-semibold text-sm">{row.original.codigo}</div>
+        <div className="font-mono font-semibold text-[11px] md:text-xs whitespace-nowrap max-w-[110px] truncate">{row.original.codigo}</div>
       ),
     },
     {
       accessorKey: 'calibre',
       header: ({ column }: any) => <SortableHeader column={column} title="Calibre" />,
       cell: ({ row }: any) => (
-        <Badge variant="outline" className="font-mono text-xs">
+        <Badge variant="outline" className="font-mono text-[11px]">
           Cal. {row.original.calibre}
         </Badge>
       ),
@@ -154,14 +185,14 @@ export default function TejidosPage() {
       accessorKey: 'altura',
       header: ({ column }: any) => <SortableHeader column={column} title="Altura" />,
       cell: ({ row }: any) => (
-        <span className="font-medium">{row.original.altura}m</span>
+        <span className="font-medium whitespace-nowrap text-xs md:text-sm">{row.original.altura}m</span>
       ),
     },
     {
       accessorKey: 'tamano_rombo',
       header: ({ column }: any) => <SortableHeader column={column} title="Rombo" />,
       cell: ({ row }: any) => (
-        <span className="font-medium">{row.original.tamano_rombo}"</span>
+        <span className="font-medium whitespace-nowrap text-xs md:text-sm">{row.original.tamano_rombo}"</span>
       ),
     },
     {
@@ -170,10 +201,10 @@ export default function TejidosPage() {
       cell: ({ row }: any) => {
         const peso = row.original.cantidad_alambre || row.original.peso_kg
         if (peso == null || peso === undefined) {
-          return <span className="text-muted-foreground">—</span>
+          return <span className="text-muted-foreground text-xs">—</span>
         }
         return (
-          <span className="text-muted-foreground">{Number(peso).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
+          <span className="text-muted-foreground text-xs md:text-sm">{Number(peso).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg</span>
         )
       },
     },
@@ -183,10 +214,10 @@ export default function TejidosPage() {
       cell: ({ row }: any) => {
         const manoObra = row.original.costo_mano_obra || row.original.mano_obra
         if (manoObra == null || manoObra === undefined) {
-          return <span className="text-sm text-muted-foreground">—</span>
+          return <span className="text-xs text-muted-foreground">—</span>
         }
         return (
-          <span className="text-sm">${Number(manoObra).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span className="text-xs md:text-sm">${Number(manoObra).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         )
       },
     },
@@ -194,8 +225,8 @@ export default function TejidosPage() {
       accessorKey: 'precio_costo',
       header: ({ column }: any) => <SortableHeader column={column} title="Costo" />,
       cell: ({ row }: any) => (
-        <span className="font-semibold text-orange-600">
-          ${row.original.precio_costo?.toLocaleString() || 'N/A'}
+        <span className="font-semibold text-orange-600 text-xs md:text-sm whitespace-nowrap">
+          ${formatearMoneda(Number(row.original.precio_costo))}
         </span>
       ),
     },
@@ -203,8 +234,8 @@ export default function TejidosPage() {
       accessorKey: 'precio_venta',
       header: ({ column }: any) => <SortableHeader column={column} title="Venta" />,
       cell: ({ row }: any) => (
-        <span className="font-bold text-green-600">
-          ${row.original.precio_venta?.toLocaleString() || 'N/A'}
+        <span className="font-bold text-green-600 text-xs md:text-sm whitespace-nowrap">
+          ${formatearMoneda(Number(row.original.precio_venta))}
         </span>
       ),
     },
@@ -217,31 +248,18 @@ export default function TejidosPage() {
           calidad === 'Económica' ? 'secondary' :
           calidad === 'Standard' ? 'default' :
           'destructive'
-        return <Badge variant={variant} className="text-xs whitespace-nowrap">{calidad}</Badge>
+        return <Badge variant={variant} className="text-[11px] whitespace-nowrap">{calidad}</Badge>
       },
-    },
-    {
-      accessorKey: 'activo',
-      header: 'Estado',
-      cell: ({ row }: any) => (
-        <Badge variant={row.original.activo ? 'default' : 'outline'} className="text-xs whitespace-nowrap">
-          {row.original.activo ? (
-            <><CheckCircle className="h-3 w-3 mr-1" /> Activo</>
-          ) : (
-            <><XCircle className="h-3 w-3 mr-1" /> Inactivo</>
-          )}
-        </Badge>
-      ),
     },
     {
       id: 'acciones',
       header: 'Acciones',
       cell: ({ row }: any) => (
-        <div className="flex items-center gap-0.5 sm:gap-1">
+        <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
                   <Link href={`/dashboard/tejidos/${row.original.id}`}>
                     <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Link>
@@ -256,7 +274,7 @@ export default function TejidosPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0" asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
                   <Link href={`/dashboard/tejidos/editar/${row.original.id}`}>
                     <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Link>
@@ -274,18 +292,14 @@ export default function TejidosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                  onClick={() => toggleActivo(row.original.id, row.original.activo)}
+                  className="h-8 w-8 p-0"
+                  onClick={() => copiarResumen(row.original)}
                 >
-                  {row.original.activo ? (
-                    <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
-                  ) : (
-                    <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
-                  )}
+                  <MessageSquareText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{row.original.activo ? 'Desactivar' : 'Activar'}</p>
+                <p>Copiar para WhatsApp</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -296,23 +310,24 @@ export default function TejidosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tejidos Romboidales</h1>
           <p className="text-muted-foreground mt-1">
             Gestión de configuraciones de tejidos fabricados
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid gap-2 sm:flex sm:gap-2">
           <Button
             variant="outline"
             onClick={cargarTejidos}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/dashboard/tejidos/nuevo">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Tejido
@@ -363,7 +378,7 @@ export default function TejidosPage() {
                 {tejidosFiltrados.length} de {tejidos.length} configuraciones
               </CardDescription>
             </div>
-            {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos') && (
+            {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos' || filtroEstado !== 'todos') && (
               <Button variant="outline" size="sm" onClick={limpiarFiltros}>
                 Limpiar Filtros
               </Button>
@@ -374,7 +389,7 @@ export default function TejidosPage() {
           {/* Filtros */}
           <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1 grid gap-3 md:grid-cols-3">
+            <div className="flex-1 grid gap-3 md:grid-cols-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Calibre</label>
                 <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
@@ -421,16 +436,89 @@ export default function TejidosPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Estado</label>
+                <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="activos">Activos</SelectItem>
+                    <SelectItem value="inactivos">Inactivos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           {/* Tabla */}
-          <DataTable
-            columns={columns}
-            data={tejidosFiltrados}
-            searchKey="codigo"
-            searchPlaceholder="Buscar por código..."
-          />
+          {tejidosFiltrados.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay tejidos que coincidan con los filtros.</p>
+          ) : null}
+
+          <div className="space-y-3 md:hidden">
+            {tejidosFiltrados.map((tejido) => (
+              <div key={tejido.id} className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase font-medium text-muted-foreground">Código</p>
+                    <p className="font-mono text-sm font-semibold">{tejido.codigo}</p>
+                  </div>
+                  <Badge variant={tejido.categoria_calidad === 'Económica' ? 'secondary' : tejido.categoria_calidad === 'Standard' ? 'default' : 'destructive'} className="text-[11px]">
+                    {tejido.categoria_calidad || tejido.calidad_sugerida}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <div className="rounded-lg border border-border/40 px-3 py-2">
+                    <p className="uppercase font-medium">Calibre</p>
+                    <p className="text-sm font-semibold text-foreground">{tejido.calibre}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 px-3 py-2">
+                    <p className="uppercase font-medium">Altura</p>
+                    <p className="text-sm font-semibold text-foreground">{tejido.altura} m</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 px-3 py-2">
+                    <p className="uppercase font-medium">Rombo</p>
+                    <p className="text-sm font-semibold text-foreground">{tejido.tamano_rombo}"</p>
+                  </div>
+                  <div className="rounded-lg border border-border/40 px-3 py-2">
+                    <p className="uppercase font-medium">Precio</p>
+                    <p className="text-sm font-bold text-green-600">${formatearMoneda(Number(tejido.precio_venta))}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="outline" size="sm" className="h-8 px-3" asChild>
+                    <Link href={`/dashboard/tejidos/${tejido.id}`}>
+                      <Eye className="h-4 w-4 mr-1" /> Ver
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 px-3" asChild>
+                    <Link href={`/dashboard/tejidos/editar/${tejido.id}`}>
+                      <Edit className="h-4 w-4 mr-1" /> Editar
+                    </Link>
+                  </Button>
+                  <Button variant="secondary" size="sm" className="h-8 px-3" onClick={() => copiarResumen(tejido)}>
+                    <MessageSquareText className="h-4 w-4 mr-1" /> Copiar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block">
+            <DataTable 
+              columns={columns} 
+              data={tejidosFiltrados}
+              searchKey="codigo"
+              searchPlaceholder="Buscar por código..."
+              pageSize={15}
+              tableWrapperClassName="min-w-[1024px]"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

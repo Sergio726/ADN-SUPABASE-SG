@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Edit, CheckCircle, XCircle, Package, Ruler, Hash, Weight, DollarSign, TrendingUp, Calendar, FileText, CreditCard } from 'lucide-react'
+import { ArrowLeft, Edit, CheckCircle, XCircle, Package, Ruler, Hash, Weight, DollarSign, TrendingUp, Calendar, FileText, CreditCard, MessageSquareText, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,7 @@ export default function VerTejidoPage() {
   const { toast } = useToast()
   const [tejido, setTejido] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [copiando, setCopiando] = useState(false)
 
   useEffect(() => {
     cargarTejido()
@@ -97,27 +98,81 @@ export default function VerTejidoPage() {
     tejido.categoria_calidad === 'Standard' ? 'default' :
     'destructive'
 
+  const generarResumenWhatsapp = () => {
+    const partes: string[] = []
+    partes.push(`🧱 *${tejido.nombre || 'Tejido Romboidal'}*`)
+    const detalles: string[] = []
+    if (tejido.altura) detalles.push(`Altura ${tejido.altura} m`)
+    if (tejido.calibre) detalles.push(`Calibre ${tejido.calibre}`)
+    if (tejido.tamano_rombo) detalles.push(`Rombo ${tejido.tamano_rombo}"`)
+    if (tejido.largo) detalles.push(`Largo ${tejido.largo} m`)
+    if (detalles.length) partes.push(detalles.join(' · '))
+    const precioEfectivo = tejido.precio_venta
+      ? `$${tejido.precio_venta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : 'Consultar'
+    partes.push(`Precio efectivo: ${precioEfectivo}`)
+    if (tejido.precio_lista) {
+      partes.push(
+        `Factura/List: $${tejido.precio_lista.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      )
+    }
+    return partes.join('\n')
+  }
+
+  const copiarResumen = async () => {
+    try {
+      setCopiando(true)
+      const resumen = generarResumenWhatsapp()
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(resumen)
+        toast({
+          title: 'Resumen copiado',
+          description: 'Listo para pegar en WhatsApp.',
+        })
+      } else {
+        toast({
+          title: 'No soportado',
+          description: 'Tu navegador no permite copiar automáticamente.',
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      console.error('Error al copiar resumen de tejido:', error)
+      toast({
+        title: 'Error al copiar',
+        description: 'No se pudo copiar el resumen. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setCopiando(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" asChild>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6 w-full">
+          <Button variant="outline" asChild className="w-full sm:w-auto sm:shrink-0">
             <Link href="/dashboard/tejidos">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
+              <span className="hidden sm:inline">Volver</span>
+              <span className="sm:hidden">Atrás</span>
             </Link>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{tejido.nombre}</h1>
-            <p className="text-muted-foreground mt-1">
-              Código: <span className="font-mono font-semibold">{tejido.codigo}</span>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{tejido.nombre}</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
+              Código:
+              {' '}
+              <span className="font-mono font-semibold text-foreground">{tejido.codigo}</span>
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="grid w-full gap-2 sm:w-auto sm:grid-flow-col sm:auto-cols-max">
           <Button
             variant={tejido.activo ? "outline" : "default"}
             onClick={toggleActivo}
+            className="w-full sm:w-auto"
           >
             {tejido.activo ? (
               <><XCircle className="h-4 w-4 mr-2" /> Desactivar</>
@@ -125,11 +180,20 @@ export default function VerTejidoPage() {
               <><CheckCircle className="h-4 w-4 mr-2" /> Activar</>
             )}
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href={`/dashboard/tejidos/editar/${params.id}`}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Link>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={copiarResumen}
+            disabled={copiando}
+            className="w-full gap-2 sm:w-auto"
+          >
+            <MessageSquareText className="h-4 w-4" />
+            {copiando ? 'Copiando...' : 'WhatsApp'}
           </Button>
         </div>
       </div>
@@ -137,19 +201,19 @@ export default function VerTejidoPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Especificaciones Técnicas */}
         <Card>
-          <CardHeader>
-            <CardTitle>Especificaciones Técnicas</CardTitle>
-            <CardDescription>Características del tejido romboidal</CardDescription>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Especificaciones Técnicas</CardTitle>
+            <CardDescription className="text-sm">Características del tejido romboidal</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-muted rounded-lg">
                   <Hash className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Calibre</p>
-                  <p className="text-lg font-bold">Cal. {tejido.calibre}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Calibre</p>
+                  <p className="text-base font-semibold sm:text-lg">Cal. {tejido.calibre}</p>
                 </div>
               </div>
 
@@ -158,8 +222,8 @@ export default function VerTejidoPage() {
                   <Ruler className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Altura</p>
-                  <p className="text-lg font-bold">{tejido.altura} metros</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Altura</p>
+                  <p className="text-base font-semibold sm:text-lg">{tejido.altura} metros</p>
                 </div>
               </div>
 
@@ -168,8 +232,8 @@ export default function VerTejidoPage() {
                   <Package className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Tamaño Rombo</p>
-                  <p className="text-lg font-bold">{tejido.tamano_rombo} pulgadas</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tamaño Rombo</p>
+                  <p className="text-base font-semibold sm:text-lg">{tejido.tamano_rombo} pulgadas</p>
                 </div>
               </div>
 
@@ -178,23 +242,23 @@ export default function VerTejidoPage() {
                   <Weight className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Peso</p>
-                  <p className="text-lg font-bold">{tejido.cantidad_alambre || tejido.peso_kg} kg</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Peso</p>
+                  <p className="text-base font-semibold sm:text-lg">{tejido.cantidad_alambre || tejido.peso_kg} kg</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Largo del rollo</span>
-                <span className="font-semibold">{tejido.largo} metros</span>
+            <div className="pt-4 border-t space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Largo del rollo</span>
+                <span className="font-semibold text-foreground">{tejido.largo} metros</span>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-sm text-muted-foreground">Categoría de Calidad</span>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Categoría de Calidad</span>
                 <Badge variant={calidadVariant}>{tejido.categoria_calidad}</Badge>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-sm text-muted-foreground">Estado</span>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Estado</span>
                 <Badge variant={tejido.activo ? 'default' : 'outline'}>
                   {tejido.activo ? 'Activo' : 'Inactivo'}
                 </Badge>
@@ -212,9 +276,9 @@ export default function VerTejidoPage() {
 
         {/* Costos y Precios */}
         <Card>
-          <CardHeader>
-            <CardTitle>Costos y Precios</CardTitle>
-            <CardDescription>Cálculo automático basado en materia prima</CardDescription>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Costos y Precios</CardTitle>
+            <CardDescription className="text-sm">Cálculo automático basado en materia prima</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Información de Materia Prima */}
@@ -268,7 +332,7 @@ export default function VerTejidoPage() {
 
             {/* Precios de Venta */}
             <div className="border-t pt-4 space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Precio Efectivo */}
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
@@ -370,11 +434,11 @@ export default function VerTejidoPage() {
 
       {/* Información Adicional */}
       <Card>
-        <CardHeader>
-          <CardTitle>Información del Sistema</CardTitle>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-lg sm:text-xl">Información del Sistema</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
