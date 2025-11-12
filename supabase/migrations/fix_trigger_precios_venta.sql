@@ -27,17 +27,14 @@ BEGIN
         v_tejido.cantidad_alambre,
         v_tejido.alambre_articulo_id,
         v_tejido.costo_mano_obra,
-        COALESCE(v_tejido.margen_efectivo, 45.00),
-        COALESCE(v_tejido.margen_factura, 57.00),
-        COALESCE(v_tejido.margen_tarjeta, 65.00)
+        COALESCE(v_tejido.margen_efectivo, 45.00)
       );
       
-      -- Actualizar tejido
+      -- Actualizar tejido con precio base
       UPDATE tejidos_configuraciones
       SET 
+        precio_costo = v_precios.precio_costo,
         precio_venta = v_precios.precio_venta,
-        precio_lista = v_precios.precio_lista,
-        precio_tarjeta = v_precios.precio_tarjeta,
         actualizado_en = NOW()
       WHERE id = v_tejido.id;
     END LOOP;

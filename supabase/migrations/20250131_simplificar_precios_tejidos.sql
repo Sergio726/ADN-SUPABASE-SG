@@ -182,11 +182,15 @@ SELECT
   tc.activo,
   tc.creado_en,
   tc.actualizado_en,
+  pv.precio_costo AS alambre_precio_kg,
   -- Precios calculados dinámicamente (no guardados)
   (tc.precio_venta * 1.21) as precio_lista, -- Factura/Lista = precio_base * 1.21
   (tc.precio_venta / tc.largo) as precio_por_metro_efectivo,
   ((tc.precio_venta * 1.21) / tc.largo) as precio_por_metro_lista
-FROM tejidos_configuraciones tc;
+FROM tejidos_configuraciones tc
+LEFT JOIN precios_venta pv
+  ON pv.articulo_id = tc.alambre_articulo_id
+  AND pv.vigente = true;
 
 COMMENT ON VIEW v_tejidos_con_precios IS 'Vista de tejidos con precios calculados dinámicamente. precio_venta es el precio base (efectivo), precio_lista se calcula como precio_venta * 1.21';
 
