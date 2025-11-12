@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText, CreditCard, Receipt, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Trash2, Package, DollarSign, FileText, CreditCard, Receipt, AlertCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { ProductoCombobox } from '@/components/ProductoCombobox'
@@ -428,7 +428,7 @@ export default function NuevoPresupuestoArticulosPage() {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    }).format(new Date())
+    }).format(new Date());
 
   return (
     <div className="space-y-6">
@@ -613,17 +613,11 @@ export default function NuevoPresupuestoArticulosPage() {
           {/* Items del Presupuesto - Estilo Tabla */}
           <Card>
             <CardHeader>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg sm:text-xl">Items del Presupuesto</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">
-                    Presiona Tab para navegar | Enter para agregar fila | Clic en ❌ para eliminar
-                  </CardDescription>
-                </div>
-                  <Button type="button" onClick={agregarItem} size="sm" className="w-full sm:w-auto">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Fila
-                </Button>
+              <div className="space-y-1">
+                <CardTitle className="text-lg sm:text-xl">Items del Presupuesto</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Presiona Tab para navegar | Enter para agregar fila | Clic en ❌ para eliminar
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
@@ -639,7 +633,8 @@ export default function NuevoPresupuestoArticulosPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full border-collapse">
                     <thead>
                         <tr className="border-b-2">
@@ -844,6 +839,152 @@ export default function NuevoPresupuestoArticulosPage() {
                     </ul>
                   </div>
                 </div>
+
+                <div className="space-y-4 sm:hidden">
+                  {items.map((item, index) => (
+                    <div key={item.id} className="rounded-lg border p-4 shadow-sm">
+                      <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">Ítem #{index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => eliminarItem(item.id)}
+                          className="text-destructive underline-offset-2 hover:underline"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase text-muted-foreground">Tipo</Label>
+                          <Select
+                            value={item.tipo}
+                            onValueChange={(value: any) => actualizarItem(item.id, 'tipo', value)}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="articulo">Artículo</SelectItem>
+                              <SelectItem value="tejido">Tejido</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase text-muted-foreground">Producto</Label>
+                          {item.tipo === 'articulo' ? (
+                            <ProductoCombobox
+                              value={item.articulo_id?.toString()}
+                              onChange={(value) => actualizarItem(item.id, 'articulo_id', value)}
+                              productos={articulos.map((art) => ({
+                                id: art.id,
+                                label: art.nombre,
+                                sublabel: art.unidad,
+                              }))}
+                              placeholder="Buscar artículo..."
+                              searchPlaceholder="Buscar artículo..."
+                              emptyMessage="No se encontraron artículos"
+                              className="h-10"
+                            />
+                          ) : (
+                            <ProductoCombobox
+                              value={item.tejido_id}
+                              onChange={(value) => actualizarItem(item.id, 'tejido_id', value)}
+                              productos={tejidos.map((tej) => ({
+                                id: tej.id,
+                                label: tej.codigo,
+                                sublabel: [
+                                  tej.nombre,
+                                  tej.altura ? `${tej.altura}m` : null,
+                                  tej.tamano_rombo ? `Rombo ${tej.tamano_rombo}` : null,
+                                  tej.calibre ? `Calibre ${tej.calibre}` : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' • '),
+                                meta: {
+                                  altura: tej.altura !== undefined && tej.altura !== null ? tej.altura.toString() : '',
+                                  tamano_rombo: tej.tamano_rombo !== undefined && tej.tamano_rombo !== null ? tej.tamano_rombo.toString() : '',
+                                  calibre: tej.calibre !== undefined && tej.calibre !== null ? tej.calibre.toString() : '',
+                                },
+                              }))}
+                              placeholder="Buscar tejido..."
+                              searchPlaceholder="Buscar tejido..."
+                              emptyMessage="No se encontraron tejidos"
+                              filters={filtrosTejidos}
+                              className="h-10"
+                            />
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs uppercase text-muted-foreground">Descripción</Label>
+                          <div className="min-h-10 rounded-md border border-dashed border-input bg-muted/30 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+                            {item.descripcion && item.descripcion.trim().length > 0 ? item.descripcion : 'Sin descripción'}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs uppercase text-muted-foreground">Cantidad</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={item.cantidad}
+                              onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
+                              placeholder="1"
+                              className="h-10 text-right"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs uppercase text-muted-foreground">Unidad</Label>
+                            <Select
+                              value={item.unidad}
+                              onValueChange={(value) => actualizarItem(item.id, 'unidad', value)}
+                            >
+                              <SelectTrigger className="h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {unidadesDisponibles.map((unidad) => (
+                                  <SelectItem key={unidad} value={unidad}>
+                                    {unidad}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs uppercase text-muted-foreground">Precio unitario</Label>
+                            <div className="h-10 rounded-md border border-input bg-muted/50 px-3 text-right font-semibold leading-[2.5rem] text-muted-foreground">
+                              ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs uppercase text-muted-foreground">Total</Label>
+                            <div className="h-10 rounded-md border border-input bg-muted/50 px-3 text-right font-semibold leading-[2.5rem] text-green-600">
+                              ${item.precio_total.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 sm:hidden">
+                  <Button type="button" onClick={agregarItem} className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Fila
+                  </Button>
+                </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -880,42 +1021,42 @@ export default function NuevoPresupuestoArticulosPage() {
         </div>
 
         {/* Preview Lateral */}
-        <div>
+        <div className="w-full">
             <Card className="">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="space-y-3">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <FileText className="h-5 w-5" />
                 Resumen
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Preview del presupuesto
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-muted-foreground">Cliente:</span>
-                  <span className="font-medium text-right">
+                  <span className="font-medium text-right sm:text-left">
                     {formData.cliente_nombre || 'Sin nombre'}
                   </span>
                 </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-muted-foreground">Vendedor:</span>
-                    <span className="font-medium text-right">
+                    <span className="truncate text-right font-medium sm:text-left">
                       {userEmail || '—'}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-muted-foreground">Items:</span>
                   <span className="font-medium">{items.length}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-muted-foreground">Validez:</span>
                   <span className="font-medium">{formData.validez_dias} días</span>
                 </div>
-                  <div className="flex justify-between text-sm pt-2 border-t">
+                  <div className="flex flex-col gap-1 border-t pt-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-muted-foreground">Forma de pago:</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:justify-end">
                       {(() => {
                         const formaPagoInfo = getFormaPagoInfo(formaPago)
                         const IconoFormaPago = formaPagoInfo.icon
@@ -1007,15 +1148,29 @@ export default function NuevoPresupuestoArticulosPage() {
         </div>
 
           {/* Botones al final */}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" asChild>
-              <Link href="/dashboard/presupuestos">Cancelar</Link>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="submit"
+              disabled={loading || items.length === 0}
+              className="w-full justify-center sm:w-auto sm:justify-between"
+            >
+              <Save className="h-4 w-4" />
+              <span className="hidden sm:inline-block">{loading ? 'Guardar presupuesto' : 'Guardar presupuesto'}</span>
+              <span className="sm:hidden">{loading ? 'Guardando' : 'Guardar'}</span>
             </Button>
-            <Button type="submit" disabled={loading || items.length === 0}>
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Guardando...' : 'Guardar Presupuesto'}
+            <Button
+              type="button"
+              variant="outline"
+              asChild
+              className="w-full justify-center sm:w-auto sm:justify-between"
+            >
+              <Link href="/dashboard/presupuestos" className="flex items-center gap-2">
+                <X className="h-4 w-4" />
+                <span className="hidden sm:inline-block">Cancelar</span>
+                <span className="sm:hidden">Salir</span>
+              </Link>
             </Button>
-        </div>
+          </div>
         </form>
       )}
     </div>

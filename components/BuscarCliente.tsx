@@ -322,32 +322,37 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
 
           {/* Cliente Encontrado */}
           {clienteEncontrado && (
-            <div className="mt-4 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-green-900">{clienteEncontrado.nombre_completo}</h3>
-                    <p className="text-sm text-green-700">
-                      {clienteEncontrado.tipo_documento} {clienteEncontrado.numero_documento}
-                    </p>
-                    {clienteEncontrado.razon_social && (
-                      <p className="text-sm text-green-700">{clienteEncontrado.razon_social}</p>
-                    )}
-                    <div className="text-xs text-green-600 space-y-0.5 mt-2">
-                      {clienteEncontrado.telefono && <p>Tel: {clienteEncontrado.telefono}</p>}
-                      {clienteEncontrado.email && <p>Email: {clienteEncontrado.email}</p>}
-                      {clienteEncontrado.direccion && <p>Dir: {clienteEncontrado.direccion}</p>}
-                    </div>
-                  </div>
+            <button
+              type="button"
+              onClick={seleccionarCliente}
+              className="mt-4 w-full rounded-lg border-2 border-green-300 bg-green-50 p-4 text-left transition hover:border-green-400 hover:bg-green-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
-                <Button onClick={seleccionarCliente} size="sm">
-                  Seleccionar Cliente
-                </Button>
+                <div className="flex-1 space-y-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                    <h3 className="font-bold text-green-900">{clienteEncontrado.nombre_completo}</h3>
+                    <span className="hidden text-sm font-medium text-green-700 sm:inline-flex">Seleccionar cliente</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    {clienteEncontrado.tipo_documento} {clienteEncontrado.numero_documento}
+                  </p>
+                  {clienteEncontrado.razon_social && (
+                    <p className="text-sm text-green-700">{clienteEncontrado.razon_social}</p>
+                  )}
+                  <div className="mt-2 space-y-0.5 text-xs text-green-600">
+                    {clienteEncontrado.telefono && <p>Tel: {clienteEncontrado.telefono}</p>}
+                    {clienteEncontrado.email && <p>Email: {clienteEncontrado.email}</p>}
+                    {clienteEncontrado.direccion && <p>Dir: {clienteEncontrado.direccion}</p>}
+                  </div>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-green-700 sm:hidden">
+                    Seleccionar cliente
+                  </span>
+                </div>
               </div>
-            </div>
+            </button>
           )}
         </CardContent>
       </Card>

@@ -107,7 +107,10 @@ export function ProductoCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent
+        className="w-[calc(100vw-2rem)] max-w-sm sm:w-[420px] p-0 max-h-[70vh] overflow-auto"
+        align="start"
+      >
         <Command shouldFilter={false}>
           {filters && filters.length > 0 && (
             <div className="grid gap-2 p-3 border-b bg-muted/30">
@@ -154,7 +157,7 @@ export function ProductoCombobox({
               className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <CommandList>
+          <CommandList className="max-h-[50vh] overflow-auto">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {productos

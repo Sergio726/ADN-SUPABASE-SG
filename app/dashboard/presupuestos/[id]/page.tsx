@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash } from 'lucide-react'
+import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { generarPDFPresupuesto } from '@/lib/pdf-generator'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 export default function VerPresupuestoPage() {
   const params = useParams()
@@ -25,6 +26,7 @@ export default function VerPresupuestoPage() {
   const [eliminando, setEliminando] = useState(false)
   const [confirmacionAbierta, setConfirmacionAbierta] = useState(false)
   const [textoConfirmacion, setTextoConfirmacion] = useState('')
+  const [itemsAbiertos, setItemsAbiertos] = useState(true)
 
   useEffect(() => {
     cargarPresupuesto()
@@ -333,41 +335,143 @@ export default function VerPresupuestoPage() {
   }
 
   const tipoBadge = presupuesto.tipo === 'cercado' ? 'default' : 'secondary'
+  const fechaEmision = new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')
+  const fechaVencimiento = presupuesto.fecha_vencimiento
+    ? new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')
+    : null
+  const etiquetasFormaPago: Record<string, string> = {
+    efectivo: 'Efectivo',
+    lista: 'Factura / Lista',
+    tarjeta: 'Tarjeta',
+    echeq45: 'E-cheq 45 días',
+    echeq60: 'E-cheq 60 días',
+    echeq90: 'E-cheq 90 días',
+  }
+  const formaPagoLabel = presupuesto.forma_pago
+    ? etiquetasFormaPago[presupuesto.forma_pago] || presupuesto.forma_pago
+    : '—'
+  const resumenRapidoMobile = [
+    {
+      label: 'Total',
+      value: `$${formatearMoneda(presupuesto.total)}`,
+      tone: 'text-green-600',
+      helper: presupuesto.forma_pago === 'efectivo' ? 'Sin IVA' : 'IVA incluido',
+    },
+    {
+      label: 'Validez',
+      value: `${presupuesto.validez_dias} día${presupuesto.validez_dias === 1 ? '' : 's'}`,
+      helper: fechaVencimiento ? `Vence ${fechaVencimiento}` : undefined,
+    },
+    {
+      label: 'Forma de pago',
+      value: formaPagoLabel,
+      helper: presupuesto.estado ? `Estado: ${presupuesto.estado}` : undefined,
+    },
+    {
+      label: 'Emitido',
+      value: fechaEmision,
+      helper: vendedorNombre ? `Vendedor: ${vendedorNombre}` : undefined,
+    },
+  ]
+
+  const detallesCliente = [
+    presupuesto.tipo_documento && presupuesto.numero_documento
+      ? {
+          icon: FileText,
+          label: presupuesto.tipo_documento,
+          value: presupuesto.numero_documento,
+        }
+      : null,
+    presupuesto.cliente_telefono
+      ? {
+          icon: Phone,
+          label: 'Teléfono',
+          value: presupuesto.cliente_telefono,
+        }
+      : null,
+    presupuesto.cliente_email
+      ? {
+          icon: Mail,
+          label: 'Email',
+          value: presupuesto.cliente_email,
+        }
+      : null,
+    presupuesto.cliente_direccion
+      ? {
+          icon: MapPin,
+          label: 'Dirección',
+          value: presupuesto.cliente_direccion,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ icon: typeof Phone; label: string; value: string }>
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <Button variant="outline" asChild className="w-full sm:w-auto">
-            <Link href="/dashboard/presupuestos">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Link>
-          </Button>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-2xl font-bold sm:text-3xl">{presupuesto.numero}</h1>
-              <Badge variant={tipoBadge}>
-                {presupuesto.tipo === 'articulos' ? 'Artículos' : 'Cercado'}
-              </Badge>
-              <Badge variant={estadoBadgeVariant(presupuesto.estado)}>
-                {presupuesto.estado?.charAt(0).toUpperCase() + presupuesto.estado?.slice(1)}
-              </Badge>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="w-full space-y-3">
+            <Button
+              variant="outline"
+              asChild
+              className="w-full justify-center gap-2 sm:w-auto sm:justify-start"
+            >
+              <Link href="/dashboard/presupuestos">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Volver</span>
+                <span className="sm:hidden">Atrás</span>
+              </Link>
+            </Button>
+            <div className="space-y-2 rounded-lg border border-border/60 bg-card px-4 py-4 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-2xl font-bold sm:text-3xl">{presupuesto.numero}</h1>
+                <Badge variant={tipoBadge}>
+                  {presupuesto.tipo === 'articulos' ? 'Artículos' : 'Cercado'}
+                </Badge>
+                <Badge variant={estadoBadgeVariant(presupuesto.estado)}>
+                  {presupuesto.estado?.charAt(0).toUpperCase() + presupuesto.estado?.slice(1)}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Presupuesto para {presupuesto.cliente_nombre}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground sm:text-base">
-              Presupuesto para {presupuesto.cliente_nombre}
-            </p>
+          </div>
+          <div className="grid w-full gap-2 sm:w-[220px]">
+            <Button
+              className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
+              onClick={descargarPDF}
+            >
+              <Download className="h-5 w-5" />
+              <span className="hidden sm:inline">Descargar PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
+            <Button
+              className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
+              variant="secondary"
+              onClick={copiarResumen}
+            >
+              <MessageSquareText className="h-5 w-5" />
+              <span className="hidden sm:inline">Resumen WhatsApp</span>
+              <span className="sm:hidden">WhatsApp</span>
+            </Button>
           </div>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto">
-          <Button className="w-full" onClick={descargarPDF}>
-            <Download className="h-4 w-4 mr-2" />
-            Descargar PDF
-          </Button>
-          <Button className="w-full" variant="secondary" onClick={copiarResumen}>
-            <MessageSquareText className="h-4 w-4 mr-2" />
-            Resumen WhatsApp
-          </Button>
+
+        <div className="grid grid-cols-2 gap-2 sm:hidden">
+          {resumenRapidoMobile.map((chip) => (
+            <div
+              key={chip.label}
+              className="rounded-lg border border-border/60 bg-card p-3 text-xs"
+            >
+              <p className="font-semibold uppercase tracking-wide text-muted-foreground">
+                {chip.label}
+              </p>
+              <p className={`text-base font-bold ${chip.tone ?? ''}`}>{chip.value}</p>
+              {chip.helper && (
+                <p className="mt-1 text-[11px] text-muted-foreground/80">{chip.helper}</p>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -381,164 +485,167 @@ export default function VerPresupuestoPage() {
                 Datos del Cliente
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                    Nombre
-                  </p>
-                  <p className="font-semibold">{presupuesto.cliente_nombre}</p>
-                </div>
-                {presupuesto.cliente_telefono && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                        Teléfono
-                      </p>
-                      <p className="font-medium">{presupuesto.cliente_telefono}</p>
-                    </div>
-                  </div>
-                )}
+            <CardContent className="space-y-3">
+              <div className="rounded-lg border border-border/50 bg-muted/40 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nombre</p>
+                <p className="text-base font-semibold">{presupuesto.cliente_nombre}</p>
               </div>
-              {vendedorNombre && (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                      Vendedor
-                    </p>
-                    <p className="font-medium">{vendedorNombre}</p>
-                  </div>
+              {detallesCliente.length > 0 ? (
+                <div className="space-y-3">
+                  {detallesCliente.map((detalle) => {
+                    const Icono = detalle.icon
+                    return (
+                      <div
+                        key={detalle.label}
+                        className="flex items-start gap-3 rounded-lg border border-border/40 p-3"
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                          <Icono className="h-4 w-4" />
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {detalle.label}
+                          </p>
+                          <p className="text-sm font-medium break-words text-foreground">
+                            {detalle.value}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
-              {presupuesto.cliente_email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                      Email
-                    </p>
-                    <p className="font-medium">{presupuesto.cliente_email}</p>
-                  </div>
-                </div>
-              )}
-              {presupuesto.cliente_direccion && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:text-sm">
-                      Dirección
-                    </p>
-                    <p className="font-medium">{presupuesto.cliente_direccion}</p>
-                  </div>
-                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin información adicional del cliente.</p>
               )}
             </CardContent>
           </Card>
 
           {/* Items del Presupuesto */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <Package className="h-5 w-5" />
-                Items del Presupuesto
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">{items.length} items en total</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border">
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="p-3 text-left font-semibold">#</th>
-                        <th className="p-3 text-left font-semibold">Descripción</th>
-                        <th className="p-3 text-right font-semibold">Cant.</th>
-                        <th className="p-3 text-left font-semibold">Unidad</th>
-                        <th className="p-3 text-right font-semibold">P. Unit.</th>
-                        <th className="p-3 text-right font-semibold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, index) => (
-                        <tr key={item.id} className="border-b">
-                          <td className="p-3 text-muted-foreground">{index + 1}</td>
-                          <td className="p-3">{item.descripcion}</td>
-                          <td className="p-3 text-right font-medium">{item.cantidad}</td>
-                          <td className="p-3">{item.unidad}</td>
-                          <td className="p-3 text-right">${item.precio_unitario?.toLocaleString()}</td>
-                          <td className="p-3 text-right font-bold text-green-600">
-                            ${item.precio_total?.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
+            <Card>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Package className="h-5 w-5" />
+                    Items del Presupuesto
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {items.length} ítem{items.length === 1 ? '' : 's'} en total
+                  </CardDescription>
                 </div>
-                <div className="divide-y sm:hidden">
-                  {items.map((item, index) => (
-                    <div key={item.id} className="p-3 space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
-                        <span className="font-bold text-green-600">
-                          ${item.precio_total?.toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="font-medium leading-snug">{item.descripcion}</p>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                        <div>
-                          <p className="font-semibold uppercase">Cant.</p>
-                          <p>{item.cantidad}</p>
-                        </div>
-                        <div>
-                          <p className="font-semibold uppercase">Unidad</p>
-                          <p>{item.unidad}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="font-semibold uppercase">P. Unit.</p>
-                          <p>${item.precio_unitario?.toLocaleString()}</p>
-                        </div>
-                      </div>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto inline-flex data-[state=open]:rotate-180"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="rounded-lg border">
+                    <div className="hidden overflow-x-auto sm:block">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left font-semibold">#</th>
+                            <th className="p-3 text-left font-semibold">Descripción</th>
+                            <th className="p-3 text-right font-semibold">Cant.</th>
+                            <th className="p-3 text-left font-semibold">Unidad</th>
+                            <th className="p-3 text-right font-semibold">P. Unit.</th>
+                            <th className="p-3 text-right font-semibold">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((item, index) => (
+                            <tr key={item.id} className="border-b">
+                              <td className="p-3 text-muted-foreground">{index + 1}</td>
+                              <td className="p-3">
+                                {item.descripcion || 'Sin descripción'}
+                              </td>
+                              <td className="p-3 text-right font-medium">{item.cantidad}</td>
+                              <td className="p-3">{item.unidad}</td>
+                              <td className="p-3 text-right">
+                                ${formatearMoneda(item.precio_unitario)}
+                              </td>
+                              <td className="p-3 text-right font-bold text-green-600">
+                                ${formatearMoneda(item.precio_total)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              <div className="mt-4 space-y-2 rounded-lg bg-muted/40 p-3 text-sm sm:text-base">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-muted-foreground">Subtotal:</span>
-                  <span className="font-bold">${presupuesto.subtotal?.toLocaleString()}</span>
-                </div>
-                {presupuesto.descuento > 0 && (
-                  <div className="flex items-center justify-between text-red-600">
-                    <span className="font-semibold">Descuento:</span>
-                    <span className="font-bold">-${presupuesto.descuento?.toLocaleString()}</span>
+                    <div className="divide-y sm:hidden">
+                      {items.map((item, index) => (
+                        <div key={item.id} className="space-y-2 p-3 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
+                            <span className="font-bold text-green-600">
+                              ${formatearMoneda(item.precio_total)}
+                            </span>
+                          </div>
+                          <p className="font-medium leading-snug">
+                            {item.descripcion || 'Sin descripción'}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <div>
+                              <p className="font-semibold uppercase">Cant.</p>
+                              <p>{item.cantidad}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold uppercase">Unidad</p>
+                              <p>{item.unidad}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="font-semibold uppercase">P. Unit.</p>
+                              <p>${formatearMoneda(item.precio_unitario)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-                {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
-                  <>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
-                      <span>Base imponible (sin IVA)</span>
-                      <span className="font-semibold">
-                        ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+
+                  <div className="mt-4 space-y-2 rounded-lg bg-muted/40 p-3 text-sm sm:text-base">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-muted-foreground">Subtotal:</span>
+                      <span className="font-bold">${formatearMoneda(presupuesto.subtotal)}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
-                      <span>IVA 21%</span>
-                      <span className="font-semibold">
-                        ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                    {presupuesto.descuento > 0 && (
+                      <div className="flex items-center justify-between text-red-600">
+                        <span className="font-semibold">Descuento:</span>
+                        <span className="font-bold">-${formatearMoneda(presupuesto.descuento)}</span>
+                      </div>
+                    )}
+                    {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
+                      <>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
+                          <span>Base imponible (sin IVA)</span>
+                          <span className="font-semibold">
+                            ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
+                          <span>IVA 21%</span>
+                          <span className="font-semibold">
+                            ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center justify-between border-t border-muted pt-2 text-base font-bold text-green-600 sm:text-xl">
+                      <span>Total:</span>
+                      <span>${formatearMoneda(presupuesto.total)}</span>
                     </div>
-                  </>
-                )}
-                <div className="flex items-center justify-between border-t border-muted pt-2 text-base font-bold text-green-600 sm:text-xl">
-                  <span>TOTAL:</span>
-                  <span>${presupuesto.total?.toLocaleString()}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (
             <div className="grid gap-6 md:grid-cols-2">
