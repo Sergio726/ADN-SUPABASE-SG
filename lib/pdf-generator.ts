@@ -304,3 +304,205 @@ export function generarPDFPresupuestoCercado(
   generarPDFPresupuesto(presupuesto, items)
 }
 
+export function generarPDFRemito(
+  presupuesto: PresupuestoData,
+  items: PresupuestoItem[],
+  numeroRemito?: string
+) {
+  const doc = new jsPDF()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  let yPos = 20
+
+  // Generar número de remito si no se proporciona
+  // Extrae el número del presupuesto (ej: PRES-2024-001 -> 2024-001)
+  const numeroPresupuesto = presupuesto.numero.match(/\d{4}-\d{3}/)?.[0] || 
+    presupuesto.numero.replace(/^[A-Z]+-/, '')
+  const remitoNumero = numeroRemito || `REM-${numeroPresupuesto}`
+
+  try {
+    const logo = new Image()
+    logo.src = '/logos/logo-color.png'
+    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
+  } catch (error) {
+    console.warn('No se pudo cargar el logo para el PDF', error)
+  }
+
+  // ===== HEADER =====
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Tu seguridad comienza con nosotros', 15, yPos + 15)
+  
+  // Número de remito (derecha)
+  doc.setFontSize(12)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('REMITO', pageWidth - 15, yPos, { align: 'right' })
+  
+  doc.setFontSize(14)
+  doc.setTextColor(220, 38, 38)
+  doc.text(remitoNumero, pageWidth - 15, yPos + 6, { align: 'right' })
+  
+  doc.setFontSize(9)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  const fechaEntrega = new Date().toLocaleDateString('es-AR')
+  doc.text(`Fecha de entrega: ${fechaEntrega}`, pageWidth - 15, yPos + 12, { align: 'right' })
+  
+  // Referencia al presupuesto
+  if (presupuesto.numero) {
+    doc.text(`Presupuesto: ${presupuesto.numero}`, pageWidth - 15, yPos + 17, { align: 'right' })
+  }
+  
+  yPos = 50
+
+  // Línea separadora
+  doc.setDrawColor(220, 38, 38)
+  doc.setLineWidth(0.5)
+  doc.line(15, yPos, pageWidth - 15, yPos)
+  
+  yPos += 10
+
+  // ===== DATOS DEL REMITENTE =====
+  doc.setFontSize(11)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('REMITENTE:', 15, yPos)
+  
+  yPos += 6
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Alambres del Norte SRL', 15, yPos)
+  yPos += 5
+  doc.text('Tel: +54 387 77-3393', 15, yPos)
+  yPos += 5
+  doc.text('Email: info@alambresdelnortesrl.com.ar', 15, yPos)
+  
+  yPos += 12
+
+  // ===== DATOS DEL DESTINATARIO =====
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DESTINATARIO:', 15, yPos)
+  
+  yPos += 6
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text(presupuesto.cliente_nombre, 15, yPos)
+  
+  if (presupuesto.razon_social) {
+    yPos += 5
+    doc.text(`Razón social: ${presupuesto.razon_social}`, 15, yPos)
+  }
+
+  if (presupuesto.tipo_documento && presupuesto.numero_documento) {
+    yPos += 5
+    doc.text(`Documento: ${presupuesto.tipo_documento} ${presupuesto.numero_documento}`, 15, yPos)
+  }
+  
+  if (presupuesto.cliente_telefono) {
+    yPos += 5
+    doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
+  }
+  
+  if (presupuesto.cliente_email) {
+    yPos += 5
+    doc.text(`Email: ${presupuesto.cliente_email}`, 15, yPos)
+  }
+  
+  if (presupuesto.cliente_direccion) {
+    yPos += 5
+    doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
+  }
+  
+  yPos += 12
+
+  // ===== TABLA DE ITEMS (SIN PRECIOS) =====
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text('MERCADERÍA ENTREGADA:', 15, yPos)
+  
+  yPos += 5
+
+  const tableData = items.map((item, index) => [
+    (index + 1).toString(),
+    item.descripcion,
+    item.cantidad.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    item.unidad,
+    '', // Estado/observaciones (vacío por defecto)
+  ])
+
+  autoTable(doc, {
+    startY: yPos,
+    head: [['#', 'Descripción', 'Cantidad', 'Unidad', 'Estado']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [220, 38, 38],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: {
+      fontSize: 9,
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 25, halign: 'right' },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 30 },
+    },
+    margin: { left: 15, right: 15 },
+  })
+
+  // Obtener posición final de la tabla
+  yPos = (doc as any).lastAutoTable.finalY + 15
+
+  // ===== OBSERVACIONES =====
+  if (presupuesto.observaciones && yPos < pageHeight - 80) {
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('OBSERVACIONES:', 15, yPos)
+    
+    yPos += 6
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const observaciones = doc.splitTextToSize(presupuesto.observaciones, pageWidth - 30)
+    doc.text(observaciones, 15, yPos)
+    yPos += observaciones.length * 5 + 10
+  }
+
+  // ===== FIRMA DEL CLIENTE =====
+  if (yPos < pageHeight - 60) {
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.3)
+    
+    // Línea para firma
+    const firmaY = pageHeight - 50
+    doc.line(15, firmaY, pageWidth - 15, firmaY)
+    
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Firma y aclaración del destinatario:', 15, firmaY - 5)
+    
+    // Espacio para firma
+    doc.setDrawColor(200, 200, 200)
+    doc.rect(15, firmaY + 5, pageWidth - 30, 20)
+  }
+
+  // ===== FOOTER =====
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'italic')
+  
+  const footerY = pageHeight - 10
+  doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
+  doc.text('Tel: +54 387 77-3393 | Email: info@alambresdelnortesrl.com.ar', pageWidth / 2, footerY + 4, { align: 'center' })
+
+  // Descargar
+  const filename = `REMITO_${remitoNumero.replace(/\//g, '-')}_${presupuesto.cliente_nombre.replace(/\s/g, '_')}.pdf`
+  doc.save(filename)
+}
+

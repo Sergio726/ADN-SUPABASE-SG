@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { generarPDFPresupuesto } from '@/lib/pdf-generator'
+import { generarPDFPresupuesto, generarPDFRemito } from '@/lib/pdf-generator'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -153,6 +153,23 @@ export default function VerPresupuestoPage() {
       console.error('Error:', error)
       toast({
         title: "Error al generar PDF",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  function descargarRemito() {
+    try {
+      generarPDFRemito({ ...presupuesto, vendedor_nombre: vendedorNombre }, items)
+      toast({
+        title: "¡Remito Generado!",
+        description: "El remito se ha descargado correctamente",
+      })
+    } catch (error: any) {
+      console.error('Error:', error)
+      toast({
+        title: "Error al generar remito",
         description: error.message,
         variant: "destructive",
       })
@@ -444,25 +461,6 @@ export default function VerPresupuestoPage() {
             </p>
           </div>
         </div>
-          <div className="grid w-full gap-2 sm:w-[220px]">
-            <Button
-              className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
-              onClick={descargarPDF}
-            >
-              <Download className="h-5 w-5" />
-              <span className="hidden sm:inline">Descargar PDF</span>
-              <span className="sm:hidden">PDF</span>
-          </Button>
-            <Button
-              className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
-              variant="secondary"
-              onClick={copiarResumen}
-            >
-              <MessageSquareText className="h-5 w-5" />
-              <span className="hidden sm:inline">Resumen WhatsApp</span>
-              <span className="sm:hidden">WhatsApp</span>
-          </Button>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:hidden">
@@ -788,6 +786,18 @@ export default function VerPresupuestoPage() {
               <CardTitle className="text-lg sm:text-xl">Acciones</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              <Button className="w-full" variant="outline" onClick={descargarPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
+              <Button className="w-full" variant="outline" onClick={descargarRemito}>
+                <FileText className="h-4 w-4 mr-2" />
+                Generar Remito
+              </Button>
+              <Button className="w-full" variant="outline" onClick={copiarResumen}>
+                <MessageSquareText className="h-4 w-4 mr-2" />
+                Resumen WhatsApp
+              </Button>
               <Button className="w-full" variant="destructive" onClick={abrirDialogoBaja} disabled={eliminando || presupuesto.estado === 'baja'}>
                 <Trash className="h-4 w-4 mr-2" />
                 {presupuesto.estado === 'baja'
