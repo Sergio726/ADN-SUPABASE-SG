@@ -67,7 +67,9 @@ export default function PresupuestosPage() {
   }
 
   const tipoBadgeVariant = (tipo: string) => {
-    return tipo === 'cercado' ? 'default' : 'secondary'
+    if (tipo === 'cercado') return 'default'
+    if (tipo === 'general') return 'outline'
+    return 'secondary'
   }
 
   async function descargarPresupuesto(presupuestoId: string) {
@@ -184,7 +186,11 @@ export default function PresupuestosPage() {
       header: 'Tipo',
       cell: ({ row }: any) => (
         <Badge variant={tipoBadgeVariant(row.original.tipo)}>
-          {row.original.tipo === 'articulos' ? 'Artículos' : 'Cercado'}
+          {row.original.tipo === 'articulos' 
+            ? 'Artículos' 
+            : row.original.tipo === 'cercado'
+            ? 'Cercado'
+            : 'General'}
         </Badge>
       ),
     },

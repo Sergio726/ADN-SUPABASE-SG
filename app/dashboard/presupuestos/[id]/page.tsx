@@ -334,7 +334,11 @@ export default function VerPresupuestoPage() {
     }
   }
 
-  const tipoBadge = presupuesto.tipo === 'cercado' ? 'default' : 'secondary'
+  const tipoBadge = presupuesto.tipo === 'cercado' 
+    ? 'default' 
+    : presupuesto.tipo === 'general'
+    ? 'outline'
+    : 'secondary'
   const fechaEmision = new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')
   const fechaVencimiento = presupuesto.fecha_vencimiento
     ? new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')
@@ -415,27 +419,31 @@ export default function VerPresupuestoPage() {
               asChild
               className="w-full justify-center gap-2 sm:w-auto sm:justify-start"
             >
-              <Link href="/dashboard/presupuestos">
+            <Link href="/dashboard/presupuestos">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Volver</span>
                 <span className="sm:hidden">Atrás</span>
-              </Link>
-            </Button>
+            </Link>
+          </Button>
             <div className="space-y-2 rounded-lg border border-border/60 bg-card px-4 py-4 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <h1 className="text-2xl font-bold sm:text-3xl">{presupuesto.numero}</h1>
-                <Badge variant={tipoBadge}>
-                  {presupuesto.tipo === 'articulos' ? 'Artículos' : 'Cercado'}
-                </Badge>
-                <Badge variant={estadoBadgeVariant(presupuesto.estado)}>
-                  {presupuesto.estado?.charAt(0).toUpperCase() + presupuesto.estado?.slice(1)}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground sm:text-base">
-                Presupuesto para {presupuesto.cliente_nombre}
-              </p>
+              <Badge variant={tipoBadge}>
+                  {presupuesto.tipo === 'articulos' 
+                    ? 'Artículos' 
+                    : presupuesto.tipo === 'cercado'
+                    ? 'Cercado'
+                    : 'General'}
+              </Badge>
+              <Badge variant={estadoBadgeVariant(presupuesto.estado)}>
+                {presupuesto.estado?.charAt(0).toUpperCase() + presupuesto.estado?.slice(1)}
+              </Badge>
             </div>
+              <p className="text-sm text-muted-foreground sm:text-base">
+              Presupuesto para {presupuesto.cliente_nombre}
+            </p>
           </div>
+        </div>
           <div className="grid w-full gap-2 sm:w-[220px]">
             <Button
               className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
@@ -444,7 +452,7 @@ export default function VerPresupuestoPage() {
               <Download className="h-5 w-5" />
               <span className="hidden sm:inline">Descargar PDF</span>
               <span className="sm:hidden">PDF</span>
-            </Button>
+          </Button>
             <Button
               className="h-12 w-full justify-center gap-2 text-sm font-semibold sm:justify-center sm:text-base"
               variant="secondary"
@@ -453,7 +461,7 @@ export default function VerPresupuestoPage() {
               <MessageSquareText className="h-5 w-5" />
               <span className="hidden sm:inline">Resumen WhatsApp</span>
               <span className="sm:hidden">WhatsApp</span>
-            </Button>
+          </Button>
           </div>
         </div>
 
@@ -509,8 +517,8 @@ export default function VerPresupuestoPage() {
                           <p className="text-sm font-medium break-words text-foreground">
                             {detalle.value}
                           </p>
-                        </div>
-                      </div>
+                  </div>
+                </div>
                     )
                   })}
                 </div>
@@ -522,13 +530,13 @@ export default function VerPresupuestoPage() {
 
           {/* Items del Presupuesto */}
           <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
-            <Card>
+          <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Package className="h-5 w-5" />
-                    Items del Presupuesto
-                  </CardTitle>
+                <Package className="h-5 w-5" />
+                Items del Presupuesto
+              </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
                     {items.length} ítem{items.length === 1 ? '' : 's'} en total
                   </CardDescription>
@@ -542,13 +550,13 @@ export default function VerPresupuestoPage() {
                     <ChevronDown className="h-5 w-5" />
                   </Button>
                 </CollapsibleTrigger>
-              </CardHeader>
+            </CardHeader>
               <CollapsibleContent>
-                <CardContent>
+            <CardContent>
                   <div className="rounded-lg border">
                     <div className="hidden overflow-x-auto sm:block">
                       <table className="w-full text-sm">
-                        <thead>
+                  <thead>
                           <tr className="border-b bg-muted/50">
                             <th className="p-3 text-left font-semibold">#</th>
                             <th className="p-3 text-left font-semibold">Descripción</th>
@@ -556,25 +564,25 @@ export default function VerPresupuestoPage() {
                             <th className="p-3 text-left font-semibold">Unidad</th>
                             <th className="p-3 text-right font-semibold">P. Unit.</th>
                             <th className="p-3 text-right font-semibold">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((item, index) => (
-                            <tr key={item.id} className="border-b">
-                              <td className="p-3 text-muted-foreground">{index + 1}</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-3 text-muted-foreground">{index + 1}</td>
                               <td className="p-3">
                                 {item.descripcion || 'Sin descripción'}
                               </td>
-                              <td className="p-3 text-right font-medium">{item.cantidad}</td>
-                              <td className="p-3">{item.unidad}</td>
+                        <td className="p-3 text-right font-medium">{item.cantidad}</td>
+                        <td className="p-3">{item.unidad}</td>
                               <td className="p-3 text-right">
                                 ${formatearMoneda(item.precio_unitario)}
                               </td>
-                              <td className="p-3 text-right font-bold text-green-600">
+                        <td className="p-3 text-right font-bold text-green-600">
                                 ${formatearMoneda(item.precio_total)}
-                              </td>
-                            </tr>
-                          ))}
+                        </td>
+                      </tr>
+                    ))}
                         </tbody>
                       </table>
                     </div>
@@ -641,10 +649,10 @@ export default function VerPresupuestoPage() {
                       <span>Total:</span>
                       <span>${formatearMoneda(presupuesto.total)}</span>
                     </div>
-                  </div>
-                </CardContent>
+              </div>
+            </CardContent>
               </CollapsibleContent>
-            </Card>
+          </Card>
           </Collapsible>
 
           {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (

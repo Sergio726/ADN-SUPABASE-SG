@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Package, Grid3x3 } from 'lucide-react'
+import { ArrowLeft, Package, Grid3x3, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -21,7 +21,7 @@ export default function TipoPresupuestoPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto mt-12">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto mt-12">
         <Link href="/dashboard/presupuestos/nuevo/articulos" className="group">
           <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-brand-red cursor-pointer">
             <CardHeader className="text-center pb-4">
@@ -75,7 +75,7 @@ export default function TipoPresupuestoPage() {
             </CardHeader>
             <CardContent className="text-center">
               <CardDescription className="text-base">
-                Crear un presupuesto para servicio completo de instalación de cerco perimetral
+                Crear un presupuesto para completo para instalación de cerco perimetral
               </CardDescription>
               <ul className="mt-4 space-y-2 text-sm text-left">
                 <li className="flex items-center gap-2">
@@ -93,6 +93,47 @@ export default function TipoPresupuestoPage() {
                 <li className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
                   <span>Opciones: cordón, púa, postes</span>
+                </li>
+              </ul>
+              <div className="mt-6">
+                <Button className="w-full group-hover:bg-brand-red group-hover:text-white transition-colors">
+                  Crear Presupuesto →
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/presupuestos/nuevo/general" className="group">
+          <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-brand-red cursor-pointer">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto mb-4 p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-full group-hover:from-red-100 group-hover:to-red-200 transition-all">
+                <FileText className="h-16 w-16 text-red-600" />
+              </div>
+              <CardTitle className="text-2xl group-hover:text-brand-red transition-colors">
+                Presupuesto General
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <CardDescription className="text-base">
+                Crear presupuestos para productos o servicios eventuales
+              </CardDescription>
+              <ul className="mt-4 space-y-2 text-sm text-left">
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
+                  <span>Descripción personalizada</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
+                  <span>Precio base configurable</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
+                  <span>Cálculo automático según forma de pago</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-red-600"></div>
+                  <span>Ideal para servicios especiales</span>
                 </li>
               </ul>
               <div className="mt-6">
