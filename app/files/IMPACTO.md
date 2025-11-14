@@ -11,3 +11,4 @@ Guarda aquí los hitos que demuestren cómo este proyecto genera valor.
 ## Entradas recientes
 - *[Fecha]* • *[Descripción]* • *[Indicadores]* • *[Responsable]*
 - *2025-11-10* • Se emitió una cotización de 12 artículos en 3 min 50 s desde el sistema web/móvil • Reducción de tiempo operativo del 75%-85% (antes 15-25 min con Excel) y habilitación de cotización móvil por primera vez • Equipo comercial
+- *2025-02-01* • Implementación de generación automática de remitos desde presupuestos • Reducción de tiempo de generación de remitos de 10-15 minutos a 1 segundo (ahorro del 99%+). Eliminación de búsqueda manual de archivos, llenado manual y verificación manual • Sistema automatizado
