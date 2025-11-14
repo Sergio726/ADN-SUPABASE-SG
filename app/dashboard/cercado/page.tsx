@@ -27,6 +27,7 @@ export default function ConfiguracionesCercadoPage() {
       const { data, error } = await supabase
         .from('v_configuraciones_cercado_completas')
         .select('*')
+        .order('altura_final_cerco', { ascending: false, nullsFirst: false })
         .order('altura', { ascending: false })
 
       if (error) {
@@ -66,10 +67,12 @@ export default function ConfiguracionesCercadoPage() {
       ),
     },
     {
-      accessorKey: 'altura',
+      accessorKey: 'altura_final_cerco',
       header: ({ column }: any) => <SortableHeader column={column} title="Altura" />,
       cell: ({ row }: any) => (
-        <Badge variant="outline">{row.original.altura}m</Badge>
+        <Badge variant="outline">
+          {row.original.altura_final_cerco ? `${row.original.altura_final_cerco}m` : `${row.original.altura}m`}
+        </Badge>
       ),
     },
     {
@@ -219,7 +222,10 @@ export default function ConfiguracionesCercadoPage() {
           <CardHeader className="pb-3">
             <CardDescription>Altura 2m</CardDescription>
             <CardTitle className="text-3xl">
-              {configuraciones.filter((c: any) => c.altura === 2).length}
+              {configuraciones.filter((c: any) => 
+                (c.altura_final_cerco && c.altura_final_cerco === 2) || 
+                (!c.altura_final_cerco && c.altura === 2)
+              ).length}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -276,7 +282,7 @@ export default function ConfiguracionesCercadoPage() {
           </p>
           <ul className="space-y-1 ml-4">
             <li>• Al crear presupuestos, el sistema calcula automáticamente de forma proporcional</li>
-            <li>• Para terrenos &lt;50m se aplica un recargo del 30% automáticamente</li>
+            <li>• Para terrenos &lt;50m se aplica un recargo del 50% automáticamente</li>
             <li>• Cada configuración incluye: tejido, postes, cordón, púa, accesorios, mano de obra y transporte</li>
           </ul>
         </CardContent>

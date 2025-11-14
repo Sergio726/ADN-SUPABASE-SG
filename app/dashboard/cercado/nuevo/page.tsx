@@ -43,6 +43,7 @@ export default function NuevaConfiguracionCercadoPage() {
     nombre: '',
     descripcion: '',
     altura: '2.00',
+    altura_final_cerco: '',
     tejido_config_id: '',
     tipo_poste: 'Eucalipto',
     
@@ -390,7 +391,7 @@ export default function NuevaConfiguracionCercadoPage() {
                       costoPua + totalAccesorios + costoManoObra + costoTransporte
 
     const precioMetro = total180m / 180
-    const precioMetroMenor50 = precioMetro * 1.30
+    const precioMetroMenor50 = precioMetro * 1.50
 
     return {
       accesorios: totalAccesorios,
@@ -608,7 +609,8 @@ export default function NuevaConfiguracionCercadoPage() {
         return nombreAccesorio.includes('planchuela') || nombreAccesorio.includes('placa')
       }
       if (nombreLower === 'torniquete') {
-        return nombreAccesorio.includes('torniquete') || nombreAccesorio.includes('tensor')
+        // Solo buscar artículos que contengan "torniquete" o "torniquet"
+        return nombreAccesorio.includes('torniquete') || nombreAccesorio.includes('torniquet')
       }
       if (nombreLower === 'esparrago') {
         return nombreAccesorio.includes('esparrago') || nombreAccesorio.includes('espárrago')
@@ -713,6 +715,7 @@ export default function NuevaConfiguracionCercadoPage() {
         nombre: formData.nombre,
         descripcion: formData.descripcion || null,
         altura: parseFloat(formData.altura),
+        altura_final_cerco: formData.altura_final_cerco ? parseFloat(formData.altura_final_cerco) : null,
         tejido_config_id: formData.tejido_config_id,
         tipo_poste: formData.tipo_poste,
         
@@ -914,6 +917,22 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectItem value="3.0">3.0 metros</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="altura_final_cerco">Altura Final del Cerco</Label>
+                  <Input
+                    id="altura_final_cerco"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={formData.altura_final_cerco}
+                    onChange={(e) => setFormData({ ...formData, altura_final_cerco: e.target.value })}
+                    placeholder="Ej: 1.3, 1.5, 1.8, 2.3, 2.5, 3.0, 3.5"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Altura final del cerco instalado en metros
+                  </p>
                 </div>
 
                 <div className="space-y-2">

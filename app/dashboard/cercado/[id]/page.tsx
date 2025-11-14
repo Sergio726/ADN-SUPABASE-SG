@@ -170,7 +170,7 @@ export default function VerConfiguracionCercadoPage() {
 
       const total180 = (costoTejido || 0) + (subtotalPostes || 0) + (costoCordon || 0) + (costoPua || 0) + (subtotalAccesorios || 0) + (costoManoObra || 0) + (costoTransporte || 0)
       const precioMetro = total180 / 180
-      const precioMetroMenor50 = precioMetro * 1.3
+      const precioMetroMenor50 = precioMetro * 1.5
 
       // 5) Actualizar configuración
       const { error: errUpd } = await supabase
@@ -270,8 +270,12 @@ export default function VerConfiguracionCercadoPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Altura de Tejido Romboidal</CardDescription>
-            <CardTitle className="text-3xl">{configuracion.altura}m</CardTitle>
+            <CardDescription>Altura Final del Cerco</CardDescription>
+            <CardTitle className="text-3xl">
+              {configuracion?.altura_final_cerco != null && configuracion?.altura_final_cerco !== undefined && configuracion?.altura_final_cerco !== '' 
+                ? `${Number(configuracion.altura_final_cerco).toFixed(1)}m` 
+                : `${configuracion?.altura || 0}m`}
+            </CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -316,6 +320,10 @@ export default function VerConfiguracionCercadoPage() {
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Código:</dt>
                   <dd className="font-mono font-semibold">{configuracion.tejido_codigo}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Altura:</dt>
+                  <dd className="font-semibold">{configuracion.altura}m</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Calibre:</dt>
@@ -483,7 +491,12 @@ export default function VerConfiguracionCercadoPage() {
                 <div className="flex justify-between pt-2 border-t">
                   <span className="font-semibold">Subtotal Postes:</span>
                   <span className="font-bold text-lg">
-                    ${configuracion.costo_postes_total?.toLocaleString()}
+                    ${(
+                      (configuracion.cantidad_postes_esquineros * configuracion.precio_poste_esquinero) +
+                      (configuracion.cantidad_postes_refuerzos * configuracion.precio_poste_refuerzo) +
+                      (configuracion.cantidad_postes_intermedios * configuracion.precio_poste_intermedio) +
+                      (configuracion.cantidad_puntales * configuracion.precio_puntal)
+                    )?.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -584,7 +597,15 @@ export default function VerConfiguracionCercadoPage() {
                 <div className="flex justify-between pt-2 border-t">
                   <span className="font-semibold">Subtotal Accesorios:</span>
                   <span className="font-bold text-lg">
-                    ${configuracion.precio_total_accesorios?.toLocaleString()}
+                    ${(
+                      (configuracion.cantidad_ganchos * configuracion.precio_unitario_ganchos) +
+                      (configuracion.cantidad_planchuelas * configuracion.precio_unitario_planchuelas) +
+                      (configuracion.cantidad_torniquetes * configuracion.precio_unitario_torniquetes) +
+                      (configuracion.cantidad_esparragos * configuracion.precio_unitario_esparragos) +
+                      (configuracion.metros_alambre_ar * configuracion.precio_metro_alambre_ar) +
+                      (configuracion.kg_clavos * configuracion.precio_kg_clavos) +
+                      (configuracion.kg_alambre_negro * configuracion.precio_kg_alambre_negro)
+                    )?.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -635,7 +656,7 @@ export default function VerConfiguracionCercadoPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Precio/m (terrenos &lt;50m) +30%:</span>
+                  <span className="text-sm text-muted-foreground">Precio/m (terrenos &lt;50m) +50%:</span>
                   <span className="text-lg font-bold text-orange-600">
                     ${configuracion.precio_por_metro_menor_50m?.toLocaleString()}
                   </span>
@@ -659,7 +680,7 @@ export default function VerConfiguracionCercadoPage() {
           </p>
           <ul className="space-y-1 ml-4">
             <li>• El sistema calcula de forma proporcional según los metros lineales del terreno</li>
-            <li>• Para terrenos menores a 50 metros lineales, se aplica automáticamente un recargo del 30%</li>
+            <li>• Para terrenos menores a 50 metros lineales, se aplica automáticamente un recargo del 50%</li>
             <li>• Todos los componentes se ajustan proporcionalmente (postes, accesorios, mano de obra, etc.)</li>
           </ul>
         </CardContent>
