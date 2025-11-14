@@ -54,7 +54,7 @@ BEGIN
       
       NEW.precio_base_180m := v_total;
       NEW.precio_por_metro_lineal := v_total / 180;
-      NEW.precio_por_metro_menor_50m := (v_total / 180) * 1.30;
+      NEW.precio_por_metro_menor_50m := (v_total / 180) * 1.50;
     END;
   END IF;
   

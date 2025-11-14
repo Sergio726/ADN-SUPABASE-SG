@@ -184,7 +184,7 @@ export default function NuevoPresupuestoCercadoPage() {
 
     // Recargo para terrenos pequeños
     if (metros < 50) {
-      subtotal = subtotal * 1.30
+      subtotal = subtotal * 1.50
     }
 
     const descuento = parseFloat(formData.descuento) || 0
@@ -526,7 +526,7 @@ export default function NuevoPresupuestoCercadoPage() {
                   <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-sm text-amber-800">
                     <p className="font-semibold">⚠️ Terreno pequeño</p>
                     <p className="text-xs mt-1">
-                      Terrenos menores a 50 metros lineales tienen un recargo del 30% por costos fijos.
+                      Terrenos menores a 50 metros lineales tienen un recargo del 50% por costos fijos.
                     </p>
                   </div>
                 )}

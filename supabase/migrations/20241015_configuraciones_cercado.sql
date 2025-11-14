@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS configuraciones_cercado (
   -- Precio total para 180m base
   precio_base_180m DECIMAL(12,2),
   precio_por_metro_lineal DECIMAL(10,2),
-  precio_por_metro_menor_50m DECIMAL(10,2), -- Con recargo 30%
+  precio_por_metro_menor_50m DECIMAL(10,2), -- Con recargo 50%
   
   -- Control
   activo BOOLEAN DEFAULT true,
@@ -204,7 +204,7 @@ BEGIN
     v_costo_transporte,
     v_total,
     (v_total / v_metros_base) as precio_metro,
-    (v_total / v_metros_base * 1.30) as precio_metro_menor_50;
+    (v_total / v_metros_base * 1.50) as precio_metro_menor_50;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -262,7 +262,7 @@ BEGIN
   
   -- Recargo para terrenos pequeños
   IF p_metros_lineales < 50 THEN
-    v_recargo := 1.30;
+    v_recargo := 1.50;
   END IF;
   
   -- Calcular rollos necesarios
@@ -437,6 +437,10 @@ COMMENT ON VIEW v_configuraciones_cercado_completas IS 'Vista con información c
 -- =====================================================
 -- Añadir referencia en presupuestos
 -- =====================================================
+-- Eliminar constraint si existe antes de crearla
+ALTER TABLE presupuestos 
+DROP CONSTRAINT IF EXISTS fk_cercado_config;
+
 ALTER TABLE presupuestos 
 ADD CONSTRAINT fk_cercado_config 
 FOREIGN KEY (cercado_config_id) 

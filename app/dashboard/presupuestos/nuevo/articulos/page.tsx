@@ -642,7 +642,7 @@ export default function NuevoPresupuestoArticulosPage() {
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-32">Tipo</th>
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[180px] sm:min-w-[200px]">Producto</th>
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[200px] sm:min-w-[250px]">Descripción</th>
-                          <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-28">Cant.</th>
+                          <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[90px] sm:min-w-[100px]">Cant.</th>
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm w-20">Unidad</th>
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">P. Unit.</th>
                           <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">Total</th>
@@ -734,15 +734,15 @@ export default function NuevoPresupuestoArticulosPage() {
                               }}
                             />
                           </td>
-                          <td className="p-2">
+                          <td className="p-2 min-w-[90px] sm:min-w-[100px]">
                             <Input
                               type="number"
-                                min="1"
-                                step="1"
+                              min={item.tipo === 'tejido' ? '0.01' : '1'}
+                              step={item.tipo === 'tejido' ? '0.01' : '1'}
                               value={item.cantidad}
                               onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
-                              placeholder="1"
-                                className="h-9 w-full text-right"
+                              placeholder={item.tipo === 'tejido' ? '1.5' : '1'}
+                              className="h-9 w-full text-right"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault()
@@ -929,11 +929,11 @@ export default function NuevoPresupuestoArticulosPage() {
                             <Label className="text-xs uppercase text-muted-foreground">Cantidad</Label>
                             <Input
                               type="number"
-                              min="1"
-                              step="1"
+                              min={item.tipo === 'tejido' ? '0.01' : '1'}
+                              step={item.tipo === 'tejido' ? '0.01' : '1'}
                               value={item.cantidad}
                               onChange={(e) => actualizarItem(item.id, 'cantidad', e.target.value)}
-                              placeholder="1"
+                              placeholder={item.tipo === 'tejido' ? '1.5' : '1'}
                               className="h-10 text-right"
                             />
                           </div>
