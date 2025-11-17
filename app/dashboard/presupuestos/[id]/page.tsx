@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Label } from '@/components/ui/label'
 import { ProductoCombobox } from '@/components/ProductoCombobox'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function VerPresupuestoPage() {
   const params = useParams()
@@ -112,15 +113,43 @@ export default function VerPresupuestoPage() {
           clienteInfo?.numero_documento ||
           '',
       })
-      // Agregar tipo a cada item basado en si tiene articulo_id o tejido_config_id
-      const itemsConTipo = (itemsData || []).map(item => ({
-        ...item,
-        tipo: item.tejido_config_id ? 'tejido' as const : 'articulo' as const,
-        cantidad: item.cantidad?.toString() || '1',
-        precio_unitario: item.precio_unitario?.toString() || '0',
-      }))
-      setItems(itemsConTipo)
-      setItemsEditables(itemsConTipo)
+      // Procesar items según tipo de presupuesto
+      const itemsProcesados = (itemsData || []).map(item => {
+        const itemBase = {
+          ...item,
+          cantidad: item.cantidad?.toString() || '1',
+          precio_unitario: item.precio_unitario?.toString() || '0',
+        }
+        
+        // Para presupuestos de artículos, agregar tipo
+        if (presData?.tipo === 'articulos') {
+          return {
+            ...itemBase,
+            tipo: item.tejido_config_id ? 'tejido' as const : 'articulo' as const,
+          }
+        }
+        
+        // Para presupuestos generales, calcular precio_base desde precio_unitario
+        if (presData?.tipo === 'general') {
+          const factor = presData.forma_pago === 'efectivo' ? 1.0 : 
+                         presData.forma_pago === 'tarjeta' ? 1.3 :
+                         presData.forma_pago === 'echeq90' ? 1.4 : 1.21
+          const precioUnitario = parseFloat(item.precio_unitario) || 0
+          const precioBase = precioUnitario / factor
+          return {
+            ...itemBase,
+            precio_base: precioBase.toString(),
+          }
+        }
+        
+        // Para cercados, agregar tipo
+        return {
+          ...itemBase,
+          tipo: 'articulo' as const,
+        }
+      })
+      setItems(itemsProcesados)
+      setItemsEditables(itemsProcesados)
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -292,33 +321,56 @@ export default function VerPresupuestoPage() {
         if (item.id !== id) return item
         const itemActualizado: any = { ...item, [campo]: valor }
         
-        // Si cambia el tipo, limpiar referencias al otro tipo
-        if (campo === 'tipo') {
-          if (valor === 'articulo') {
-            itemActualizado.tejido_config_id = null
-            itemActualizado.articulo_id = null
-          } else {
-            itemActualizado.articulo_id = null
-            itemActualizado.tejido_config_id = null
+        // Si es presupuesto general, manejar precio_base
+        if (presupuesto.tipo === 'general') {
+          // Si cambia precio_base, recalcular precio_unitario según forma de pago
+          if (campo === 'precio_base') {
+            const precioBase = parseFloat(valor) || 0
+            const factor = factorFormaPago(presupuesto.forma_pago || 'lista')
+            itemActualizado.precio_unitario = (precioBase * factor).toString()
           }
-        }
-        
-        // Recalcular precio_total si cambia cantidad o precio_unitario
-        if (campo === 'cantidad' || campo === 'precio_unitario') {
-          const cantidad = parseFloat(campo === 'cantidad' ? valor : item.cantidad) || 0
-          const precio = parseFloat(campo === 'precio_unitario' ? valor : item.precio_unitario) || 0
-          itemActualizado.precio_total = cantidad * precio
+          
+          // Recalcular precio_total
+          if (campo === 'cantidad' || campo === 'precio_base') {
+            const cantidad = parseFloat(campo === 'cantidad' ? valor : item.cantidad) || 0
+            const precioBase = parseFloat(campo === 'precio_base' ? valor : (item.precio_base || item.precio_unitario ? (parseFloat(item.precio_unitario) / factorFormaPago(presupuesto.forma_pago || 'lista')).toString() : '0')) || 0
+            const factor = factorFormaPago(presupuesto.forma_pago || 'lista')
+            const precioUnitario = precioBase * factor
+            itemActualizado.precio_total = cantidad * precioUnitario
+            itemActualizado.precio_unitario = precioUnitario.toString()
+          }
+        } else {
+          // Para presupuestos de artículos
+          // Si cambia el tipo, limpiar referencias al otro tipo
+          if (campo === 'tipo') {
+            if (valor === 'articulo') {
+              itemActualizado.tejido_config_id = null
+              itemActualizado.articulo_id = null
+            } else {
+              itemActualizado.articulo_id = null
+              itemActualizado.tejido_config_id = null
+            }
+          }
+          
+          // Recalcular precio_total si cambia cantidad o precio_unitario
+          if (campo === 'cantidad' || campo === 'precio_unitario') {
+            const cantidad = parseFloat(campo === 'cantidad' ? valor : item.cantidad) || 0
+            const precio = parseFloat(campo === 'precio_unitario' ? valor : item.precio_unitario) || 0
+            itemActualizado.precio_total = cantidad * precio
+          }
         }
         
         return itemActualizado
       })
     })
 
-    // Si se selecciona un artículo o tejido, obtener precio automáticamente
-    if (campo === 'articulo_id' && valor) {
-      await seleccionarArticulo(id, valor)
-    } else if (campo === 'tejido_id' && valor) {
-      await seleccionarTejido(id, valor)
+    // Si se selecciona un artículo o tejido, obtener precio automáticamente (solo para artículos)
+    if (presupuesto.tipo === 'articulos') {
+      if (campo === 'articulo_id' && valor) {
+        await seleccionarArticulo(id, valor)
+      } else if (campo === 'tejido_config_id' && valor) {
+        await seleccionarTejido(id, valor)
+      }
     }
   }
 
@@ -326,21 +378,54 @@ export default function VerPresupuestoPage() {
     setItemsEditables(itemsEditables.filter(item => item.id !== id))
   }
 
-  function agregarItemEditable() {
-    const nuevoItem = {
-      id: `temp-${Date.now()}`,
-      presupuesto_id: presupuesto.id,
-      tipo: 'articulo' as 'articulo' | 'tejido',
-      descripcion: '',
-      cantidad: '1',
-      unidad: 'unidad',
-      precio_unitario: '0',
-      precio_total: 0,
-      orden: itemsEditables.length + 1,
-      articulo_id: null,
-      tejido_config_id: null,
+  const unidadesComunes = ['unidad', 'metro', 'kg', 'rollo', 'hora', 'día', 'm2', 'm3', 'servicio']
+
+  function factorFormaPago(fp: string): number {
+    switch (fp) {
+      case 'efectivo': return 1.0
+      case 'lista': return 1.21
+      case 'tarjeta': return 1.3
+      case 'echeq45': return 1.21
+      case 'echeq60': return 1.3
+      case 'echeq90': return 1.4
+      default: return 1.21
     }
-    setItemsEditables([...itemsEditables, nuevoItem])
+  }
+
+  function agregarItemEditable() {
+    if (presupuesto.tipo === 'general') {
+      // Item para presupuesto general
+      const nuevoItem = {
+        id: `temp-${Date.now()}`,
+        presupuesto_id: presupuesto.id,
+        descripcion: '',
+        cantidad: '1',
+        unidad: 'unidad',
+        precio_base: '0',
+        precio_unitario: '0',
+        precio_total: 0,
+        orden: itemsEditables.length + 1,
+        articulo_id: null,
+        tejido_config_id: null,
+      }
+      setItemsEditables([...itemsEditables, nuevoItem])
+    } else {
+      // Item para presupuesto de artículos
+      const nuevoItem = {
+        id: `temp-${Date.now()}`,
+        presupuesto_id: presupuesto.id,
+        tipo: 'articulo' as 'articulo' | 'tejido',
+        descripcion: '',
+        cantidad: '1',
+        unidad: 'unidad',
+        precio_unitario: '0',
+        precio_total: 0,
+        orden: itemsEditables.length + 1,
+        articulo_id: null,
+        tejido_config_id: null,
+      }
+      setItemsEditables([...itemsEditables, nuevoItem])
+    }
   }
 
   const unidadesDisponibles = useMemo(() => {
@@ -992,6 +1077,175 @@ export default function VerPresupuestoPage() {
                         Agregar Primer Item
                       </Button>
                     </div>
+                  ) : presupuesto.tipo === 'general' ? (
+                    <>
+                      <div className="hidden overflow-x-auto sm:block">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b-2">
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-10 sm:w-12">#</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[250px] sm:min-w-[300px]">Descripción</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[90px] sm:min-w-[100px]">Cant.</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-28">Unidad</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">P. Base</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">P. Unit.</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">Total</th>
+                              <th className="p-2 text-center text-xs font-semibold sm:text-sm w-10 sm:w-12"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {itemsEditables.map((item, index) => (
+                              <tr 
+                                key={item.id} 
+                                className="border-b"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && e.ctrlKey) {
+                                    e.preventDefault()
+                                    agregarItemEditable()
+                                  }
+                                }}
+                              >
+                                <td className="p-2 text-center text-muted-foreground font-medium">
+                                  {index + 1}
+                                </td>
+                                <td className="p-2">
+                                  <Textarea
+                                    value={item.descripcion || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'descripcion', e.target.value)}
+                                    placeholder="Descripción del producto/servicio..."
+                                    className="min-h-[80px] w-full resize-y text-sm"
+                                    rows={3}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && e.ctrlKey) {
+                                        e.preventDefault()
+                                        agregarItemEditable()
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2 min-w-[90px] sm:min-w-[100px]">
+                                  <Input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={item.cantidad || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'cantidad', e.target.value)}
+                                    placeholder="1"
+                                    className="h-9 w-full text-right"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        agregarItemEditable()
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <Select
+                                    value={item.unidad || 'unidad'}
+                                    onValueChange={(value) => actualizarItemEditable(item.id, 'unidad', value)}
+                                  >
+                                    <SelectTrigger className="h-9 w-full">
+                                      <SelectValue placeholder="Seleccionar unidad" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {unidadesComunes.map((unidad) => (
+                                        <SelectItem key={unidad} value={unidad}>
+                                          {unidad}
+                                        </SelectItem>
+                                      ))}
+                                      {item.unidad && !unidadesComunes.includes(item.unidad) && (
+                                        <SelectItem value={item.unidad}>
+                                          {item.unidad}
+                                        </SelectItem>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="p-2">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.precio_base || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'precio_base', e.target.value)}
+                                    placeholder="0.00"
+                                    className="h-9 w-full text-right"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        agregarItemEditable()
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <span className="block h-9 w-full leading-9 text-right text-sm font-semibold text-muted-foreground">
+                                    ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </td>
+                                <td className="p-2">
+                                  <div className="font-bold text-green-600 text-right">
+                                    ${Number(item.precio_total || 0).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </div>
+                                </td>
+                                <td className="p-2 text-center">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => eliminarItemEditable(item.id)}
+                                    className="h-8 w-8 p-0 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {/* Fila de totales */}
+                            <tr className="border-t-2 bg-muted/30">
+                              <td colSpan={6} className="p-3 text-right font-semibold">
+                                Subtotal:
+                              </td>
+                              <td className="p-3 font-bold text-lg text-green-600">
+                                ${itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <div className="mt-4 flex justify-end">
+                          <Button 
+                            type="button" 
+                            onClick={agregarItemEditable} 
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nueva Fila (Ctrl+Enter)
+                          </Button>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                          <p className="font-semibold mb-1">💡 Atajos de teclado:</p>
+                          <ul className="space-y-1">
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Tab</kbd> - Navegar entre columnas</li>
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Ctrl+Enter</kbd> - Agregar nueva fila</li>
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Clic en ❌</kbd> - Eliminar fila</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="hidden overflow-x-auto sm:block">
@@ -1222,7 +1476,92 @@ export default function VerPresupuestoPage() {
                               )}
                             </div>
 
-                            {modoEdicion ? (
+                            {modoEdicion ? presupuesto.tipo === 'general' ? (
+                              <div className="space-y-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs uppercase text-muted-foreground">Descripción</Label>
+                                  <Textarea
+                                    value={item.descripcion || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'descripcion', e.target.value)}
+                                    placeholder="Descripción del producto/servicio..."
+                                    className="min-h-[80px] w-full resize-y"
+                                    rows={3}
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Cantidad</Label>
+                                    <Input
+                                      type="number"
+                                      min="0.01"
+                                      step="0.01"
+                                      value={item.cantidad || ''}
+                                      onChange={(e) => actualizarItemEditable(item.id, 'cantidad', e.target.value)}
+                                      placeholder="1"
+                                      className="h-10 text-right"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Unidad</Label>
+                                    <Select
+                                      value={item.unidad || 'unidad'}
+                                      onValueChange={(value) => actualizarItemEditable(item.id, 'unidad', value)}
+                                    >
+                                      <SelectTrigger className="h-10">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {unidadesComunes.map((unidad) => (
+                                          <SelectItem key={unidad} value={unidad}>
+                                            {unidad}
+                                          </SelectItem>
+                                        ))}
+                                        {item.unidad && !unidadesComunes.includes(item.unidad) && (
+                                          <SelectItem value={item.unidad}>
+                                            {item.unidad}
+                                          </SelectItem>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Precio Base</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={item.precio_base || ''}
+                                      onChange={(e) => actualizarItemEditable(item.id, 'precio_base', e.target.value)}
+                                      placeholder="0.00"
+                                      className="h-10 text-right"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Precio Unitario</Label>
+                                    <div className="h-10 rounded-md border border-input bg-muted/50 px-3 text-right font-semibold leading-[2.5rem] text-muted-foreground">
+                                      ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1 pt-2 border-t">
+                                  <Label className="text-xs uppercase text-muted-foreground">Total</Label>
+                                  <div className="h-10 rounded-md border border-input bg-green-50 px-3 text-right font-bold leading-[2.5rem] text-green-600">
+                                    ${Number(item.precio_total || 0).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
                               <div className="space-y-3">
                                 <div className="space-y-1">
                                   <Label className="text-xs uppercase text-muted-foreground">Tipo</Label>
