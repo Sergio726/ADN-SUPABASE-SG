@@ -305,6 +305,137 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 
 ## 🏭 Operaciones y Logística
 
+### Cálculo Automático de Materiales para Cercados
+- **Fecha:** 2025-02-01
+- **Prioridad:** [Alta]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Sistema inteligente que calcula automáticamente la cantidad de accesorios, tejidos y materiales necesarios para cualquier tipo de cercado basándose en las dimensiones del terreno y características del cerco.
+- **Funcionalidades específicas:**
+  - **Cálculo automático de tejido romboidal:**
+    - Basado en metros lineales del perímetro del terreno
+    - Considerar altura del tejido seleccionado
+    - Calcular rollos necesarios según largo del rollo (10m, 20m, etc.)
+    - Considerar desperdicios y solapes (margen de seguridad configurable, ej: 5-10%)
+    - Ajuste automático según tipo de terreno (rectangular, irregular, con curvas)
+  - **Cálculo automático de postes:**
+    - **Postes esquineros:** 
+      - 4 postes para terreno rectangular estándar
+      - Ajuste según número de esquinas del terreno
+      - Considerar refuerzos en esquinas según altura del cerco
+    - **Postes intermedios:**
+      - Cálculo basado en separación estándar (ej: cada 2.5m o 3m)
+      - Fórmula: `Cantidad = (Metros lineales / Separación) - Postes esquineros`
+      - Ajuste según altura del cerco (mayor altura = menor separación)
+    - **Postes de refuerzo:**
+      - En portones y entradas principales
+      - En tramos largos (>50m) cada X metros
+      - En terrenos con pendiente pronunciada
+    - **Puntales:**
+      - Cálculo según altura del cerco y tipo de terreno
+      - Mayor cantidad en terrenos con vientos fuertes
+      - Considerar normativas locales si aplica
+  - **Cálculo automático de púa:**
+    - Basado en metros lineales del perímetro
+    - Considerar número de hilos de púa configurado
+    - Fórmula: `Metros de púa = Metros lineales × Número de hilos`
+    - Ajuste por desperdicios en instalación
+  - **Cálculo automático de accesorios:**
+    - **Ganchos:**
+      - Basado en separación estándar (ej: cada 50cm o 1m)
+      - Fórmula: `Cantidad = (Metros lineales / Separación) × Factor de seguridad`
+      - Considerar tipo de tejido (mayor cantidad para tejidos más pesados)
+    - **Planchuelas:**
+      - En uniones de postes y tejido
+      - En esquinas y refuerzos
+      - Cálculo: `Cantidad = (Postes totales × Factor) + (Esquinas × 2)`
+    - **Torniquetes/Tensores:**
+      - Para tensar el tejido en tramos largos
+      - Cálculo: `Cantidad = (Metros lineales / Longitud de tramo) × Factor`
+      - Mayor cantidad en terrenos irregulares
+    - **Espárragos:**
+      - Para fijación de postes
+      - Cálculo: `Cantidad = Postes totales × Espárragos por poste (típicamente 4)`
+      - Ajuste según tipo de suelo (mayor cantidad en suelos blandos)
+    - **Alambre A/R (Alambre Recocido):**
+      - Para atar tejido a postes
+      - Cálculo: `Metros = (Metros lineales × Factor de atado) + Desperdicios`
+      - Factor típico: 1.5x a 2x los metros lineales
+    - **Clavos:**
+      - Para fijación de accesorios
+      - Cálculo basado en tipo y cantidad de accesorios
+      - Estimación: `Kg = (Cantidad accesorios × Factor) / Clavos por kg`
+    - **Alambre negro:**
+      - Para refuerzos y ataduras adicionales
+      - Cálculo complementario al alambre A/R
+  - **Cálculo automático de materiales de construcción (cordón):**
+    - **Arena:**
+      - Basado en volumen de zanja para postes
+      - Cálculo: `m³ = (Postes × Volumen zanja por poste) × Factor`
+      - Considerar tipo de suelo (mayor volumen en suelos blandos)
+    - **Ripio:**
+      - Similar a arena, para base de postes
+      - Ajuste según especificaciones técnicas
+    - **Cemento:**
+      - Para hormigón de postes
+      - Cálculo: `Bolsas = (Postes × Volumen hormigón por poste) / Rendimiento por bolsa`
+      - Considerar tipo de poste (mayor cantidad para postes más pesados)
+  - **Parámetros configurables:**
+    - Separación estándar entre postes (2m, 2.5m, 3m, etc.)
+    - Factor de desperdicio por tipo de material (5%, 10%, 15%)
+    - Separación de ganchos (50cm, 75cm, 1m)
+    - Longitud de tramo para torniquetes
+    - Volumen de zanja por poste
+    - Rendimiento de materiales de construcción
+  - **Ajustes según tipo de terreno:**
+    - **Terreno rectangular estándar:**
+      - Cálculos lineales simples
+      - Postes esquineros = 4
+    - **Terreno irregular:**
+      - Factor de corrección para perímetro real
+      - Mayor cantidad de postes intermedios
+      - Más accesorios para adaptación
+    - **Terreno con curvas:**
+      - Postes adicionales en curvas
+      - Ajuste de separación en tramos curvos
+    - **Terreno con pendiente:**
+      - Postes de refuerzo adicionales
+      - Ajuste de materiales de construcción
+  - **Ajustes según altura del cerco:**
+    - Mayor altura = menor separación entre postes
+    - Mayor cantidad de refuerzos
+    - Más materiales de construcción (postes más profundos)
+    - Mayor cantidad de accesorios de fijación
+  - **Validaciones y alertas:**
+    - Alertar si las cantidades calculadas parecen incorrectas
+    - Sugerir ajustes manuales cuando sea necesario
+    - Validar que todos los materiales estén disponibles en stock
+    - Mostrar advertencias para terrenos muy grandes o muy pequeños
+  - **Visualización de cálculo:**
+    - Mostrar desglose detallado de cómo se calculó cada cantidad
+    - Explicar fórmulas y factores aplicados
+    - Permitir ajuste manual de cantidades calculadas
+    - Guardar ajustes como "sobrescritura" para casos especiales
+  - **Exportación de lista de materiales:**
+    - Generar lista completa de materiales calculados
+    - Incluir cantidades, unidades, y referencias
+    - Formato para enviar a proveedores
+    - Integración con sistema de compras
+- **Beneficios esperados:**
+  - Reducción de errores en cálculo de materiales
+  - Ahorro de tiempo en presupuestación
+  - Optimización de compras (evitar exceso o falta de materiales)
+  - Mayor precisión en costos estimados
+  - Estandarización de cálculos entre vendedores
+  - Mejor planificación de proyectos
+- **Casos de uso:**
+  - Presupuesto rápido para terreno rectangular estándar
+  - Presupuesto para terreno irregular con múltiples lados
+  - Presupuesto para cerco de gran altura (mayor a 2.5m)
+  - Presupuesto para terrenos con pendiente
+  - Validación de presupuestos manuales existentes
+  - Generación de órdenes de compra automáticas
+
 ### Gestión de Inventario Avanzada
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Media]
@@ -716,6 +847,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 - 🔄 Sistema de roles y permisos básico
 - 🔄 Exportación de lista de precios
 - 🔄 Exportación de lista de stock
+- 🔄 Cálculo automático de materiales para cercados
 
 ### Fase 2: CRM, Analytics y Finanzas (Q2 2025)
 - 🔄 Funcionalidades CRM básicas
