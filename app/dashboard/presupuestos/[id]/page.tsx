@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, Trash2, ChevronDown, Edit, Save, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,8 @@ import { generarPDFPresupuesto, generarPDFRemito } from '@/lib/pdf-generator'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Label } from '@/components/ui/label'
+import { ProductoCombobox } from '@/components/ProductoCombobox'
 
 export default function VerPresupuestoPage() {
   const params = useParams()
@@ -21,15 +23,22 @@ export default function VerPresupuestoPage() {
   const { toast } = useToast()
   const [presupuesto, setPresupuesto] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
+  const [itemsEditables, setItemsEditables] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [vendedorNombre, setVendedorNombre] = useState<string>('')
   const [eliminando, setEliminando] = useState(false)
   const [confirmacionAbierta, setConfirmacionAbierta] = useState(false)
   const [textoConfirmacion, setTextoConfirmacion] = useState('')
   const [itemsAbiertos, setItemsAbiertos] = useState(true)
+  const [modoEdicion, setModoEdicion] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [articulos, setArticulos] = useState<any[]>([])
+  const [tejidos, setTejidos] = useState<any[]>([])
 
   useEffect(() => {
     cargarPresupuesto()
+    cargarArticulos()
+    cargarTejidos()
   }, [params.id])
 
   async function cargarPresupuesto() {
@@ -103,7 +112,15 @@ export default function VerPresupuestoPage() {
           clienteInfo?.numero_documento ||
           '',
       })
-      setItems(itemsData || [])
+      // Agregar tipo a cada item basado en si tiene articulo_id o tejido_config_id
+      const itemsConTipo = (itemsData || []).map(item => ({
+        ...item,
+        tipo: item.tejido_config_id ? 'tejido' as const : 'articulo' as const,
+        cantidad: item.cantidad?.toString() || '1',
+        precio_unitario: item.precio_unitario?.toString() || '0',
+      }))
+      setItems(itemsConTipo)
+      setItemsEditables(itemsConTipo)
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -115,6 +132,23 @@ export default function VerPresupuestoPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function cargarArticulos() {
+    const { data } = await supabase
+      .from('articulos')
+      .select('id, nombre, unidad, publicado')
+      .order('nombre')
+    setArticulos(data || [])
+  }
+
+  async function cargarTejidos() {
+    const { data } = await supabase
+      .from('v_tejidos_con_precios')
+      .select('id, codigo, nombre, precio_venta, precio_lista, altura, tamano_rombo, calibre')
+      .eq('activo', true)
+      .order('codigo')
+    setTejidos(data || [])
   }
 
   async function cambiarEstado(nuevoEstado: string) {
@@ -240,6 +274,282 @@ export default function VerPresupuestoPage() {
       })
       setEliminando(false)
     }
+  }
+
+  function iniciarEdicion() {
+    setItemsEditables([...items])
+    setModoEdicion(true)
+  }
+
+  function cancelarEdicion() {
+    setItemsEditables([...items])
+    setModoEdicion(false)
+  }
+
+  async function actualizarItemEditable(id: string, campo: string, valor: any) {
+    setItemsEditables((prevItems) => {
+      return prevItems.map((item) => {
+        if (item.id !== id) return item
+        const itemActualizado: any = { ...item, [campo]: valor }
+        
+        // Si cambia el tipo, limpiar referencias al otro tipo
+        if (campo === 'tipo') {
+          if (valor === 'articulo') {
+            itemActualizado.tejido_config_id = null
+            itemActualizado.articulo_id = null
+          } else {
+            itemActualizado.articulo_id = null
+            itemActualizado.tejido_config_id = null
+          }
+        }
+        
+        // Recalcular precio_total si cambia cantidad o precio_unitario
+        if (campo === 'cantidad' || campo === 'precio_unitario') {
+          const cantidad = parseFloat(campo === 'cantidad' ? valor : item.cantidad) || 0
+          const precio = parseFloat(campo === 'precio_unitario' ? valor : item.precio_unitario) || 0
+          itemActualizado.precio_total = cantidad * precio
+        }
+        
+        return itemActualizado
+      })
+    })
+
+    // Si se selecciona un artículo o tejido, obtener precio automáticamente
+    if (campo === 'articulo_id' && valor) {
+      await seleccionarArticulo(id, valor)
+    } else if (campo === 'tejido_id' && valor) {
+      await seleccionarTejido(id, valor)
+    }
+  }
+
+  function eliminarItemEditable(id: string) {
+    setItemsEditables(itemsEditables.filter(item => item.id !== id))
+  }
+
+  function agregarItemEditable() {
+    const nuevoItem = {
+      id: `temp-${Date.now()}`,
+      presupuesto_id: presupuesto.id,
+      tipo: 'articulo' as 'articulo' | 'tejido',
+      descripcion: '',
+      cantidad: '1',
+      unidad: 'unidad',
+      precio_unitario: '0',
+      precio_total: 0,
+      orden: itemsEditables.length + 1,
+      articulo_id: null,
+      tejido_config_id: null,
+    }
+    setItemsEditables([...itemsEditables, nuevoItem])
+  }
+
+  const unidadesDisponibles = useMemo(() => {
+    const unidades = new Set<string>()
+    articulos.forEach((articulo) => {
+      if (articulo?.unidad) unidades.add(articulo.unidad)
+    })
+    itemsEditables.forEach((item) => {
+      if (item.unidad) unidades.add(item.unidad)
+    })
+    return Array.from(unidades).sort((a, b) => a.localeCompare(b))
+  }, [articulos, itemsEditables])
+
+  const filtrosTejidos = useMemo(() => {
+    const alturas = new Set<string>()
+    const rombos = new Set<string>()
+    const calibres = new Set<string>()
+
+    tejidos.forEach((tejido) => {
+      if (tejido?.altura !== undefined && tejido?.altura !== null) {
+        alturas.add(tejido.altura.toString())
+      }
+      if (tejido?.tamano_rombo !== undefined && tejido?.tamano_rombo !== null) {
+        rombos.add(tejido.tamano_rombo.toString())
+      }
+      if (tejido?.calibre !== undefined && tejido?.calibre !== null) {
+        calibres.add(tejido.calibre.toString())
+      }
+    })
+
+    const formatOptions = (values: Set<string>, suffix?: string) => {
+      const arr = Array.from(values).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
+      return [
+        { value: 'todos', label: 'Todos' },
+        ...arr.map((value) => ({
+          value,
+          label: suffix ? `${value}${suffix}` : value,
+        })),
+      ]
+    }
+
+    return [
+      {
+        key: 'altura',
+        label: 'Altura',
+        options: formatOptions(alturas, 'm'),
+      },
+      {
+        key: 'tamano_rombo',
+        label: 'Rombo',
+        options: formatOptions(rombos),
+      },
+      {
+        key: 'calibre',
+        label: 'Calibre',
+        options: formatOptions(calibres),
+      },
+    ]
+  }, [tejidos])
+
+  async function guardarCambios() {
+    if (!presupuesto) return
+
+    if (itemsEditables.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debes tener al menos un item en el presupuesto",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setGuardando(true)
+    try {
+      // Identificar items a eliminar (existen en BD pero no en editables)
+      const itemsExistentesIds = items.map(item => item.id)
+      const itemsEditablesIds = itemsEditables.map(item => item.id).filter(id => !id.toString().startsWith('temp-'))
+      const itemsAEliminar = itemsExistentesIds.filter(id => !itemsEditablesIds.includes(id))
+
+      // Eliminar items
+      if (itemsAEliminar.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('presupuestos_items')
+          .delete()
+          .in('id', itemsAEliminar)
+
+        if (deleteError) throw deleteError
+      }
+
+      // Actualizar o insertar items
+      for (let i = 0; i < itemsEditables.length; i++) {
+        const item = itemsEditables[i]
+        if (item.id.toString().startsWith('temp-')) {
+          // Nuevo item - insertar
+          const { error: insertError } = await supabase
+            .from('presupuestos_items')
+            .insert({
+              presupuesto_id: presupuesto.id,
+              descripcion: item.descripcion,
+              cantidad: parseFloat(item.cantidad) || 0,
+              unidad: item.unidad,
+              precio_unitario: parseFloat(item.precio_unitario) || 0,
+              precio_total: parseFloat(item.precio_total) || 0,
+              orden: i + 1,
+              articulo_id: item.articulo_id || null,
+              tejido_config_id: item.tejido_config_id || null,
+            })
+
+          if (insertError) throw insertError
+        } else {
+          // Item existente - actualizar
+          const { error: updateError } = await supabase
+            .from('presupuestos_items')
+            .update({
+              descripcion: item.descripcion,
+              cantidad: parseFloat(item.cantidad) || 0,
+              unidad: item.unidad,
+              precio_unitario: parseFloat(item.precio_unitario) || 0,
+              precio_total: parseFloat(item.precio_total) || 0,
+              orden: i + 1,
+            })
+            .eq('id', item.id)
+
+          if (updateError) throw updateError
+        }
+      }
+
+      // El trigger de la BD recalcula los totales automáticamente
+      // Recargar presupuesto para obtener los nuevos totales
+      await cargarPresupuesto()
+
+      toast({
+        title: "¡Cambios guardados!",
+        description: "El presupuesto se ha actualizado correctamente",
+      })
+
+      setModoEdicion(false)
+    } catch (error: any) {
+      console.error('Error al guardar:', error)
+      toast({
+        title: "Error al guardar cambios",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  async function seleccionarArticulo(itemId: string, articuloId: string) {
+    const articulo = articulos.find(a => a.id === parseInt(articuloId))
+    if (!articulo) return
+
+    // Obtener precio vigente
+    const { data: precioData } = await supabase
+      .from('precios_venta')
+      .select('precio_venta')
+      .eq('articulo_id', articuloId)
+      .eq('vigente', true)
+      .single()
+
+    const precioBase = precioData?.precio_venta || 0
+    const factor = presupuesto.forma_pago === 'efectivo' ? 1.0 : 
+                   presupuesto.forma_pago === 'tarjeta' ? 1.3 :
+                   presupuesto.forma_pago === 'echeq90' ? 1.4 : 1.21
+    const precioUnitario = precioBase * factor
+
+    setItemsEditables((prevItems) => {
+      return prevItems.map((item) => {
+        if (item.id !== itemId) return item
+        const cantidad = parseFloat(item.cantidad) || 0
+        return {
+          ...item,
+          descripcion: articulo.nombre,
+          unidad: articulo.unidad,
+          precio_unitario: precioUnitario.toString(),
+          precio_total: cantidad * precioUnitario,
+          articulo_id: parseInt(articuloId),
+          tipo: 'articulo' as const,
+        }
+      })
+    })
+  }
+
+  async function seleccionarTejido(itemId: string, tejidoId: string) {
+    const tejido = tejidos.find(t => t.id === tejidoId)
+    if (!tejido) return
+
+    const precioBase = tejido.precio_venta || 0
+    const factor = presupuesto.forma_pago === 'efectivo' ? 1.0 : 
+                   presupuesto.forma_pago === 'tarjeta' ? 1.3 :
+                   presupuesto.forma_pago === 'echeq90' ? 1.4 : 1.21
+    const precioUnitario = precioBase * factor
+
+    setItemsEditables((prevItems) => {
+      return prevItems.map((item) => {
+        if (item.id !== itemId) return item
+        const cantidad = parseFloat(item.cantidad) || 0
+        return {
+          ...item,
+          descripcion: `${tejido.codigo} - ${tejido.nombre}`,
+          unidad: 'rollo',
+          precio_unitario: precioUnitario.toString(),
+          precio_total: cantidad * precioUnitario,
+          tejido_config_id: tejidoId,
+          tipo: 'tejido' as const,
+        }
+      })
+    })
   }
 
   if (loading) {
@@ -481,53 +791,107 @@ export default function VerPresupuestoPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {/* Datos del Cliente */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <User className="h-5 w-5" />
-                Datos del Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-lg border border-border/50 bg-muted/40 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nombre</p>
-                <p className="text-base font-semibold">{presupuesto.cliente_nombre}</p>
-              </div>
-              {detallesCliente.length > 0 ? (
-                <div className="space-y-3">
-                  {detallesCliente.map((detalle) => {
-                    const Icono = detalle.icon
-                    return (
-                      <div
-                        key={detalle.label}
-                        className="flex items-start gap-3 rounded-lg border border-border/40 p-3"
-                      >
-                        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                          <Icono className="h-4 w-4" />
-                        </span>
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            {detalle.label}
-                          </p>
-                          <p className="text-sm font-medium break-words text-foreground">
-                            {detalle.value}
-                          </p>
+      {/* Sección Superior Compacta */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Datos del Cliente - Compacto */}
+        <Card className="md:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <User className="h-4 w-4" />
+              Cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nombre</p>
+              <p className="text-sm font-semibold">{presupuesto.cliente_nombre}</p>
+            </div>
+            {detallesCliente.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                {detallesCliente.slice(0, 2).map((detalle) => (
+                  <div key={detalle.label} className="text-xs">
+                    <p className="text-muted-foreground uppercase tracking-wide">{detalle.label}</p>
+                    <p className="font-medium break-words">{detalle.value}</p>
                   </div>
-                </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sin información adicional del cliente.</p>
-              )}
-            </CardContent>
-          </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Items del Presupuesto */}
-          <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
+        {/* Información del Presupuesto - Compacto */}
+        <Card className="md:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Calendar className="h-4 w-4" />
+              Información
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Fecha Emisión</p>
+              <p className="text-sm font-medium">
+                {new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Vencimiento</p>
+              <p className="text-sm font-medium">
+                {new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')}
+              </p>
+            </div>
+            <div className="pt-2 border-t">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estado</p>
+              <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="borrador">Borrador</SelectItem>
+                  <SelectItem value="enviado">Enviado</SelectItem>
+                  <SelectItem value="aprobado">Aprobado</SelectItem>
+                  <SelectItem value="rechazado">Rechazado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Resumen Financiero - Compacto */}
+        <Card className="md:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <FileText className="h-4 w-4" />
+              Resumen
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Items:</span>
+              <span className="font-semibold">{items.length}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Subtotal:</span>
+              <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>
+            </div>
+            {presupuesto.descuento > 0 && (
+              <div className="flex justify-between text-xs text-red-600">
+                <span>Descuento:</span>
+                <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between pt-2 border-t">
+              <span className="text-sm font-bold">TOTAL:</span>
+              <span className="text-lg font-bold text-green-600">
+                ${presupuesto.total?.toLocaleString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Items del Presupuesto - Ocupa todo el ancho */}
+      <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
           <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -536,90 +900,506 @@ export default function VerPresupuestoPage() {
                 Items del Presupuesto
               </CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    {items.length} ítem{items.length === 1 ? '' : 's'} en total
+                    {modoEdicion ? itemsEditables.length : items.length} ítem{(modoEdicion ? itemsEditables.length : items.length) === 1 ? '' : 's'} en total
                   </CardDescription>
                 </div>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-auto inline-flex data-[state=open]:rotate-180"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
-                </CollapsibleTrigger>
+                <div className="flex items-center gap-2">
+                  {!modoEdicion ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={iniciarEdicion}
+                      disabled={presupuesto.estado === 'baja'}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={cancelarEdicion}
+                        disabled={guardando}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={guardarCambios}
+                        disabled={guardando}
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        {guardando ? 'Guardando...' : 'Guardar'}
+                      </Button>
+                    </>
+                  )}
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="inline-flex data-[state=open]:rotate-180"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
             </CardHeader>
               <CollapsibleContent>
             <CardContent>
-                  <div className="rounded-lg border">
-                    <div className="hidden overflow-x-auto sm:block">
-                      <table className="w-full text-sm">
-                  <thead>
-                          <tr className="border-b bg-muted/50">
-                            <th className="p-3 text-left font-semibold">#</th>
-                            <th className="p-3 text-left font-semibold">Descripción</th>
-                            <th className="p-3 text-right font-semibold">Cant.</th>
-                            <th className="p-3 text-left font-semibold">Unidad</th>
-                            <th className="p-3 text-right font-semibold">P. Unit.</th>
-                            <th className="p-3 text-right font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="p-3 text-muted-foreground">{index + 1}</td>
-                              <td className="p-3">
-                                {item.descripcion || 'Sin descripción'}
-                              </td>
-                        <td className="p-3 text-right font-medium">{item.cantidad}</td>
-                        <td className="p-3">{item.unidad}</td>
-                              <td className="p-3 text-right">
-                                ${formatearMoneda(item.precio_unitario)}
-                              </td>
-                        <td className="p-3 text-right font-bold text-green-600">
-                                ${formatearMoneda(item.precio_total)}
-                        </td>
-                      </tr>
-                    ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="divide-y sm:hidden">
-                      {items.map((item, index) => (
-                        <div key={item.id} className="space-y-2 p-3 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-muted-foreground">#{index + 1}</span>
-                            <span className="font-bold text-green-600">
-                              ${formatearMoneda(item.precio_total)}
-                            </span>
-                          </div>
-                          <p className="font-medium leading-snug">
-                            {item.descripcion || 'Sin descripción'}
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                            <div>
-                              <p className="font-semibold uppercase">Cant.</p>
-                              <p>{item.cantidad}</p>
-                            </div>
-                            <div>
-                              <p className="font-semibold uppercase">Unidad</p>
-                              <p>{item.unidad}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="font-semibold uppercase">P. Unit.</p>
-                              <p>${formatearMoneda(item.precio_unitario)}</p>
-                            </div>
-                          </div>
+                  {!modoEdicion ? (
+                    <>
+                      <div className="rounded-lg border">
+                        <div className="hidden overflow-x-auto sm:block">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-muted/50">
+                                <th className="p-3 text-left font-semibold">#</th>
+                                <th className="p-3 text-left font-semibold">Descripción</th>
+                                <th className="p-3 text-right font-semibold">Cant.</th>
+                                <th className="p-3 text-left font-semibold">Unidad</th>
+                                <th className="p-3 text-right font-semibold">P. Unit.</th>
+                                <th className="p-3 text-right font-semibold">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((item, index) => (
+                                <tr key={item.id} className="border-b">
+                                  <td className="p-3 text-muted-foreground">{index + 1}</td>
+                                  <td className="p-3">{item.descripcion || 'Sin descripción'}</td>
+                                  <td className="p-3 text-right font-medium">{item.cantidad}</td>
+                                  <td className="p-3">{item.unidad}</td>
+                                  <td className="p-3 text-right">${formatearMoneda(item.precio_unitario)}</td>
+                                  <td className="p-3 text-right font-bold text-green-600">
+                                    ${formatearMoneda(item.precio_total)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
+                      </div>
+                    </>
+                  ) : itemsEditables.length === 0 ? (
+                    <div className="rounded-lg border-2 border-dashed py-10 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        No hay items en el presupuesto
+                      </p>
+                      <Button type="button" onClick={agregarItemEditable} variant="outline" className="w-full sm:w-auto">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Agregar Primer Item
+                      </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="hidden overflow-x-auto sm:block">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b-2">
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-10 sm:w-12">#</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-24 sm:w-32">Tipo</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[180px] sm:min-w-[200px]">Producto</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[200px] sm:min-w-[250px]">Descripción</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm min-w-[90px] sm:min-w-[100px]">Cant.</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-20">Unidad</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">P. Unit.</th>
+                              <th className="p-2 text-left text-xs font-semibold sm:text-sm w-28 sm:w-32">Total</th>
+                              <th className="p-2 text-center text-xs font-semibold sm:text-sm w-10 sm:w-12"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {itemsEditables.map((item, index) => (
+                              <tr 
+                                key={item.id} 
+                                className="border-b"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault()
+                                    agregarItemEditable()
+                                  }
+                                }}
+                              >
+                                <td className="p-2 text-center text-muted-foreground font-medium">
+                                  {index + 1}
+                                </td>
+                                <td className="p-2">
+                                  <Select
+                                    value={item.tipo || 'articulo'}
+                                    onValueChange={(value: any) => actualizarItemEditable(item.id, 'tipo', value)}
+                                  >
+                                    <SelectTrigger className="h-9 w-full">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="articulo">Artículo</SelectItem>
+                                      <SelectItem value="tejido">Tejido</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="p-2">
+                                  {item.tipo === 'articulo' ? (
+                                    <ProductoCombobox
+                                      value={item.articulo_id?.toString()}
+                                      onChange={(value) => actualizarItemEditable(item.id, 'articulo_id', value)}
+                                      productos={articulos.map((art) => ({
+                                        id: art.id,
+                                        label: art.nombre,
+                                        sublabel: art.unidad
+                                      }))}
+                                      placeholder="Buscar artículo..."
+                                      searchPlaceholder="Buscar artículo..."
+                                      emptyMessage="No se encontraron artículos"
+                                    />
+                                  ) : (
+                                    <ProductoCombobox
+                                      value={item.tejido_config_id}
+                                      onChange={(value) => actualizarItemEditable(item.id, 'tejido_config_id', value)}
+                                      productos={tejidos.map((tej) => ({
+                                        id: tej.id,
+                                        label: tej.codigo,
+                                        sublabel: [
+                                          tej.nombre,
+                                          tej.altura ? `${tej.altura}m` : null,
+                                          tej.tamano_rombo ? `Rombo ${tej.tamano_rombo}` : null,
+                                          tej.calibre ? `Calibre ${tej.calibre}` : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(' • '),
+                                        meta: {
+                                          altura: tej.altura !== undefined && tej.altura !== null ? tej.altura.toString() : '',
+                                          tamano_rombo: tej.tamano_rombo !== undefined && tej.tamano_rombo !== null ? tej.tamano_rombo.toString() : '',
+                                          calibre: tej.calibre !== undefined && tej.calibre !== null ? tej.calibre.toString() : '',
+                                        },
+                                      }))}
+                                      placeholder="Buscar tejido..."
+                                      searchPlaceholder="Buscar tejido..."
+                                      emptyMessage="No se encontraron tejidos"
+                                      filters={filtrosTejidos}
+                                    />
+                                  )}
+                                </td>
+                                <td className="p-2">
+                                  <Input
+                                    value={item.descripcion || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'descripcion', e.target.value)}
+                                    placeholder="Descripción..."
+                                    className="h-9 w-full"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        agregarItemEditable()
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2 min-w-[90px] sm:min-w-[100px]">
+                                  <Input
+                                    type="number"
+                                    min={item.tipo === 'tejido' ? '0.01' : '1'}
+                                    step={item.tipo === 'tejido' ? '0.01' : '1'}
+                                    value={item.cantidad || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'cantidad', e.target.value)}
+                                    placeholder={item.tipo === 'tejido' ? '1.5' : '1'}
+                                    className="h-9 w-full text-right"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        agregarItemEditable()
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2">
+                                  <Select
+                                    value={item.unidad || 'unidad'}
+                                    onValueChange={(value) => actualizarItemEditable(item.id, 'unidad', value)}
+                                  >
+                                    <SelectTrigger className="h-9 w-full">
+                                      <SelectValue placeholder="Seleccionar unidad" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {unidadesDisponibles.length === 0 && (
+                                        <div className="px-2 py-2 text-xs text-muted-foreground">
+                                          No hay unidades disponibles
+                                        </div>
+                                      )}
+                                      {unidadesDisponibles.map((unidad) => (
+                                        <SelectItem key={unidad} value={unidad}>
+                                          {unidad}
+                                        </SelectItem>
+                                      ))}
+                                      {item.unidad &&
+                                        !unidadesDisponibles.includes(item.unidad) && (
+                                          <SelectItem value={item.unidad}>
+                                            {item.unidad}
+                                          </SelectItem>
+                                        )}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="p-2">
+                                  <span className="block h-9 w-full leading-9 text-right text-sm font-semibold text-muted-foreground">
+                                    ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </td>
+                                <td className="p-2">
+                                  <div className="font-bold text-green-600 text-right">
+                                    ${Number(item.precio_total || 0).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </div>
+                                </td>
+                                <td className="p-2 text-center">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => eliminarItemEditable(item.id)}
+                                    className="h-8 w-8 p-0 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {/* Fila de totales */}
+                            <tr className="border-t-2 bg-muted/30">
+                              <td colSpan={7} className="p-3 text-right font-semibold">
+                                Subtotal:
+                              </td>
+                              <td className="p-3 font-bold text-lg text-green-600">
+                                ${itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <div className="mt-4 flex justify-end">
+                          <Button 
+                            type="button" 
+                            onClick={agregarItemEditable} 
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nueva Fila (Enter)
+                          </Button>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                          <p className="font-semibold mb-1">💡 Atajos de teclado:</p>
+                          <ul className="space-y-1">
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Tab</kbd> - Navegar entre columnas</li>
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Enter</kbd> - Agregar nueva fila</li>
+                            <li>• <kbd className="px-1.5 py-0.5 bg-white border rounded">Clic en ❌</kbd> - Eliminar fila</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 sm:hidden">
+                        {(modoEdicion ? itemsEditables : items).map((item, index) => (
+                          <div key={item.id} className="rounded-lg border p-4 shadow-sm">
+                            <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
+                              <span className="font-medium text-foreground">Ítem #{index + 1}</span>
+                              {modoEdicion && (
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarItemEditable(item.id)}
+                                  className="text-destructive underline-offset-2 hover:underline"
+                                >
+                                  Eliminar
+                                </button>
+                              )}
+                            </div>
+
+                            {modoEdicion ? (
+                              <div className="space-y-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs uppercase text-muted-foreground">Tipo</Label>
+                                  <Select
+                                    value={item.tipo || 'articulo'}
+                                    onValueChange={(value: any) => actualizarItemEditable(item.id, 'tipo', value)}
+                                  >
+                                    <SelectTrigger className="h-10">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="articulo">Artículo</SelectItem>
+                                      <SelectItem value="tejido">Tejido</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label className="text-xs uppercase text-muted-foreground">Producto</Label>
+                                  {item.tipo === 'articulo' ? (
+                                    <ProductoCombobox
+                                      value={item.articulo_id?.toString()}
+                                      onChange={(value) => actualizarItemEditable(item.id, 'articulo_id', value)}
+                                      productos={articulos.map((art) => ({
+                                        id: art.id,
+                                        label: art.nombre,
+                                        sublabel: art.unidad,
+                                      }))}
+                                      placeholder="Buscar artículo..."
+                                      searchPlaceholder="Buscar artículo..."
+                                      emptyMessage="No se encontraron artículos"
+                                      className="h-10"
+                                    />
+                                  ) : (
+                                    <ProductoCombobox
+                                      value={item.tejido_config_id}
+                                      onChange={(value) => actualizarItemEditable(item.id, 'tejido_config_id', value)}
+                                      productos={tejidos.map((tej) => ({
+                                        id: tej.id,
+                                        label: tej.codigo,
+                                        sublabel: [
+                                          tej.nombre,
+                                          tej.altura ? `${tej.altura}m` : null,
+                                          tej.tamano_rombo ? `Rombo ${tej.tamano_rombo}` : null,
+                                          tej.calibre ? `Calibre ${tej.calibre}` : null,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(' • '),
+                                        meta: {
+                                          altura: tej.altura !== undefined && tej.altura !== null ? tej.altura.toString() : '',
+                                          tamano_rombo: tej.tamano_rombo !== undefined && tej.tamano_rombo !== null ? tej.tamano_rombo.toString() : '',
+                                          calibre: tej.calibre !== undefined && tej.calibre !== null ? tej.calibre.toString() : '',
+                                        },
+                                      }))}
+                                      placeholder="Buscar tejido..."
+                                      searchPlaceholder="Buscar tejido..."
+                                      emptyMessage="No se encontraron tejidos"
+                                      filters={filtrosTejidos}
+                                      className="h-10"
+                                    />
+                                  )}
+                                </div>
+
+                                <div className="space-y-1">
+                                  <Label className="text-xs uppercase text-muted-foreground">Descripción</Label>
+                                  <Input
+                                    value={item.descripcion || ''}
+                                    onChange={(e) => actualizarItemEditable(item.id, 'descripcion', e.target.value)}
+                                    placeholder="Descripción..."
+                                    className="h-10"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Cantidad</Label>
+                                    <Input
+                                      type="number"
+                                      min={item.tipo === 'tejido' ? '0.01' : '1'}
+                                      step={item.tipo === 'tejido' ? '0.01' : '1'}
+                                      value={item.cantidad || ''}
+                                      onChange={(e) => actualizarItemEditable(item.id, 'cantidad', e.target.value)}
+                                      placeholder={item.tipo === 'tejido' ? '1.5' : '1'}
+                                      className="h-10 text-right"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Unidad</Label>
+                                    <Select
+                                      value={item.unidad || 'unidad'}
+                                      onValueChange={(value) => actualizarItemEditable(item.id, 'unidad', value)}
+                                    >
+                                      <SelectTrigger className="h-10">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {unidadesDisponibles.map((unidad) => (
+                                          <SelectItem key={unidad} value={unidad}>
+                                            {unidad}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Precio unitario</Label>
+                                    <div className="h-10 rounded-md border border-input bg-muted/50 px-3 text-right font-semibold leading-[2.5rem] text-muted-foreground">
+                                      ${Number(item.precio_unitario || 0).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs uppercase text-muted-foreground">Total</Label>
+                                    <div className="h-10 rounded-md border border-input bg-muted/50 px-3 text-right font-semibold leading-[2.5rem] text-green-600">
+                                      ${Number(item.precio_total || 0).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="font-medium leading-snug">
+                                  {item.descripcion || 'Sin descripción'}
+                                </p>
+                                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                  <div>
+                                    <p className="font-semibold uppercase">Cant.</p>
+                                    <p>{item.cantidad}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold uppercase">Unidad</p>
+                                    <p>{item.unidad}</p>
+                                  </div>
+                                  <div className="col-span-2">
+                                    <p className="font-semibold uppercase">P. Unit.</p>
+                                    <p>${formatearMoneda(item.precio_unitario)}</p>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {modoEdicion && (
+                        <div className="mt-4 sm:hidden">
+                          <Button type="button" onClick={agregarItemEditable} className="w-full">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar Fila
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   <div className="mt-4 space-y-2 rounded-lg bg-muted/40 p-3 text-sm sm:text-base">
+                    {modoEdicion && (
+                      <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                        <strong>Modo edición:</strong> Los totales se actualizarán al guardar los cambios.
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-muted-foreground">Subtotal:</span>
-                      <span className="font-bold">${formatearMoneda(presupuesto.subtotal)}</span>
+                      <span className="font-bold">
+                        ${formatearMoneda(
+                          modoEdicion 
+                            ? itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0)
+                            : presupuesto.subtotal
+                        )}
+                      </span>
                     </div>
                     {presupuesto.descuento > 0 && (
                       <div className="flex items-center justify-between text-red-600">
@@ -645,170 +1425,82 @@ export default function VerPresupuestoPage() {
                     )}
                     <div className="flex items-center justify-between border-t border-muted pt-2 text-base font-bold text-green-600 sm:text-xl">
                       <span>Total:</span>
-                      <span>${formatearMoneda(presupuesto.total)}</span>
+                      <span>
+                        ${formatearMoneda(
+                          modoEdicion
+                            ? itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0) - (presupuesto.descuento || 0)
+                            : presupuesto.total
+                        )}
+                      </span>
                     </div>
-              </div>
-            </CardContent>
+                  </div>
+                </CardContent>
               </CollapsibleContent>
-          </Card>
+            </Card>
           </Collapsible>
 
-          {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (
-            <div className="grid gap-6 md:grid-cols-2">
-              {presupuesto.observaciones && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base sm:text-lg">Observaciones</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-line">{presupuesto.observaciones}</p>
-                  </CardContent>
-                </Card>
-              )}
-              {presupuesto.condiciones_comerciales && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base sm:text-lg">Condiciones Comerciales</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-line">{presupuesto.condiciones_comerciales}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Observaciones y Condiciones + Acciones */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Observaciones y Condiciones */}
+        {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (
+          <div className="md:col-span-2 space-y-4">
+            {presupuesto.observaciones && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg">Observaciones</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-line">{presupuesto.observaciones}</p>
+                </CardContent>
+              </Card>
+            )}
+            {presupuesto.condiciones_comerciales && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg">Condiciones Comerciales</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-line">{presupuesto.condiciones_comerciales}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Información</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Fecha Emisión</p>
-                  <p className="text-sm font-medium">
-                    {new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Vencimiento</p>
-                  <p className="text-sm font-medium">
-                    {new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Validez</p>
-                  <p className="text-sm font-medium">{presupuesto.validez_dias} días</p>
-                </div>
-              </div>
-
-              <div className="border-t pt-3">
-                <p className="text-xs text-muted-foreground mb-2">Estado del Presupuesto</p>
-                <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="borrador">Borrador</SelectItem>
-                    <SelectItem value="enviado">Enviado</SelectItem>
-                    <SelectItem value="aprobado">Aprobado</SelectItem>
-                    <SelectItem value="rechazado">Rechazado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Resumen</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm sm:text-base">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Items:</span>
-                <span className="font-semibold">{items.length}</span>
-              </div>
-              {vendedorNombre && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Vendedor:</span>
-                  <span className="font-semibold">{vendedorNombre}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>
-              </div>
-              {presupuesto.descuento > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Descuento:</span>
-                  <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
-                </div>
-              )}
-              {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Base imponible (sin IVA):</span>
-                    <span className="font-semibold">
-                      ${(presupuesto.total / 1.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">IVA 21%:</span>
-                    <span className="font-semibold">
-                      ${((presupuesto.total / 1.21) * 0.21).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between border-t-2 pt-3">
-                <span className="font-bold">TOTAL:</span>
-                <span className="text-2xl font-bold text-green-600">
-                  ${presupuesto.total?.toLocaleString()}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Acciones</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button className="w-full" variant="outline" onClick={descargarPDF}>
-                <Download className="h-4 w-4 mr-2" />
-                Descargar PDF
-              </Button>
-              <Button className="w-full" variant="outline" onClick={descargarRemito}>
-                <FileText className="h-4 w-4 mr-2" />
-                Generar Remito
-              </Button>
-              <Button className="w-full" variant="outline" onClick={copiarResumen}>
-                <MessageSquareText className="h-4 w-4 mr-2" />
-                Resumen WhatsApp
-              </Button>
-              <Button className="w-full" variant="destructive" onClick={abrirDialogoBaja} disabled={eliminando || presupuesto.estado === 'baja'}>
-                <Trash className="h-4 w-4 mr-2" />
-                {presupuesto.estado === 'baja'
-                  ? 'Presupuesto dado de baja'
-                  : eliminando
-                    ? 'Marcando como baja...'
-                    : 'Dar de baja'}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Acciones */}
+        <Card className={presupuesto.observaciones || presupuesto.condiciones_comerciales ? 'md:col-span-1' : 'md:col-span-3'}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Acciones</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button className="w-full" variant="outline" size="sm" onClick={descargarPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              Descargar PDF
+            </Button>
+            <Button className="w-full" variant="outline" size="sm" onClick={descargarRemito}>
+              <FileText className="h-4 w-4 mr-2" />
+              Generar Remito
+            </Button>
+            <Button className="w-full" variant="outline" size="sm" onClick={copiarResumen}>
+              <MessageSquareText className="h-4 w-4 mr-2" />
+              Resumen WhatsApp
+            </Button>
+            <Button 
+              className="w-full" 
+              variant="destructive" 
+              size="sm"
+              onClick={abrirDialogoBaja} 
+              disabled={eliminando || presupuesto.estado === 'baja'}
+            >
+              <Trash className="h-4 w-4 mr-2" />
+              {presupuesto.estado === 'baja'
+                ? 'Presupuesto dado de baja'
+                : eliminando
+                  ? 'Marcando como baja...'
+                  : 'Dar de baja'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog
