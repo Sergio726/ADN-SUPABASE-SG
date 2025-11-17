@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, ArrowRight, Save, Calculator, CheckCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Calculator, CheckCircle, DollarSign, FileText, CreditCard, Receipt, AlertCircle, User, Mail, Phone, MapPin, Info } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { BuscarCliente } from '@/components/BuscarCliente'
@@ -22,9 +22,35 @@ export default function NuevoPresupuestoCercadoPage() {
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null)
-  const [tejidos, setTejidos] = useState<any[]>([])
+  const [configuraciones, setConfiguraciones] = useState<any[]>([])
+  const [configuracionSeleccionada, setConfiguracionSeleccionada] = useState<any>(null)
+  const [descripcionesPostes, setDescripcionesPostes] = useState<any>({})
   const [calculoRealizado, setCalculoRealizado] = useState(false)
   const [formaPago, setFormaPago] = useState<'efectivo'|'lista'|'tarjeta'|'echeq45'|'echeq60'|'echeq90'>('lista')
+
+  function factorFormaPago(fp: typeof formaPago): number {
+    switch (fp) {
+      case 'efectivo': return 1.0 // precio_base × 1.0 (sin IVA)
+      case 'lista': return 1.21 // precio_base × 1.21 (incluye IVA 21%)
+      case 'tarjeta': return 1.3 // precio_base × 1.3 (incluye IVA 21%)
+      case 'echeq45': return 1.21 // igual que Factura/Lista (incluye IVA 21%)
+      case 'echeq60': return 1.3 // igual que Tarjeta (incluye IVA 21%)
+      case 'echeq90': return 1.4 // precio_base × 1.4 (incluye IVA 21%)
+      default: return 1.21
+    }
+  }
+
+  function getFormaPagoInfo(fp: typeof formaPago) {
+    const info: Record<typeof formaPago, { label: string; icon: any; color: string; bgColor: string; borderColor: string }> = {
+      efectivo: { label: 'Efectivo', icon: DollarSign, color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-300' },
+      lista: { label: 'Factura / Lista', icon: FileText, color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-300' },
+      tarjeta: { label: 'Tarjeta', icon: CreditCard, color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq45: { label: 'E-cheq 45 días', icon: Receipt, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq60: { label: 'E-cheq 60 días', icon: Receipt, color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+      echeq90: { label: 'E-cheq 90 días', icon: Receipt, color: 'text-purple-800', bgColor: 'bg-purple-50', borderColor: 'border-purple-300' },
+    }
+    return info[fp] || info.lista
+  }
 
   const obtenerFechaArgentina = () =>
     new Intl.DateTimeFormat('en-CA', {
@@ -47,26 +73,20 @@ export default function NuevoPresupuestoCercadoPage() {
     terreno_ancho: '',
     metros_lineales_total: '',
     
-    // Configuración
-    altura_tejido: '2.00',
-    tejido_calibre: '14',
-    tejido_rombo: '3.5',
-    tipo_poste: 'Eucalipto',
-    tipo_cordon: '10cm',
+    // Configuración (se llena al seleccionar esquema)
+    altura_tejido: '',
+    tejido_calibre: '',
+    tejido_rombo: '',
+    tipo_poste: '',
+    tipo_cordon: '',
     hilos_pua: '0',
+    cercado_config_id: null as string | null,
     
     // Costos calculados
-    costo_tejido: 0,
-    costo_postes: 0,
-    costo_cordon: 0,
-    costo_pua: 0,
-    costo_accesorios: 0,
-    costo_mano_obra: 0,
-    costo_transporte: 0,
+    precio_base: 0, // Precio base antes de aplicar factor de forma de pago
     subtotal: 0,
     descuento: '0',
     total: 0,
-    precio_por_metro: 0,
     
     // Otros
     validez_dias: '15',
@@ -76,7 +96,7 @@ export default function NuevoPresupuestoCercadoPage() {
 
   useEffect(() => {
     cargarUsuario()
-    cargarTejidos()
+    cargarConfiguraciones()
   }, [])
 
   useEffect(() => {
@@ -93,13 +113,24 @@ export default function NuevoPresupuestoCercadoPage() {
     if (user) setUserId(user.id)
   }
 
-  async function cargarTejidos() {
-    const { data } = await supabase
-      .from('v_tejidos_con_precios')
+  async function cargarConfiguraciones() {
+    const { data, error } = await supabase
+      .from('v_configuraciones_cercado_completas')
       .select('*')
       .eq('activo', true)
-      .order('codigo')
-    setTejidos(data || [])
+      .order('nombre')
+
+    if (error) {
+      console.error('Error al cargar configuraciones:', error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las configuraciones de cercado",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setConfiguraciones(data || [])
   }
 
   function handleClienteSeleccionado(cliente: any) {
@@ -114,6 +145,61 @@ export default function NuevoPresupuestoCercadoPage() {
     })
   }
 
+  async function handleConfiguracionSeleccionada(configId: string) {
+    const config = configuraciones.find(c => c.id === configId)
+    if (!config) return
+
+    setConfiguracionSeleccionada(config)
+    
+    // Cargar descripciones de los postes
+    const idsPostes = [
+      config.poste_esquinero_id,
+      config.poste_refuerzo_id,
+      config.poste_intermedio_id,
+      config.poste_puntal_id,
+    ].filter(Boolean)
+
+    if (idsPostes.length > 0) {
+      const { data: articulosPostes, error } = await supabase
+        .from('articulos')
+        .select('id, nombre, descripcion')
+        .in('id', idsPostes)
+
+      if (!error && articulosPostes) {
+        const descripciones: any = {}
+        articulosPostes.forEach((art) => {
+          if (config.poste_esquinero_id === art.id) {
+            descripciones.esquinero = art
+          }
+          if (config.poste_refuerzo_id === art.id) {
+            descripciones.refuerzo = art
+          }
+          if (config.poste_intermedio_id === art.id) {
+            descripciones.intermedio = art
+          }
+          if (config.poste_puntal_id === art.id) {
+            descripciones.puntal = art
+          }
+        })
+        setDescripcionesPostes(descripciones)
+      }
+    } else {
+      setDescripcionesPostes({})
+    }
+    
+    // Actualizar formData con los datos de la configuración
+    setFormData({
+      ...formData,
+      cercado_config_id: config.id,
+      altura_tejido: config.altura.toString(),
+      tejido_calibre: config.calibre?.toString() || '',
+      tejido_rombo: config.tamano_rombo?.toString() || '',
+      tipo_poste: config.tipo_poste || '',
+      tipo_cordon: config.cordon_tipo || '',
+      hilos_pua: config.hilos_pua?.toString() || '0',
+    })
+  }
+
   function calcularPresupuesto() {
     const metros = parseFloat(formData.metros_lineales_total) || 0
     if (metros === 0) {
@@ -125,89 +211,68 @@ export default function NuevoPresupuestoCercadoPage() {
       return
     }
 
-    // Obtener tejido seleccionado
-    const tejidoKey = `RC${formData.tejido_calibre}x${formData.tejido_rombo}x${formData.altura_tejido}`
-    const tejido = tejidos.find(t => t.codigo === tejidoKey)
-
-    if (!tejido) {
+    if (!configuracionSeleccionada) {
       toast({
         title: "Error",
-        description: "No se encontró el tejido seleccionado",
+        description: "Debes seleccionar un esquema de cercado",
         variant: "destructive",
       })
       return
     }
 
-    // Calcular rollos necesarios
-    const rollosNecesarios = Math.ceil(metros / 10)
-    const costoTejido = rollosNecesarios * (tejido.precio_venta || 0)
+    const config = configuracionSeleccionada
+    const precioPorMetroLineal = config.precio_por_metro_lineal || 0
 
-    // Precios base según tipo de poste (para 180m)
-    const preciosPostes: any = {
-      'Eucalipto': 1110000,
-      'Punta Diamante': 1300000,
-      'Olimp': 1450000
+    if (precioPorMetroLineal === 0) {
+      toast({
+        title: "Error",
+        description: "El esquema seleccionado no tiene precio por metro lineal configurado",
+        variant: "destructive",
+      })
+      return
     }
 
-    const preciosCordones: any = {
-      'Sin cordón': 0,
-      '10cm': 997920,
-      '15cm': 791805,
-      '20cm': 1164380
-    }
+    // Calcular precio base: precio por metro × metros (sin ajuste de forma de pago)
+    const precioBase = precioPorMetroLineal * metros
 
-    // Calcular proporcional a 180m
-    const factor = metros / 180
-    const costoPostes = (preciosPostes[formData.tipo_poste] || 0) * factor
-    const costoCordon = (preciosCordones[formData.tipo_cordon] || 0) * factor
+    // Aplicar factor según forma de pago
+    const factor = factorFormaPago(formaPago)
+    const subtotal = precioBase * factor
 
-    // Costo de púa
-    const preciosPua: any = {
-      '0': 0,
-      '1': 1168.02,
-      '2': 1168.02 * 2,
-      '3': 1168.02 * 3,
-      '4': 1168.02 * 4,
-    }
-    const costoPua = metros * (preciosPua[formData.hilos_pua] || 0)
-
-    // Accesorios (proporcional)
-    const accesoriosBase = 3629532 // Para 180m
-    const costoAccesorios = accesoriosBase * factor
-
-    // Mano de obra y transporte
-    const costoManoObra = metros * 11438
-    const costoTransporte = metros * 3580.50
-
-    // Total
-    let subtotal = costoTejido + costoPostes + costoCordon + costoPua + costoAccesorios + costoManoObra + costoTransporte
-
-    // Recargo para terrenos pequeños
-    if (metros < 50) {
-      subtotal = subtotal * 1.50
-    }
-
+    // Aplicar descuento
     const descuento = parseFloat(formData.descuento) || 0
     const total = subtotal - descuento
-    const precioPorMetro = total / metros
 
     setFormData({
       ...formData,
-      costo_tejido: costoTejido,
-      costo_postes: costoPostes,
-      costo_cordon: costoCordon,
-      costo_pua: costoPua,
-      costo_accesorios: costoAccesorios,
-      costo_mano_obra: costoManoObra,
-      costo_transporte: costoTransporte,
+      precio_base: precioBase,
       subtotal,
       total,
-      precio_por_metro: precioPorMetro,
     })
 
     setCalculoRealizado(true)
     setPaso(4)
   }
+
+  // Recalcular cuando cambia la forma de pago
+  useEffect(() => {
+    if (!calculoRealizado || !configuracionSeleccionada) return
+
+    const metros = parseFloat(formData.metros_lineales_total) || 0
+    const precioPorMetroLineal = configuracionSeleccionada.precio_por_metro_lineal || 0
+    const precioBase = precioPorMetroLineal * metros
+    const factor = factorFormaPago(formaPago)
+    const subtotal = precioBase * factor
+    const descuento = parseFloat(formData.descuento) || 0
+    const total = subtotal - descuento
+
+    setFormData(prev => ({
+      ...prev,
+      precio_base: precioBase,
+      subtotal,
+      total,
+    }))
+  }, [formaPago, calculoRealizado, configuracionSeleccionada, formData.metros_lineales_total, formData.descuento])
 
   async function handleSubmit() {
     if (!userId) {
@@ -239,9 +304,11 @@ export default function NuevoPresupuestoCercadoPage() {
         cliente_email: formData.cliente_email || null,
         cliente_telefono: formData.cliente_telefono,
         cliente_direccion: formData.cliente_direccion || null,
-        terreno_largo: parseFloat(formData.terreno_largo),
-        terreno_ancho: parseFloat(formData.terreno_ancho),
+        terreno_largo: formData.terreno_largo ? parseFloat(formData.terreno_largo) : null,
+        terreno_ancho: formData.terreno_ancho ? parseFloat(formData.terreno_ancho) : null,
         metros_lineales_total: parseFloat(formData.metros_lineales_total),
+        cercado_config_id: formData.cercado_config_id,
+        forma_pago: formaPago,
         subtotal: formData.subtotal,
         descuento: parseFloat(formData.descuento),
         total: formData.total,
@@ -261,81 +328,22 @@ export default function NuevoPresupuestoCercadoPage() {
 
       if (errorPres) throw errorPres
 
-      // Crear items del presupuesto
+      // Crear item único del presupuesto
+      const config = configuraciones.find(c => c.id === formData.cercado_config_id)
+      const precioPorMetro = config?.precio_por_metro_lineal || 0
+      const metros = parseFloat(formData.metros_lineales_total)
+
       const items = [
         {
           presupuesto_id: presupuesto.id,
-          descripcion: `Tejido Romboidal Cal.${formData.tejido_calibre} - ${formData.altura_tejido}m - Rombo ${formData.tejido_rombo}"`,
-          cantidad: Math.ceil(parseFloat(formData.metros_lineales_total) / 10),
-          unidad: 'rollo',
-          precio_unitario: 0,
-          precio_total: formData.costo_tejido,
+          descripcion: config?.nombre || `Cercado perimetral - ${configuracionSeleccionada?.nombre || 'Esquema seleccionado'}`,
+          cantidad: metros,
+          unidad: 'metro',
+          precio_unitario: precioPorMetro,
+          precio_total: formData.subtotal,
           orden: 1,
         },
-        {
-          presupuesto_id: presupuesto.id,
-          descripcion: `Postes ${formData.tipo_poste}`,
-          cantidad: 1,
-          unidad: 'conjunto',
-          precio_unitario: formData.costo_postes,
-          precio_total: formData.costo_postes,
-          orden: 2,
-        },
       ]
-
-      if (formData.tipo_cordon !== 'Sin cordón') {
-        items.push({
-          presupuesto_id: presupuesto.id,
-          descripcion: `Cordón de hormigón ${formData.tipo_cordon}`,
-          cantidad: parseFloat(formData.metros_lineales_total),
-          unidad: 'metro',
-          precio_unitario: formData.costo_cordon / parseFloat(formData.metros_lineales_total),
-          precio_total: formData.costo_cordon,
-          orden: 3,
-        })
-      }
-
-      if (parseInt(formData.hilos_pua) > 0) {
-        items.push({
-          presupuesto_id: presupuesto.id,
-          descripcion: `Alambre de púa (${formData.hilos_pua} hilos)`,
-          cantidad: parseFloat(formData.metros_lineales_total) * parseInt(formData.hilos_pua),
-          unidad: 'metro',
-          precio_unitario: 1168.02,
-          precio_total: formData.costo_pua,
-          orden: 4,
-        })
-      }
-
-      items.push(
-        {
-          presupuesto_id: presupuesto.id,
-          descripcion: 'Accesorios (ganchos, planchuelas, torniquetes, etc.)',
-          cantidad: 1,
-          unidad: 'conjunto',
-          precio_unitario: formData.costo_accesorios,
-          precio_total: formData.costo_accesorios,
-          orden: 5,
-        },
-        {
-          presupuesto_id: presupuesto.id,
-          descripcion: 'Mano de Obra',
-          cantidad: parseFloat(formData.metros_lineales_total),
-          unidad: 'metro',
-          precio_unitario: 11438,
-          precio_total: formData.costo_mano_obra,
-          orden: 6,
-        },
-        {
-          presupuesto_id: presupuesto.id,
-          descripcion: 'Transporte',
-          cantidad: parseFloat(formData.metros_lineales_total),
-          unidad: 'metro',
-          precio_unitario: 3580.50,
-          precio_total: formData.costo_transporte,
-          orden: 7,
-        }
-      )
 
       const { error: errorItems } = await supabase
         .from('presupuestos_items')
@@ -425,8 +433,8 @@ export default function NuevoPresupuestoCercadoPage() {
       </Card>
 
       {/* Contenido de cada paso */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid gap-6">
+        <div>
           {/* PASO 1: Cliente */}
           {paso === 1 && (
             <div className="space-y-6">
@@ -534,127 +542,164 @@ export default function NuevoPresupuestoCercadoPage() {
             </Card>
           )}
 
-          {/* PASO 3: Configuración del Cerco */}
+          {/* PASO 3: Selección de Esquema de Cercado */}
           {paso === 3 && (
             <Card>
               <CardHeader>
-                <CardTitle>Configuración del Cerco</CardTitle>
-                <CardDescription>Selecciona las características del cercado</CardDescription>
+                <CardTitle>Esquema de Cercado</CardTitle>
+                <CardDescription>Selecciona un esquema de cercado predefinido</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Altura del Tejido *</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="esquema">Seleccionar Esquema *</Label>
                   <Select
-                    value={formData.altura_tejido}
-                    onValueChange={(value) => setFormData({ ...formData, altura_tejido: value })}
+                    value={formData.cercado_config_id || ''}
+                    onValueChange={handleConfiguracionSeleccionada}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger id="esquema" className="min-h-[4rem] py-3 h-auto">
+                      <div className="flex items-center justify-between w-full pr-2">
+                        {configuracionSeleccionada ? (
+                          <>
+                            <span className="font-semibold">{configuracionSeleccionada.nombre}</span>
+                            {configuracionSeleccionada.precio_por_metro_lineal && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 ml-2">
+                                ${configuracionSeleccionada.precio_por_metro_lineal.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}/m
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <SelectValue placeholder="Selecciona un esquema de cercado..." />
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-muted ml-2">
+                              Seleccionar
+                            </Badge>
+                          </>
+                        )}
+                      </div>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1.0">1.0 metros (altura final ~1.3m)</SelectItem>
-                      <SelectItem value="1.2">1.2 metros (altura final ~1.5m)</SelectItem>
-                      <SelectItem value="1.5">1.5 metros (altura final ~1.8m)</SelectItem>
-                      <SelectItem value="1.8">1.8 metros (altura final ~2.3m)</SelectItem>
-                      <SelectItem value="2.0">2.0 metros (altura final ~2.5m)</SelectItem>
-                      <SelectItem value="2.5">2.5 metros (altura final ~3.0m)</SelectItem>
-                      <SelectItem value="3.0">3.0 metros (altura final ~3.5m)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Calibre del Tejido *</Label>
-                    <Select
-                      value={formData.tejido_calibre}
-                      onValueChange={(value) => setFormData({ ...formData, tejido_calibre: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="12">Calibre 12 (Reforzado)</SelectItem>
-                        <SelectItem value="14">Calibre 14 (Estándar)</SelectItem>
+                      {configuraciones.length === 0 ? (
+                        <div className="px-2 py-2 text-sm text-muted-foreground">
+                          No hay esquemas disponibles
+                        </div>
+                      ) : (
+                        configuraciones.map((config) => (
+                          <SelectItem key={config.id} value={config.id}>
+                            <div className="flex flex-col">
+                              <span className="font-semibold">{config.nombre}</span>
+                              {config.descripcion && (
+                                <span className="text-xs text-muted-foreground">{config.descripcion}</span>
+                              )}
+                              <span className="text-xs text-muted-foreground mt-1">
+                                {config.altura_final_cerco ? `${config.altura_final_cerco}m` : `${config.altura}m`} • 
+                                {config.tejido_codigo} • 
+                                Postes: {config.tipo_poste} • 
+                                {config.cordon_tipo !== 'Sin cordón' ? `Cordón ${config.cordon_tipo} • ` : ''}
+                                {config.hilos_pua > 0 ? `${config.hilos_pua} hilos púa` : 'Sin púa'}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Tamaño de Rombo *</Label>
-                    <Select
-                      value={formData.tejido_rombo}
-                      onValueChange={(value) => setFormData({ ...formData, tejido_rombo: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3.5">3.5" (Económico)</SelectItem>
-                        <SelectItem value="3.0">3.0" (Standard)</SelectItem>
-                        <SelectItem value="2.5">2.5" (Reforzado)</SelectItem>
-                        <SelectItem value="2.0">2.0" (Máxima seguridad)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {configuracionSeleccionada && (
+                  <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-green-900">{configuracionSeleccionada.nombre}</h3>
                   </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant="outline" className="bg-white">
+                          {configuracionSeleccionada.altura_final_cerco 
+                            ? `${configuracionSeleccionada.altura_final_cerco}m` 
+                            : `${configuracionSeleccionada.altura}m`}
+                        </Badge>
+                        {configuracionSeleccionada.precio_por_metro_lineal && (
+                          <div className="text-right">
+                            <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Precio por Metro</p>
+                            <p className="text-lg font-bold text-green-900">
+                              ${configuracionSeleccionada.precio_por_metro_lineal.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </p>
+                </div>
+                        )}
+                      </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Tipo de Postes *</Label>
-                  <Select
-                    value={formData.tipo_poste}
-                    onValueChange={(value) => setFormData({ ...formData, tipo_poste: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Eucalipto">Eucalipto (Económico)</SelectItem>
-                      <SelectItem value="Punta Diamante">Punta Diamante (Standard)</SelectItem>
-                      <SelectItem value="Olimp">Olimp (Premium)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <div className="grid gap-3 md:grid-cols-2 pt-3 border-t border-green-200">
+                      <div>
+                        <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Tejido</p>
+                        <p className="font-semibold text-green-900">
+                          {configuracionSeleccionada.tejido_codigo}
+                        </p>
+                        <p className="text-xs text-green-700">
+                          Cal.{configuracionSeleccionada.calibre} - {configuracionSeleccionada.altura}m - Rombo {configuracionSeleccionada.tamano_rombo}"
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Postes</p>
+                        <p className="font-semibold text-green-900 mb-1">{configuracionSeleccionada.tipo_poste}</p>
+                        {(descripcionesPostes.esquinero || descripcionesPostes.intermedio) && (
+                          <div className="text-xs text-green-700 space-y-1 mt-2">
+                            {descripcionesPostes.esquinero && (
+                              <p>
+                                <span className="font-medium">Esquineros:</span>{' '}
+                                {descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}
+                              </p>
+                            )}
+                            {descripcionesPostes.intermedio && (
+                              <p>
+                                <span className="font-medium">Intermedios:</span>{' '}
+                                {descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}
+                              </p>
+                            )}
+                            {descripcionesPostes.refuerzo && (
+                              <p>
+                                <span className="font-medium">Refuerzos:</span>{' '}
+                                {descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}
+                              </p>
+                            )}
+                            {descripcionesPostes.puntal && (
+                              <p>
+                                <span className="font-medium">Puntales:</span>{' '}
+                                {descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Cordón</p>
+                        <p className="font-semibold text-green-900">{configuracionSeleccionada.cordon_tipo}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Alambre de Púa</p>
+                        <p className="font-semibold text-green-900">
+                          {configuracionSeleccionada.hilos_pua > 0 
+                            ? `${configuracionSeleccionada.hilos_pua} hilos` 
+                            : 'Sin púa'}
+                        </p>
+                      </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Cordón de Hormigón *</Label>
-                  <Select
-                    value={formData.tipo_cordon}
-                    onValueChange={(value) => setFormData({ ...formData, tipo_cordon: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sin cordón">Sin cordón</SelectItem>
-                      <SelectItem value="10cm">10 cm</SelectItem>
-                      <SelectItem value="15cm">15 cm</SelectItem>
-                      <SelectItem value="20cm">20 cm (Máxima resistencia)</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Hilos de Alambre de Púa *</Label>
-                  <Select
-                    value={formData.hilos_pua}
-                    onValueChange={(value) => setFormData({ ...formData, hilos_pua: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Sin alambre de púa</SelectItem>
-                      <SelectItem value="1">1 hilo</SelectItem>
-                      <SelectItem value="2">2 hilos</SelectItem>
-                      <SelectItem value="3">3 hilos</SelectItem>
-                      <SelectItem value="4">4 hilos (Máxima seguridad)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
 
                 <div className="pt-4">
-                  <Button onClick={calcularPresupuesto} className="w-full" size="lg">
+                  <Button 
+                    onClick={calcularPresupuesto} 
+                    className="w-full" 
+                    size="lg"
+                    disabled={!configuracionSeleccionada}
+                  >
                     <Calculator className="h-5 w-5 mr-2" />
                     Calcular Presupuesto
                   </Button>
@@ -710,54 +755,71 @@ export default function NuevoPresupuestoCercadoPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Desglose de Costos</CardTitle>
+                  <CardTitle>Resumen de Precios</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between p-3 bg-muted/50 rounded">
-                      <span className="text-sm">Tejido romboidal ({Math.ceil(parseFloat(formData.metros_lineales_total) / 10)} rollos)</span>
-                      <span className="font-bold">${formData.costo_tejido.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-muted/50 rounded">
-                      <span className="text-sm">Postes {formData.tipo_poste}</span>
-                      <span className="font-bold">${formData.costo_postes.toLocaleString()}</span>
-                    </div>
-                    {formData.costo_cordon > 0 && (
-                      <div className="flex justify-between p-3 bg-muted/50 rounded">
-                        <span className="text-sm">Cordón de hormigón {formData.tipo_cordon}</span>
-                        <span className="font-bold">${formData.costo_cordon.toLocaleString()}</span>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">Precio Base</p>
+                        <p className="text-sm font-semibold mb-1">
+                          {formData.metros_lineales_total} metros × ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}/metro
+                        </p>
+                        <p className="text-lg font-bold">
+                          ${formData.precio_base.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
                       </div>
-                    )}
-                    {formData.costo_pua > 0 && (
-                      <div className="flex justify-between p-3 bg-muted/50 rounded">
-                        <span className="text-sm">Alambre de púa ({formData.hilos_pua} hilos)</span>
-                        <span className="font-bold">${formData.costo_pua.toLocaleString()}</span>
+
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-700 mb-1">Ajuste según forma de pago</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">
+                            Precio Base × {factorFormaPago(formaPago).toFixed(2)}
+                            {formaPago === 'efectivo' ? ' (sin IVA)' : ' (incluye IVA 21%)'}
+                          </span>
+                          <span className="text-lg font-bold text-blue-700">
+                            ${formData.subtotal.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex justify-between p-3 bg-muted/50 rounded">
-                      <span className="text-sm">Accesorios completos</span>
-                      <span className="font-bold">${formData.costo_accesorios.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-muted/50 rounded">
-                      <span className="text-sm">Mano de Obra</span>
-                      <span className="font-bold">${formData.costo_mano_obra.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-muted/50 rounded">
-                      <span className="text-sm">Transporte</span>
-                      <span className="font-bold">${formData.costo_transporte.toLocaleString()}</span>
                     </div>
 
-                    <div className="flex justify-between p-4 bg-green-50 border-2 border-green-300 rounded-lg mt-4">
+                    {formData.descuento && parseFloat(formData.descuento) > 0 && (
+                      <div className="flex justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <span className="text-sm font-medium text-red-700">Descuento:</span>
+                        <span className="text-sm font-bold text-red-700">-${parseFloat(formData.descuento).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between p-4 bg-green-50 border-2 border-green-300 rounded-lg">
                       <span className="font-bold text-lg">TOTAL:</span>
                       <span className="text-3xl font-bold text-green-600">
-                        ${formData.total.toLocaleString()}
+                        ${formData.total.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
 
                     <div className="flex justify-between p-3 bg-blue-50 border border-blue-200 rounded">
-                      <span className="font-medium">Precio por Metro Lineal:</span>
-                      <span className="text-xl font-bold text-blue-600">
-                        ${formData.precio_por_metro.toLocaleString()}
+                      <span className="font-medium text-sm">Precio por Metro Lineal:</span>
+                      <span className="text-lg font-bold text-blue-600">
+                        ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -769,6 +831,343 @@ export default function NuevoPresupuestoCercadoPage() {
           {/* PASO 5: Observaciones y Finalizar */}
           {paso === 5 && (
             <div className="space-y-6">
+              {/* Resumen de Precios */}
+              <Card className="border-2 border-green-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-700">
+                    <DollarSign className="h-5 w-5" />
+                    Resumen de Precios
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    {/* Precio Base */}
+                    <div className="p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-muted-foreground/20">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Precio Base</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">
+                        {formData.metros_lineales_total} metros × ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}/metro
+                      </p>
+                      <p className="text-2xl font-bold text-foreground">
+                        ${formData.precio_base.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
+
+                    {/* Forma de Pago */}
+                    {(() => {
+                      const formaPagoInfo = getFormaPagoInfo(formaPago)
+                      const IconoFormaPago = formaPagoInfo.icon
+                      return (
+                        <div className="space-y-3 pt-2 border-t">
+                          <div>
+                            <Label className="text-sm font-semibold text-muted-foreground mb-2 block">
+                              Forma de Pago
+                            </Label>
+                            <Select value={formaPago} onValueChange={(v: any) => setFormaPago(v)}>
+                              <SelectTrigger className={`w-full h-12 text-base font-semibold border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
+                                <div className="flex items-center gap-2 truncate">
+                                  <IconoFormaPago className={`h-5 w-5 ${formaPagoInfo.color}`} />
+                                  <SelectValue />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="efectivo">
+                                  <div className="flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4 text-green-700" />
+                                    <span>Efectivo (sin IVA)</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="lista">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-blue-700" />
+                                    <span>Factura / Lista (con IVA)</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="tarjeta">
+                                  <div className="flex items-center gap-2">
+                                    <CreditCard className="h-4 w-4 text-purple-700" />
+                                    <span>Tarjeta (con IVA)</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="echeq45">
+                                  <div className="flex items-center gap-2">
+                                    <Receipt className="h-4 w-4 text-purple-600" />
+                                    <span>E-cheq 45 días (con IVA)</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="echeq60">
+                                  <div className="flex items-center gap-2">
+                                    <Receipt className="h-4 w-4 text-purple-700" />
+                                    <span>E-cheq 60 días (con IVA)</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="echeq90">
+                                  <div className="flex items-center gap-2">
+                                    <Receipt className="h-4 w-4 text-purple-800" />
+                                    <span>E-cheq 90 días (con IVA)</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Ajuste según forma de pago */}
+                          <div className={`p-4 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex-1">
+                                <p className={`text-xs uppercase tracking-wide mb-1 ${formaPagoInfo.color}`}>
+                                  Cálculo
+                                </p>
+                                <p className={`text-sm font-medium ${formaPagoInfo.color}`}>
+                                  Precio Base × {factorFormaPago(formaPago).toFixed(2)}
+                                </p>
+                                <p className={`text-xs opacity-80 mt-1 ${formaPagoInfo.color}`}>
+                                  {formaPago === 'efectivo' ? 'Sin IVA' : 'Incluye IVA 21%'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-2xl font-bold ${formaPagoInfo.color}`}>
+                                  ${formData.subtotal.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className={`pt-3 border-t opacity-50 ${formaPagoInfo.borderColor}`}>
+                              <p className={`text-xs ${formaPagoInfo.color} opacity-80`}>
+                                ${formData.precio_base.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })} × {factorFormaPago(formaPago).toFixed(2)} = ${formData.subtotal.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Descuento */}
+                  {formData.descuento && parseFloat(formData.descuento) > 0 && (
+                    <div className="flex justify-between items-center p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <span className="text-sm font-semibold text-red-700">Descuento:</span>
+                      <span className="text-xl font-bold text-red-700">-${parseFloat(formData.descuento).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}</span>
+                    </div>
+                  )}
+
+                  {/* Separador visual */}
+                  <div className="relative py-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-muted-foreground/20"></div>
+                    </div>
+                  </div>
+
+                  {/* Total Final */}
+                  <div className="flex justify-between items-center p-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow-sm">
+                    <div>
+                      <p className="text-sm text-green-700 uppercase tracking-wide mb-1">Total Final</p>
+                      <p className="font-bold text-lg text-green-900">TOTAL A PAGAR</p>
+                    </div>
+                    <span className="text-4xl font-bold text-green-600">
+                      ${formData.total.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Información adicional */}
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-2 bg-muted/20 rounded">
+                        <p className="text-xs text-muted-foreground mb-1">Precio/Metro (base)</p>
+                        <p className="text-sm font-semibold">
+                          ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-muted/20 rounded">
+                        <p className="text-xs text-muted-foreground mb-1">Precio/Metro (final)</p>
+                        <p className="text-sm font-semibold">
+                          ${(formData.total / parseFloat(formData.metros_lineales_total || '1')).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Detalle del Esquema de Cercado */}
+              {configuracionSeleccionada && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Info className="h-5 w-5" />
+                      Detalle del Esquema de Cercado
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-green-900">{configuracionSeleccionada.nombre}</h3>
+                        </div>
+                        <Badge variant="outline" className="bg-white">
+                          {configuracionSeleccionada.altura_final_cerco 
+                            ? `${configuracionSeleccionada.altura_final_cerco}m` 
+                            : `${configuracionSeleccionada.altura}m`}
+                        </Badge>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2 pt-3 border-t border-green-200">
+                        <div>
+                          <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Tejido</p>
+                          <p className="font-semibold text-green-900">
+                            {configuracionSeleccionada.tejido_codigo}
+                          </p>
+                          <p className="text-xs text-green-700">
+                            Cal.{configuracionSeleccionada.calibre} - {configuracionSeleccionada.altura}m - Rombo {configuracionSeleccionada.tamano_rombo}"
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Postes</p>
+                          <p className="font-semibold text-green-900 mb-1">{configuracionSeleccionada.tipo_poste}</p>
+                          {(descripcionesPostes.esquinero || descripcionesPostes.intermedio) && (
+                            <div className="text-xs text-green-700 space-y-1 mt-2">
+                              {descripcionesPostes.esquinero && (
+                                <p>
+                                  <span className="font-medium">Esquineros:</span>{' '}
+                                  {descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}
+                                </p>
+                              )}
+                              {descripcionesPostes.intermedio && (
+                                <p>
+                                  <span className="font-medium">Intermedios:</span>{' '}
+                                  {descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}
+                                </p>
+                              )}
+                              {descripcionesPostes.refuerzo && (
+                                <p>
+                                  <span className="font-medium">Refuerzos:</span>{' '}
+                                  {descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}
+                                </p>
+                              )}
+                              {descripcionesPostes.puntal && (
+                                <p>
+                                  <span className="font-medium">Puntales:</span>{' '}
+                                  {descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Cordón</p>
+                          <p className="font-semibold text-green-900">{configuracionSeleccionada.cordon_tipo}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Alambre de Púa</p>
+                          <p className="font-semibold text-green-900">
+                            {configuracionSeleccionada.hilos_pua > 0 
+                              ? `${configuracionSeleccionada.hilos_pua} hilos` 
+                              : 'Sin púa'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-green-200">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-green-600 uppercase tracking-wide mb-2">Precio por Metro Lineal</p>
+                        </div>
+                        <p className="text-2xl font-bold text-green-900 mb-2">
+                          ${configuracionSeleccionada.precio_por_metro_lineal?.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 pt-3 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Dimensiones del Terreno</p>
+                        <p className="font-semibold">
+                          {formData.terreno_largo}m × {formData.terreno_ancho}m
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Perímetro: {formData.metros_lineales_total} metros lineales
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Datos del Cliente */}
+              {clienteSeleccionado && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Datos del Cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nombre</p>
+                      <p className="font-semibold text-lg">{formData.cliente_nombre}</p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {formData.cliente_telefono && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            Teléfono
+                          </p>
+                          <p className="font-semibold">{formData.cliente_telefono}</p>
+                        </div>
+                      )}
+                      {formData.cliente_email && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            Email
+                          </p>
+                          <p className="font-semibold">{formData.cliente_email}</p>
+                        </div>
+                      )}
+                      {formData.cliente_direccion && (
+                        <div className="md:col-span-2">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            Dirección
+                          </p>
+                          <p className="font-semibold">{formData.cliente_direccion}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+
               <Card>
                 <CardHeader>
                   <CardTitle>Observaciones y Condiciones</CardTitle>
@@ -832,41 +1231,6 @@ export default function NuevoPresupuestoCercadoPage() {
               </Button>
             </div>
           )}
-        </div>
-
-        {/* Sidebar - Preview */}
-        <div>
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle className="text-base">Progreso</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Paso actual:</span>
-                  <Badge>{paso}/5</Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Cliente:</span>
-                  <span className={clienteSeleccionado ? 'text-green-600 font-semibold' : ''}>
-                    {clienteSeleccionado ? '✓' : '—'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Terreno:</span>
-                  <span className={formData.metros_lineales_total ? 'text-green-600 font-semibold' : ''}>
-                    {formData.metros_lineales_total ? `${formData.metros_lineales_total}m` : '—'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className={formData.total > 0 ? 'font-bold text-green-600' : ''}>
-                    {formData.total > 0 ? `$${formData.total.toLocaleString()}` : '—'}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
