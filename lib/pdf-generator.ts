@@ -249,7 +249,7 @@ export function generarPDFPresupuesto(
     }
 
     doc.setTextColor(0, 0, 0)
-    bulletLines.forEach((text) => {
+    bulletLines.forEach((text: string) => {
       ensureSpace(6)
       doc.text(`• ${text}`, 18, yPos)
       yPos += 4
@@ -284,7 +284,7 @@ export function generarPDFPresupuesto(
         posteLines.push(`Puntales: ${ds.puntal.descripcion || ds.puntal.nombre}`)
       }
 
-      posteLines.forEach((line) => {
+      posteLines.forEach((line: string) => {
         ensureSpace(5)
         doc.text(`• ${line}`, 18, yPos)
         yPos += 4
@@ -336,7 +336,7 @@ export function generarPDFPresupuesto(
       doc.setTextColor(90, 90, 90)
       const nota = 'Incluimos todos los accesorios necesarios para que la instalación sea completa, segura y con una terminación prolija.'
       const notaLines = doc.splitTextToSize(nota, pageWidth - 30)
-      notaLines.forEach((line) => {
+      notaLines.forEach((line: string) => {
         ensureSpace(5)
         doc.text(line, 15, yPos)
         yPos += 4
@@ -476,7 +476,7 @@ export function generarPDFPresupuesto(
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     const condiciones = presupuesto.condiciones_comerciales.split('\n')
-    condiciones.forEach((linea) => {
+    condiciones.forEach((linea: string) => {
       if (yPos < pageHeight - 30) {
         doc.text(`• ${linea}`, 20, yPos)
         yPos += 5
