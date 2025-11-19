@@ -256,6 +256,8 @@ export default function NuevaConfiguracionCercadoPage() {
           unidad,
           precios_venta(id, precio_venta, vigente)
         `)
+        .eq('categoria', 'Servicios')
+        .eq('unidad', 'metro')
         .order('nombre')
 
       if (error) throw error
@@ -1542,6 +1544,18 @@ export default function NuevaConfiguracionCercadoPage() {
                     Precio por metro: ${formatearPrecio(formData.precio_pua_por_metro)}
                   </p>
                 </div>
+              </div>
+
+              <div className="p-3 bg-muted rounded">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold">Precio Total Alambre de Púa:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    ${formatearPrecio(180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro))}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calculado automáticamente según materiales y cantidades seleccionadas
+                </p>
               </div>
             </CardContent>
           </Card>

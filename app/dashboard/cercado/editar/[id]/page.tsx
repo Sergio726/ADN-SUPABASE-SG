@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { parseSafe } from '@/lib/utils'
 
 export default function EditarConfiguracionCercadoPage() {
   const router = useRouter()
@@ -334,7 +335,7 @@ export default function EditarConfiguracionCercadoPage() {
           unidad,
           precios_venta(id, precio_venta, vigente)
         `)
-        .eq('categoria', 'Servicio')
+        .eq('categoria', 'Servicios')
         .eq('unidad', 'metro')
         .order('nombre')
 
@@ -352,6 +353,36 @@ export default function EditarConfiguracionCercadoPage() {
       const serviciosFiltrados = serviciosConPrecio.filter((a: any) => 
         a.precio_venta > 0 || idsGuardados.includes(String(a.id))
       )
+
+      // Debug: verificar que los servicios guardados estén incluidos
+      if (idsGuardados.length > 0) {
+        const serviciosEncontrados = serviciosFiltrados.filter(s => idsGuardados.includes(String(s.id)))
+        console.log('📋 Servicios cargados:', {
+          idsGuardados,
+          totalServiciosConPrecio: serviciosConPrecio.length,
+          totalServiciosFiltrados: serviciosFiltrados.length,
+          serviciosEncontrados: serviciosEncontrados.map(s => ({ 
+            id: s.id, 
+            idString: String(s.id),
+            nombre: s.nombre,
+            precio_venta: s.precio_venta 
+          })),
+          todosServicios: serviciosConPrecio.map(s => ({ 
+            id: s.id, 
+            idString: String(s.id),
+            nombre: s.nombre,
+            precio_venta: s.precio_venta,
+            incluido: idsGuardados.includes(String(s.id))
+          }))
+        })
+        if (serviciosEncontrados.length !== idsGuardados.length) {
+          console.warn('⚠️ Algunos servicios guardados no se encontraron:', {
+            idsGuardados,
+            serviciosEncontrados: serviciosEncontrados.map(s => s.id),
+            faltantes: idsGuardados.filter(id => !serviciosEncontrados.find(s => String(s.id) === id))
+          })
+        }
+      }
 
       setServicios(serviciosFiltrados)
     } catch (error: any) {
@@ -377,11 +408,33 @@ export default function EditarConfiguracionCercadoPage() {
       if (data) {
         // Recargar servicios con los IDs guardados para incluir servicios sin precio vigente
         const idsGuardados: string[] = []
-        if (data.mano_obra_id) idsGuardados.push(String(data.mano_obra_id))
-        if (data.transporte_id) idsGuardados.push(String(data.transporte_id))
-        if (idsGuardados.length > 0) {
-          await cargarServicios(idsGuardados)
+        if (data.mano_obra_id) {
+          const idManoObra = String(data.mano_obra_id)
+          idsGuardados.push(idManoObra)
         }
+        if (data.transporte_id) {
+          const idTransporte = String(data.transporte_id)
+          idsGuardados.push(idTransporte)
+        }
+        
+        // Siempre recargar servicios, pero con los IDs guardados si existen
+        // IMPORTANTE: Cargar servicios ANTES de establecer formData para que estén disponibles
+        await cargarServicios(idsGuardados)
+        
+        // Esperar un tick para que el estado de servicios se actualice
+        // (setState es asíncrono, pero await cargarServicios debería garantizar que se ejecutó)
+        
+        // Debug: verificar que los datos de servicios se cargaron correctamente
+        console.log('🔍 Cargando configuración:', {
+          mano_obra_id_original: data.mano_obra_id,
+          mano_obra_id_string: data.mano_obra_id ? String(data.mano_obra_id) : null,
+          transporte_id_original: data.transporte_id,
+          transporte_id_string: data.transporte_id ? String(data.transporte_id) : null,
+          precio_mano_obra_por_metro: data.precio_mano_obra_por_metro,
+          precio_transporte_por_metro: data.precio_transporte_por_metro,
+          idsGuardados
+        })
+        
         setFormData({
           nombre: data.nombre,
           descripcion: data.descripcion || '',
@@ -443,8 +496,8 @@ export default function EditarConfiguracionCercadoPage() {
           kg_alambre_negro: data.kg_alambre_negro.toString(),
           precio_kg_alambre_negro: data.precio_kg_alambre_negro.toString(),
           
-          precio_mano_obra_por_metro: data.precio_mano_obra_por_metro.toString(),
-          precio_transporte_por_metro: data.precio_transporte_por_metro.toString(),
+          precio_mano_obra_por_metro: data.precio_mano_obra_por_metro ? data.precio_mano_obra_por_metro.toString() : '0',
+          precio_transporte_por_metro: data.precio_transporte_por_metro ? data.precio_transporte_por_metro.toString() : '0',
           mano_obra_id: data.mano_obra_id ? String(data.mano_obra_id) : '',
           transporte_id: data.transporte_id ? String(data.transporte_id) : '',
           
@@ -465,50 +518,93 @@ export default function EditarConfiguracionCercadoPage() {
 
   // Optimizar cálculo de precios con useMemo
   const precioCalculadoMemo = useMemo(() => {
+
     // Calcular total de accesorios
     const totalAccesorios = 
-      (parseFloat(formData.cantidad_ganchos) * parseFloat(formData.precio_unitario_ganchos)) +
-      (parseFloat(formData.cantidad_planchuelas) * parseFloat(formData.precio_unitario_planchuelas)) +
-      (parseFloat(formData.cantidad_torniquetes) * parseFloat(formData.precio_unitario_torniquetes)) +
-      (parseFloat(formData.cantidad_esparragos) * parseFloat(formData.precio_unitario_esparragos)) +
-      (parseFloat(formData.metros_alambre_ar) * parseFloat(formData.precio_metro_alambre_ar)) +
-      (parseFloat(formData.kg_clavos) * parseFloat(formData.precio_kg_clavos)) +
-      (parseFloat(formData.kg_alambre_negro) * parseFloat(formData.precio_kg_alambre_negro))
+      (parseSafe(formData.cantidad_ganchos) * parseSafe(formData.precio_unitario_ganchos)) +
+      (parseSafe(formData.cantidad_planchuelas) * parseSafe(formData.precio_unitario_planchuelas)) +
+      (parseSafe(formData.cantidad_torniquetes) * parseSafe(formData.precio_unitario_torniquetes)) +
+      (parseSafe(formData.cantidad_esparragos) * parseSafe(formData.precio_unitario_esparragos)) +
+      (parseSafe(formData.metros_alambre_ar) * parseSafe(formData.precio_metro_alambre_ar)) +
+      (parseSafe(formData.kg_clavos) * parseSafe(formData.precio_kg_clavos)) +
+      (parseSafe(formData.kg_alambre_negro) * parseSafe(formData.precio_kg_alambre_negro))
 
     // Obtener precio del tejido
     const tejidoSeleccionado = tejidos.find(t => String(t.id) === formData.tejido_config_id)
-    const precioTejido = tejidoSeleccionado?.precio_venta || 0
+    const precioTejido = parseSafe(tejidoSeleccionado?.precio_venta, 0)
     // Usar la longitud real del rollo del tejido (campo 'largo', por defecto 10.00m)
-    const largoRollo = tejidoSeleccionado?.largo || 10.00
-    const rollosNecesarios = Math.ceil(180 / largoRollo)
+    const largoRollo = parseSafe(tejidoSeleccionado?.largo, 10.00)
+    const rollosNecesarios = largoRollo > 0 ? Math.ceil(180 / largoRollo) : 0
     const costoTejido = rollosNecesarios * precioTejido
 
     // Calcular total de postes
     const totalPostes =
-      (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
-      (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
-      (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
-      (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal))
+      (parseSafe(formData.cantidad_postes_esquineros) * parseSafe(formData.precio_poste_esquinero)) +
+      (parseSafe(formData.cantidad_postes_refuerzos) * parseSafe(formData.precio_poste_refuerzo)) +
+      (parseSafe(formData.cantidad_postes_intermedios) * parseSafe(formData.precio_poste_intermedio)) +
+      (parseSafe(formData.cantidad_puntales) * parseSafe(formData.precio_puntal))
 
     // Costo de púa (180m)
-    const costoPua = 180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro)
+    const hilosPua = parseSafe(formData.hilos_pua, 0)
+    const precioPuaPorMetro = parseSafe(formData.precio_pua_por_metro, 0)
+    const costoPua = 180 * hilosPua * precioPuaPorMetro
 
     // Mano de obra y transporte (180m)
-    const costoManoObra = 180 * parseFloat(formData.precio_mano_obra_por_metro)
-    const costoTransporte = 180 * parseFloat(formData.precio_transporte_por_metro)
+    const precioManoObraPorMetro = parseSafe(formData.precio_mano_obra_por_metro, 0)
+    const precioTransportePorMetro = parseSafe(formData.precio_transporte_por_metro, 0)
+    const costoManoObra = 180 * precioManoObraPorMetro
+    const costoTransporte = 180 * precioTransportePorMetro
 
-    // Total para 180m
-    const total180m = costoTejido + totalPostes + parseFloat(formData.cordon_precio_total) +
-                      costoPua + totalAccesorios + costoManoObra + costoTransporte
+    // Cordón
+    const cordonPrecioTotal = parseSafe(formData.cordon_precio_total, 0)
 
-    const precioMetro = total180m / 180
+    // Total para 180m - Sumar todos los componentes
+    // Usar sumas incrementales para mejor precisión
+    const componentes = [
+      costoTejido,
+      totalPostes,
+      cordonPrecioTotal,
+      costoPua,
+      totalAccesorios,
+      costoManoObra,
+      costoTransporte
+    ]
+    
+    // Sumar todos los componentes
+    const total180m = componentes.reduce((sum, val) => {
+      const valor = parseSafe(val, 0)
+      return sum + valor
+    }, 0)
+
+    // Debug: Log de componentes para verificación (solo en desarrollo)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.log('💰 Cálculo Total 180m:', {
+        costoTejido: parseSafe(costoTejido),
+        totalPostes: parseSafe(totalPostes),
+        cordonPrecioTotal: parseSafe(cordonPrecioTotal),
+        costoPua: parseSafe(costoPua),
+        totalAccesorios: parseSafe(totalAccesorios),
+        costoManoObra: parseSafe(costoManoObra),
+        costoTransporte: parseSafe(costoTransporte),
+        sumaTotal: parseSafe(total180m)
+      })
+    }
+
+    // Validar que el total sea un número válido
+    const total180mValidado = isNaN(total180m) || !isFinite(total180m) ? 0 : Math.max(0, total180m)
+    const precioMetro = total180mValidado > 0 ? total180mValidado / 180 : 0
     const precioMetroMenor50 = precioMetro * 1.50
 
+    // Validar que todos los valores sean números válidos
+    const accesoriosValidado = isNaN(totalAccesorios) || !isFinite(totalAccesorios) ? 0 : Math.max(0, totalAccesorios)
+    const precioMetroValidado = isNaN(precioMetro) || !isFinite(precioMetro) ? 0 : Math.max(0, precioMetro)
+    const precioMetroMenor50Validado = isNaN(precioMetroMenor50) || !isFinite(precioMetroMenor50) ? 0 : Math.max(0, precioMetroMenor50)
+
     return {
-      accesorios: totalAccesorios,
-      total_180m: total180m,
-      precio_metro: precioMetro,
-      precio_metro_menor_50: precioMetroMenor50,
+      accesorios: accesoriosValidado,
+      total_180m: total180mValidado,
+      precio_metro: precioMetroValidado,
+      precio_metro_menor_50: precioMetroMenor50Validado,
     }
   }, [
     formData.cantidad_ganchos, formData.precio_unitario_ganchos,
@@ -757,10 +853,29 @@ export default function EditarConfiguracionCercadoPage() {
     if (formData.alambre_ar_id) {
       const accesorio = accesorios.find(a => String(a.id) === formData.alambre_ar_id)
       if (accesorio && accesorio.precio_venta) {
+        const precioUnitario = accesorio.precio_venta
+        const unidad = accesorio.unidad?.toLowerCase() || ''
         const nombre = accesorio.nombre?.toLowerCase() || ''
-        const matchMetros = nombre.match(/(\d+)\s*m/i)
-        const metrosRollo = matchMetros ? parseFloat(matchMetros[1]) : 500
-        const precioPorMetro = accesorio.precio_venta / metrosRollo
+        
+        // Calcular precio por metro según la unidad (igual que en onValueChange)
+        let precioPorMetro = 0
+        if (unidad.includes('metro') || unidad === 'm') {
+          // Si la unidad es metro, usar directamente
+          precioPorMetro = precioUnitario
+        } else if (unidad.includes('rollo') || unidad.includes('roll')) {
+          // Intentar extraer metros del nombre (ej: "rollo de 500m", "rollo 1000m")
+          const metrosMatch = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
+          if (metrosMatch) {
+            const metrosPorRollo = parseInt(metrosMatch[1])
+            precioPorMetro = metrosPorRollo > 0 ? precioUnitario / metrosPorRollo : precioUnitario / 500
+          } else {
+            precioPorMetro = precioUnitario / 500 // Rollos estándar de 500m
+          }
+        } else {
+          // Para otras unidades, asumir que el precio ya es por metro
+          precioPorMetro = precioUnitario
+        }
+        
         setFormData(prev => ({ ...prev, precio_metro_alambre_ar: precioPorMetro.toString() }))
       }
     }
@@ -779,26 +894,41 @@ export default function EditarConfiguracionCercadoPage() {
     if (formData.pua_id) {
       const accesorio = accesorios.find(a => String(a.id) === formData.pua_id)
       if (accesorio && accesorio.precio_venta) {
-        const nombre = accesorio.nombre?.toLowerCase() || ''
-        const matchMetros = nombre.match(/(\d+)\s*m/i)
-        const metrosRollo = matchMetros ? parseFloat(matchMetros[1]) : 500
-        const precioPorMetro = accesorio.precio_venta / metrosRollo
+        const precioUnitario = accesorio.precio_venta
+        const unidad = accesorio.unidad?.toLowerCase() || ''
+        
+        // Calcular precio por metro según la unidad (igual que en la página de "nuevo")
+        let precioPorMetro = 0
+        if (unidad.includes('metro') || unidad === 'm') {
+          // Si la unidad es metro, usar directamente
+          precioPorMetro = precioUnitario
+        } else {
+          // Para rollos, intentar extraer metros del nombre o usar 500m por defecto
+          const nombre = accesorio.nombre?.toLowerCase() || ''
+          const matchMetros = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
+          const metrosRollo = matchMetros ? parseInt(matchMetros[1]) : 500
+          precioPorMetro = metrosRollo > 0 ? precioUnitario / metrosRollo : precioUnitario / 500
+        }
+        
         setFormData(prev => ({ ...prev, precio_pua_por_metro: precioPorMetro.toString() }))
       }
     }
 
     // Actualizar precios de servicios si hay IDs guardados
-    // Nota: Los servicios pueden estar vacíos si no hay servicios con precio vigente,
-    // pero aún así debemos mantener los IDs guardados
+    // Solo actualizar si el servicio tiene precio vigente (el precio guardado en formData ya está establecido desde la BD)
     if (formData.mano_obra_id && servicios.length > 0) {
       const servicio = servicios.find(s => String(s.id) === formData.mano_obra_id)
-      if (servicio && servicio.precio_venta) {
+      // Solo actualizar si el servicio tiene precio vigente mayor a 0
+      // Si no tiene precio vigente, mantener el precio guardado en formData (desde la BD)
+      if (servicio && servicio.precio_venta > 0) {
         setFormData(prev => ({ ...prev, precio_mano_obra_por_metro: servicio.precio_venta.toString() }))
       }
     }
     if (formData.transporte_id && servicios.length > 0) {
       const servicio = servicios.find(s => String(s.id) === formData.transporte_id)
-      if (servicio && servicio.precio_venta) {
+      // Solo actualizar si el servicio tiene precio vigente mayor a 0
+      // Si no tiene precio vigente, mantener el precio guardado en formData (desde la BD)
+      if (servicio && servicio.precio_venta > 0) {
         setFormData(prev => ({ ...prev, precio_transporte_por_metro: servicio.precio_venta.toString() }))
       }
     }
@@ -1869,12 +1999,22 @@ export default function EditarConfiguracionCercadoPage() {
                   <Select
                     value={formData.pua_id}
                     onValueChange={(value) => {
-                      const puaSeleccionada = accesorios.find(a => String(a.id) === value)
-                      // Extraer metros del nombre del artículo (ej: "rollo de 500m") o usar 500 por defecto
-                      const nombrePua = puaSeleccionada?.nombre || ''
-                      const matchMetros = nombrePua.match(/(\d+)\s*m/i)
-                      const metrosRollo = matchMetros ? parseFloat(matchMetros[1]) : 500
-                      const precioPorMetro = puaSeleccionada?.precio_venta ? puaSeleccionada.precio_venta / metrosRollo : 0
+                      const accesorioSeleccionado = accesorios.find(a => String(a.id) === value)
+                      const precioUnitario = accesorioSeleccionado?.precio_venta || 0
+                      const unidad = accesorioSeleccionado?.unidad?.toLowerCase() || ''
+                      
+                      // Calcular precio por metro según la unidad (igual que en la página de "nuevo")
+                      let precioPorMetro = 0
+                      if (unidad.includes('metro') || unidad === 'm') {
+                        // Si la unidad es metro, usar directamente
+                        precioPorMetro = precioUnitario
+                      } else {
+                        // Para rollos, intentar extraer metros del nombre o usar 500m por defecto
+                        const nombre = accesorioSeleccionado?.nombre?.toLowerCase() || ''
+                        const matchMetros = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
+                        const metrosRollo = matchMetros ? parseInt(matchMetros[1]) : 500
+                        precioPorMetro = metrosRollo > 0 ? precioUnitario / metrosRollo : precioUnitario / 500
+                      }
                       
                       setFormData({
                         ...formData,
@@ -1904,6 +2044,18 @@ export default function EditarConfiguracionCercadoPage() {
                     Precio: ${formatearPrecio(formData.precio_pua_por_metro, false)}/metro
                   </p>
                 </div>
+              </div>
+
+              <div className="p-3 bg-muted rounded">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold">Precio Total Alambre de Púa:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    ${formatearPrecio(180 * parseSafe(formData.hilos_pua, 0) * parseSafe(formData.precio_pua_por_metro, 0))}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Calculado automáticamente según materiales y cantidades seleccionadas
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -2158,7 +2310,7 @@ export default function EditarConfiguracionCercadoPage() {
                 <div className="space-y-2">
                   <Label>Mano de Obra ($/metro)</Label>
                   <Select
-                    value={formData.mano_obra_id}
+                    value={formData.mano_obra_id || undefined}
                     onValueChange={(value) => {
                       const servicio = servicios.find(s => String(s.id) === value)
                       setFormData({
@@ -2173,17 +2325,31 @@ export default function EditarConfiguracionCercadoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(() => {
+                        // Debug: verificar estado actual
+                        console.log('🔧 Renderizando Select de mano de obra:', {
+                          mano_obra_id: formData.mano_obra_id,
+                          totalServicios: servicios.length,
+                          serviciosIds: servicios.map(s => String(s.id))
+                        })
+                        
                         // Si hay un servicio seleccionado, incluirlo aunque no coincida con el filtro
                         const servicioSeleccionado = formData.mano_obra_id 
-                          ? servicios.find(s => String(s.id) === formData.mano_obra_id)
+                          ? servicios.find(s => String(s.id) === String(formData.mano_obra_id))
                           : null
+                        
+                        if (formData.mano_obra_id && !servicioSeleccionado) {
+                          console.warn('⚠️ Servicio seleccionado no encontrado:', {
+                            buscando: formData.mano_obra_id,
+                            disponibles: servicios.map(s => ({ id: s.id, idString: String(s.id), nombre: s.nombre }))
+                          })
+                        }
                         
                         // Filtrar servicios por tipo
                         const serviciosFiltrados = filtrarServiciosPorTipo('mano_obra')
                         
-                        // Si hay un servicio seleccionado que no está en los filtrados, agregarlo
-                        const serviciosParaMostrar = servicioSeleccionado && !serviciosFiltrados.find(s => String(s.id) === formData.mano_obra_id)
-                          ? [...serviciosFiltrados, servicioSeleccionado]
+                        // Si hay un servicio seleccionado que no está en los filtrados, agregarlo al inicio
+                        const serviciosParaMostrar = servicioSeleccionado && !serviciosFiltrados.find(s => String(s.id) === String(formData.mano_obra_id))
+                          ? [servicioSeleccionado, ...serviciosFiltrados]
                           : serviciosFiltrados
                         
                         return serviciosParaMostrar.length > 0 ? (
@@ -2208,7 +2374,7 @@ export default function EditarConfiguracionCercadoPage() {
                 <div className="space-y-2">
                   <Label>Transporte ($/metro)</Label>
                   <Select
-                    value={formData.transporte_id}
+                    value={formData.transporte_id || undefined}
                     onValueChange={(value) => {
                       const servicio = servicios.find(s => String(s.id) === value)
                       setFormData({
@@ -2223,17 +2389,31 @@ export default function EditarConfiguracionCercadoPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(() => {
+                        // Debug: verificar estado actual
+                        console.log('🔧 Renderizando Select de transporte:', {
+                          transporte_id: formData.transporte_id,
+                          totalServicios: servicios.length,
+                          serviciosIds: servicios.map(s => String(s.id))
+                        })
+                        
                         // Si hay un servicio seleccionado, incluirlo aunque no coincida con el filtro
                         const servicioSeleccionado = formData.transporte_id 
-                          ? servicios.find(s => String(s.id) === formData.transporte_id)
+                          ? servicios.find(s => String(s.id) === String(formData.transporte_id))
                           : null
+                        
+                        if (formData.transporte_id && !servicioSeleccionado) {
+                          console.warn('⚠️ Servicio seleccionado no encontrado:', {
+                            buscando: formData.transporte_id,
+                            disponibles: servicios.map(s => ({ id: s.id, idString: String(s.id), nombre: s.nombre }))
+                          })
+                        }
                         
                         // Filtrar servicios por tipo
                         const serviciosFiltrados = filtrarServiciosPorTipo('transporte')
                         
-                        // Si hay un servicio seleccionado que no está en los filtrados, agregarlo
-                        const serviciosParaMostrar = servicioSeleccionado && !serviciosFiltrados.find(s => String(s.id) === formData.transporte_id)
-                          ? [...serviciosFiltrados, servicioSeleccionado]
+                        // Si hay un servicio seleccionado que no está en los filtrados, agregarlo al inicio
+                        const serviciosParaMostrar = servicioSeleccionado && !serviciosFiltrados.find(s => String(s.id) === String(formData.transporte_id))
+                          ? [servicioSeleccionado, ...serviciosFiltrados]
                           : serviciosFiltrados
                         
                         return serviciosParaMostrar.length > 0 ? (
@@ -2303,9 +2483,9 @@ export default function EditarConfiguracionCercadoPage() {
                   <span className="font-semibold">
                     ${(() => {
                       const tejidoSel = tejidos.find(t => String(t.id) === formData.tejido_config_id)
-                      const precioTejido = tejidoSel?.precio_venta || 0
-                      const largoRollo = tejidoSel?.largo || 10.00
-                      const rollosNecesarios = Math.ceil(180 / largoRollo)
+                      const precioTejido = parseSafe(tejidoSel?.precio_venta, 0)
+                      const largoRollo = parseSafe(tejidoSel?.largo, 10.00)
+                      const rollosNecesarios = largoRollo > 0 ? Math.ceil(180 / largoRollo) : 0
                       return formatearPrecio(precioTejido * rollosNecesarios, false)
                     })()}
                   </span>
@@ -2316,10 +2496,10 @@ export default function EditarConfiguracionCercadoPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">
                         ${formatearPrecio(
-                          (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
-                          (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
-                          (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
-                          (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal)),
+                          (parseSafe(formData.cantidad_postes_esquineros) * parseSafe(formData.precio_poste_esquinero)) +
+                          (parseSafe(formData.cantidad_postes_refuerzos) * parseSafe(formData.precio_poste_refuerzo)) +
+                          (parseSafe(formData.cantidad_postes_intermedios) * parseSafe(formData.precio_poste_intermedio)) +
+                          (parseSafe(formData.cantidad_puntales) * parseSafe(formData.precio_puntal)),
                           false
                         )}
                       </span>
@@ -2336,7 +2516,7 @@ export default function EditarConfiguracionCercadoPage() {
                         {formData.cantidad_postes_esquineros} esquineros × ${formatearPrecio(formData.precio_poste_esquinero, false)}
                       </span>
                       <span className="font-medium">
-                        ${formatearPrecio(parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero), false)}
+                        ${formatearPrecio(parseSafe(formData.cantidad_postes_esquineros) * parseSafe(formData.precio_poste_esquinero), false)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
@@ -2344,7 +2524,7 @@ export default function EditarConfiguracionCercadoPage() {
                         {formData.cantidad_postes_refuerzos} refuerzos × ${formatearPrecio(formData.precio_poste_refuerzo, false)}
                       </span>
                       <span className="font-medium">
-                        ${formatearPrecio(parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo), false)}
+                        ${formatearPrecio(parseSafe(formData.cantidad_postes_refuerzos) * parseSafe(formData.precio_poste_refuerzo), false)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
@@ -2352,7 +2532,7 @@ export default function EditarConfiguracionCercadoPage() {
                         {formData.cantidad_postes_intermedios} intermedios × ${formatearPrecio(formData.precio_poste_intermedio, false)}
                       </span>
                       <span className="font-medium">
-                        ${formatearPrecio(parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio), false)}
+                        ${formatearPrecio(parseSafe(formData.cantidad_postes_intermedios) * parseSafe(formData.precio_poste_intermedio), false)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
@@ -2360,17 +2540,17 @@ export default function EditarConfiguracionCercadoPage() {
                         {formData.cantidad_puntales} puntales × ${formatearPrecio(formData.precio_puntal, false)}
                       </span>
                       <span className="font-medium">
-                        ${formatearPrecio(parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal), false)}
+                        ${formatearPrecio(parseSafe(formData.cantidad_puntales) * parseSafe(formData.precio_puntal), false)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs pt-2 mt-2 border-t border-muted">
                       <span className="font-semibold">Subtotal Postes:</span>
                       <span className="font-bold">
                         ${formatearPrecio(
-                          (parseFloat(formData.cantidad_postes_esquineros) * parseFloat(formData.precio_poste_esquinero)) +
-                          (parseFloat(formData.cantidad_postes_refuerzos) * parseFloat(formData.precio_poste_refuerzo)) +
-                          (parseFloat(formData.cantidad_postes_intermedios) * parseFloat(formData.precio_poste_intermedio)) +
-                          (parseFloat(formData.cantidad_puntales) * parseFloat(formData.precio_puntal)),
+                          (parseSafe(formData.cantidad_postes_esquineros) * parseSafe(formData.precio_poste_esquinero)) +
+                          (parseSafe(formData.cantidad_postes_refuerzos) * parseSafe(formData.precio_poste_refuerzo)) +
+                          (parseSafe(formData.cantidad_postes_intermedios) * parseSafe(formData.precio_poste_intermedio)) +
+                          (parseSafe(formData.cantidad_puntales) * parseSafe(formData.precio_puntal)),
                           false
                         )}
                       </span>
@@ -2379,12 +2559,12 @@ export default function EditarConfiguracionCercadoPage() {
                 </Collapsible>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Cordón:</span>
-                  <span className="font-semibold">${formatearPrecio(formData.cordon_precio_total, false)}</span>
+                  <span className="font-semibold">${formatearPrecio(parseSafe(formData.cordon_precio_total, 0), false)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Púa:</span>
                   <span className="font-semibold">
-                    ${formatearPrecio(180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro), false)}
+                    ${formatearPrecio(180 * parseSafe(formData.hilos_pua, 0) * parseSafe(formData.precio_pua_por_metro, 0), false)}
                   </span>
                 </div>
                 <Collapsible open={desgloseAccesoriosExpandido} onOpenChange={setDesgloseAccesoriosExpandido}>
@@ -2406,67 +2586,67 @@ export default function EditarConfiguracionCercadoPage() {
                           {formData.cantidad_ganchos} ganchos × ${formatearPrecio(formData.precio_unitario_ganchos, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.cantidad_ganchos) * parseFloat(formData.precio_unitario_ganchos), false)}
+                          ${formatearPrecio(parseSafe(formData.cantidad_ganchos) * parseSafe(formData.precio_unitario_ganchos), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.cantidad_planchuelas) > 0 && parseFloat(formData.precio_unitario_planchuelas) > 0 && (
+                    {parseSafe(formData.cantidad_planchuelas) > 0 && parseSafe(formData.precio_unitario_planchuelas) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.cantidad_planchuelas} planchuelas × ${formatearPrecio(formData.precio_unitario_planchuelas, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.cantidad_planchuelas) * parseFloat(formData.precio_unitario_planchuelas), false)}
+                          ${formatearPrecio(parseSafe(formData.cantidad_planchuelas) * parseSafe(formData.precio_unitario_planchuelas), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.cantidad_torniquetes) > 0 && parseFloat(formData.precio_unitario_torniquetes) > 0 && (
+                    {parseSafe(formData.cantidad_torniquetes) > 0 && parseSafe(formData.precio_unitario_torniquetes) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.cantidad_torniquetes} torniquetes × ${formatearPrecio(formData.precio_unitario_torniquetes, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.cantidad_torniquetes) * parseFloat(formData.precio_unitario_torniquetes), false)}
+                          ${formatearPrecio(parseSafe(formData.cantidad_torniquetes) * parseSafe(formData.precio_unitario_torniquetes), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.cantidad_esparragos) > 0 && parseFloat(formData.precio_unitario_esparragos) > 0 && (
+                    {parseSafe(formData.cantidad_esparragos) > 0 && parseSafe(formData.precio_unitario_esparragos) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.cantidad_esparragos} esparragos × ${formatearPrecio(formData.precio_unitario_esparragos, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.cantidad_esparragos) * parseFloat(formData.precio_unitario_esparragos), false)}
+                          ${formatearPrecio(parseSafe(formData.cantidad_esparragos) * parseSafe(formData.precio_unitario_esparragos), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.metros_alambre_ar) > 0 && parseFloat(formData.precio_metro_alambre_ar) > 0 && (
+                    {parseSafe(formData.metros_alambre_ar) > 0 && parseSafe(formData.precio_metro_alambre_ar) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.metros_alambre_ar}m alambre A/R × ${formatearPrecio(formData.precio_metro_alambre_ar, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.metros_alambre_ar) * parseFloat(formData.precio_metro_alambre_ar), false)}
+                          ${formatearPrecio(parseSafe(formData.metros_alambre_ar) * parseSafe(formData.precio_metro_alambre_ar), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.kg_clavos) > 0 && parseFloat(formData.precio_kg_clavos) > 0 && (
+                    {parseSafe(formData.kg_clavos) > 0 && parseSafe(formData.precio_kg_clavos) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.kg_clavos}kg clavos × ${formatearPrecio(formData.precio_kg_clavos, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.kg_clavos) * parseFloat(formData.precio_kg_clavos), false)}
+                          ${formatearPrecio(parseSafe(formData.kg_clavos) * parseSafe(formData.precio_kg_clavos), false)}
                         </span>
                       </div>
                     )}
-                    {parseFloat(formData.kg_alambre_negro) > 0 && parseFloat(formData.precio_kg_alambre_negro) > 0 && (
+                    {parseSafe(formData.kg_alambre_negro) > 0 && parseSafe(formData.precio_kg_alambre_negro) > 0 && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">
                           {formData.kg_alambre_negro}kg alambre negro × ${formatearPrecio(formData.precio_kg_alambre_negro, false)}
                         </span>
                         <span className="font-medium">
-                          ${formatearPrecio(parseFloat(formData.kg_alambre_negro) * parseFloat(formData.precio_kg_alambre_negro), false)}
+                          ${formatearPrecio(parseSafe(formData.kg_alambre_negro) * parseSafe(formData.precio_kg_alambre_negro), false)}
                         </span>
                       </div>
                     )}
@@ -2481,13 +2661,13 @@ export default function EditarConfiguracionCercadoPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Mano de Obra:</span>
                   <span className="font-semibold">
-                    ${formatearPrecio(180 * parseFloat(formData.precio_mano_obra_por_metro), false)}
+                    ${formatearPrecio(180 * parseSafe(formData.precio_mano_obra_por_metro, 0), false)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Transporte:</span>
                   <span className="font-semibold">
-                    ${formatearPrecio(180 * parseFloat(formData.precio_transporte_por_metro), false)}
+                    ${formatearPrecio(180 * parseSafe(formData.precio_transporte_por_metro, 0), false)}
                   </span>
                 </div>
               </div>
