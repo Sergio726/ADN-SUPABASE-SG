@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, Trash2, ChevronDown, Edit, Save, X, Plus } from 'lucide-react'
+import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, Trash2, ChevronDown, Edit, Save, X, Plus, Grid, Columns, Circle, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +35,8 @@ export default function VerPresupuestoPage() {
   const [guardando, setGuardando] = useState(false)
   const [articulos, setArticulos] = useState<any[]>([])
   const [tejidos, setTejidos] = useState<any[]>([])
+  const [configuracionCercado, setConfiguracionCercado] = useState<any>(null)
+  const [descripcionesPostes, setDescripcionesPostes] = useState<Record<string, any>>({})
 
   useEffect(() => {
     cargarPresupuesto()
@@ -150,6 +152,11 @@ export default function VerPresupuestoPage() {
       })
       setItems(itemsProcesados)
       setItemsEditables(itemsProcesados)
+
+      // Si es presupuesto de cercado, cargar configuración del cerco
+      if (presData?.tipo === 'cercado' && presData?.cercado_config_id) {
+        await cargarConfiguracionCercado(presData.cercado_config_id)
+      }
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -160,6 +167,57 @@ export default function VerPresupuestoPage() {
       router.push('/dashboard/presupuestos')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function cargarConfiguracionCercado(configId: string) {
+    try {
+      // Cargar configuración desde la vista completa
+      const { data: config, error } = await supabase
+        .from('v_configuraciones_cercado_completas')
+        .select('*')
+        .eq('id', configId)
+        .single()
+
+      if (error) throw error
+
+      setConfiguracionCercado(config)
+
+      // Cargar descripciones de los postes
+      const idsPostes = [
+        config.poste_esquinero_id,
+        config.poste_refuerzo_id,
+        config.poste_intermedio_id,
+        config.poste_puntal_id,
+      ].filter(Boolean)
+
+      if (idsPostes.length > 0) {
+        const { data: articulosPostes } = await supabase
+          .from('articulos')
+          .select('id, nombre, descripcion')
+          .in('id', idsPostes)
+
+        if (articulosPostes) {
+          const descripciones: Record<string, any> = {}
+          articulosPostes.forEach((art) => {
+            if (config.poste_esquinero_id === art.id) {
+              descripciones.esquinero = art
+            }
+            if (config.poste_refuerzo_id === art.id) {
+              descripciones.refuerzo = art
+            }
+            if (config.poste_intermedio_id === art.id) {
+              descripciones.intermedio = art
+            }
+            if (config.poste_puntal_id === art.id) {
+              descripciones.puntal = art
+            }
+          })
+          setDescripcionesPostes(descripciones)
+        }
+      }
+    } catch (error: any) {
+      console.error('Error al cargar configuración de cercado:', error)
     }
   }
 
@@ -207,7 +265,35 @@ export default function VerPresupuestoPage() {
 
   function descargarPDF() {
     try {
-      generarPDFPresupuesto({ ...presupuesto, vendedor_nombre: vendedorNombre }, items)
+      const presupuestoPDF = { 
+        ...presupuesto, 
+        vendedor_nombre: vendedorNombre,
+        ...(presupuesto.tipo === 'cercado' && configuracionCercado && {
+          configuracion_cercado: {
+            nombre: configuracionCercado.nombre,
+            descripcion: configuracionCercado.descripcion,
+            altura: configuracionCercado.altura,
+            altura_final_cerco: configuracionCercado.altura_final_cerco,
+            precio_por_metro_lineal: configuracionCercado.precio_por_metro_lineal,
+            tejido_codigo: configuracionCercado.tejido_codigo,
+            calibre: configuracionCercado.calibre,
+            tamano_rombo: configuracionCercado.tamano_rombo,
+            tipo_poste: configuracionCercado.tipo_poste,
+            cordon_tipo: configuracionCercado.cordon_tipo,
+            hilos_pua: configuracionCercado.hilos_pua,
+            cantidad_ganchos: configuracionCercado.cantidad_ganchos,
+            cantidad_planchuelas: configuracionCercado.cantidad_planchuelas,
+            cantidad_torniquetes: configuracionCercado.cantidad_torniquetes,
+            cantidad_esparragos: configuracionCercado.cantidad_esparragos,
+            metros_alambre_ar: configuracionCercado.metros_alambre_ar,
+            kg_clavos: configuracionCercado.kg_clavos,
+            kg_alambre_negro: configuracionCercado.kg_alambre_negro,
+            descripciones_postes: descripcionesPostes,
+          }
+        })
+      }
+      
+      generarPDFPresupuesto(presupuestoPDF, items)
       toast({
         title: "¡PDF Generado!",
         description: "El presupuesto se ha descargado correctamente",
@@ -884,13 +970,13 @@ export default function VerPresupuestoPage() {
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <User className="h-4 w-4" />
               Cliente
-            </CardTitle>
-          </CardHeader>
+              </CardTitle>
+            </CardHeader>
           <CardContent className="space-y-2">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nombre</p>
               <p className="text-sm font-semibold">{presupuesto.cliente_nombre}</p>
-            </div>
+              </div>
             {detallesCliente.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
                 {detallesCliente.slice(0, 2).map((detalle) => (
@@ -923,8 +1009,8 @@ export default function VerPresupuestoPage() {
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Vencimiento</p>
               <p className="text-sm font-medium">
                 {new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')}
-              </p>
-            </div>
+                          </p>
+                  </div>
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estado</p>
               <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
@@ -938,7 +1024,7 @@ export default function VerPresupuestoPage() {
                   <SelectItem value="rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+                </div>
           </CardContent>
         </Card>
 
@@ -954,7 +1040,7 @@ export default function VerPresupuestoPage() {
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Items:</span>
               <span className="font-semibold">{items.length}</span>
-            </div>
+                </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Subtotal:</span>
               <span className="font-semibold">${presupuesto.subtotal?.toLocaleString()}</span>
@@ -971,12 +1057,12 @@ export default function VerPresupuestoPage() {
                 ${presupuesto.total?.toLocaleString()}
               </span>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
       </div>
 
       {/* Items del Presupuesto - Ocupa todo el ancho */}
-      <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
+          <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
           <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -1020,50 +1106,50 @@ export default function VerPresupuestoPage() {
                       </Button>
                     </>
                   )}
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                       className="inline-flex data-[state=open]:rotate-180"
-                    >
-                      <ChevronDown className="h-5 w-5" />
-                    </Button>
-                  </CollapsibleTrigger>
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </Button>
+                </CollapsibleTrigger>
                 </div>
             </CardHeader>
               <CollapsibleContent>
             <CardContent>
                   {!modoEdicion ? (
                     <>
-                      <div className="rounded-lg border">
-                        <div className="hidden overflow-x-auto sm:block">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b bg-muted/50">
-                                <th className="p-3 text-left font-semibold">#</th>
-                                <th className="p-3 text-left font-semibold">Descripción</th>
-                                <th className="p-3 text-right font-semibold">Cant.</th>
-                                <th className="p-3 text-left font-semibold">Unidad</th>
-                                <th className="p-3 text-right font-semibold">P. Unit.</th>
-                                <th className="p-3 text-right font-semibold">Total</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {items.map((item, index) => (
-                                <tr key={item.id} className="border-b">
-                                  <td className="p-3 text-muted-foreground">{index + 1}</td>
+                  <div className="rounded-lg border">
+                    <div className="hidden overflow-x-auto sm:block">
+                      <table className="w-full text-sm">
+                  <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left font-semibold">#</th>
+                            <th className="p-3 text-left font-semibold">Descripción</th>
+                            <th className="p-3 text-right font-semibold">Cant.</th>
+                            <th className="p-3 text-left font-semibold">Unidad</th>
+                            <th className="p-3 text-right font-semibold">P. Unit.</th>
+                            <th className="p-3 text-right font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-3 text-muted-foreground">{index + 1}</td>
                                   <td className="p-3">{item.descripcion || 'Sin descripción'}</td>
-                                  <td className="p-3 text-right font-medium">{item.cantidad}</td>
-                                  <td className="p-3">{item.unidad}</td>
+                        <td className="p-3 text-right font-medium">{item.cantidad}</td>
+                        <td className="p-3">{item.unidad}</td>
                                   <td className="p-3 text-right">${formatearMoneda(item.precio_unitario)}</td>
-                                  <td className="p-3 text-right font-bold text-green-600">
-                                    ${formatearMoneda(item.precio_total)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                        <td className="p-3 text-right font-bold text-green-600">
+                                ${formatearMoneda(item.precio_total)}
+                        </td>
+                      </tr>
+                    ))}
+                        </tbody>
+                      </table>
+                    </div>
                       </div>
                     </>
                   ) : itemsEditables.length === 0 ? (
@@ -1399,7 +1485,7 @@ export default function VerPresupuestoPage() {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
-                                  </span>
+                            </span>
                                 </td>
                                 <td className="p-2">
                                   <div className="font-bold text-green-600 text-right">
@@ -1407,7 +1493,7 @@ export default function VerPresupuestoPage() {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
-                                  </div>
+                          </div>
                                 </td>
                                 <td className="p-2 text-center">
                                   <Button
@@ -1691,35 +1777,35 @@ export default function VerPresupuestoPage() {
                               </div>
                             ) : (
                               <>
-                                <p className="font-medium leading-snug">
-                                  {item.descripcion || 'Sin descripción'}
-                                </p>
-                                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                  <div>
-                                    <p className="font-semibold uppercase">Cant.</p>
-                                    <p>{item.cantidad}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold uppercase">Unidad</p>
-                                    <p>{item.unidad}</p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <p className="font-semibold uppercase">P. Unit.</p>
-                                    <p>${formatearMoneda(item.precio_unitario)}</p>
-                                  </div>
-                                </div>
+                          <p className="font-medium leading-snug">
+                            {item.descripcion || 'Sin descripción'}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <div>
+                              <p className="font-semibold uppercase">Cant.</p>
+                              <p>{item.cantidad}</p>
+                            </div>
+                            <div>
+                              <p className="font-semibold uppercase">Unidad</p>
+                              <p>{item.unidad}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="font-semibold uppercase">P. Unit.</p>
+                              <p>${formatearMoneda(item.precio_unitario)}</p>
+                            </div>
+                          </div>
                               </>
                             )}
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                    </div>
                       {modoEdicion && (
                         <div className="mt-4 sm:hidden">
                           <Button type="button" onClick={agregarItemEditable} className="w-full">
                             <Plus className="h-4 w-4 mr-2" />
                             Agregar Fila
                           </Button>
-                        </div>
+                  </div>
                       )}
                     </>
                   )}
@@ -1772,11 +1858,184 @@ export default function VerPresupuestoPage() {
                         )}
                       </span>
                     </div>
-                  </div>
-                </CardContent>
+              </div>
+            </CardContent>
               </CollapsibleContent>
-            </Card>
+          </Card>
           </Collapsible>
+
+      {/* Detalle del Cerco - Solo para presupuestos de cercado */}
+      {presupuesto.tipo === 'cercado' && configuracionCercado && (
+        <Card className="border-2">
+                  <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <FileText className="h-5 w-5" />
+              Detalle del Cerco Perimetral
+            </CardTitle>
+            <CardDescription>
+              Especificaciones técnicas y componentes incluidos en el presupuesto
+            </CardDescription>
+                  </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-4 bg-muted/30 border-2 border-muted rounded-lg space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-foreground">{configuracionCercado.nombre}</h3>
+                  {configuracionCercado.descripcion && (
+                    <p className="text-sm text-muted-foreground mt-1">{configuracionCercado.descripcion}</p>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge variant="outline" className="bg-background">
+                    {configuracionCercado.altura_final_cerco
+                      ? `${configuracionCercado.altura_final_cerco}m`
+                      : `${configuracionCercado.altura}m`}
+                  </Badge>
+                  {configuracionCercado.precio_por_metro_lineal && (
+                    <div className="text-right">
+                      <p className="text-xs text-green-600 uppercase tracking-wide mb-1 font-bold">Precio por Metro</p>
+                      <p className="text-lg font-bold text-green-700">
+                        ${configuracionCercado.precio_por_metro_lineal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+            </div>
+          )}
+                </div>
+        </div>
+
+              <div className="grid gap-4 md:grid-cols-2 pt-3 border-t border-muted-foreground/20">
+                {/* Tejido */}
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 font-bold flex items-center gap-1.5">
+                    <Grid className="h-3.5 w-3.5" />
+                    Tejido Romboidal
+                  </p>
+                  <p className="font-bold text-foreground">
+                    {configuracionCercado.tejido_codigo || 'N/A'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {configuracionCercado.calibre && `Cal.${configuracionCercado.calibre}`}
+                    {configuracionCercado.altura && ` - ${configuracionCercado.altura}m`}
+                    {configuracionCercado.tamano_rombo && ` - Rombo ${configuracionCercado.tamano_rombo}"`}
+                  </p>
+              </div>
+
+                {/* Postes */}
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 font-bold flex items-center gap-1.5">
+                    <Columns className="h-3.5 w-3.5" />
+                    Postes
+                  </p>
+                  <p className="font-bold text-foreground mb-1">{configuracionCercado.tipo_poste}</p>
+                  {(descripcionesPostes.esquinero || descripcionesPostes.intermedio) && (
+                    <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                      {descripcionesPostes.esquinero && (
+                        <p>
+                          <span className="font-bold">Esquineros:</span>{' '}
+                          {descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}
+                        </p>
+                      )}
+                      {descripcionesPostes.intermedio && (
+                        <p>
+                          <span className="font-bold">Intermedios:</span>{' '}
+                          {descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}
+                        </p>
+                      )}
+                      {descripcionesPostes.refuerzo && (
+                        <p>
+                          <span className="font-bold">Refuerzos:</span>{' '}
+                          {descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}
+                        </p>
+                      )}
+                      {descripcionesPostes.puntal && (
+                        <p>
+                          <span className="font-bold">Puntales:</span>{' '}
+                          {descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}
+                        </p>
+                      )}
+                </div>
+                  )}
+              </div>
+
+                {/* Cordón */}
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 font-bold flex items-center gap-1.5">
+                    <Circle className="h-3.5 w-3.5" />
+                    Cordón de Hormigón
+                  </p>
+                  <p className="font-bold text-foreground">{configuracionCercado.cordon_tipo || 'Sin cordón'}</p>
+              </div>
+
+                {/* Alambre de Púa */}
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 font-bold flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5" />
+                    Alambre de Púa
+                  </p>
+                  <p className="font-bold text-foreground">
+                    {configuracionCercado.hilos_pua > 0
+                      ? `${configuracionCercado.hilos_pua} hilos`
+                      : 'Sin púa'}
+                  </p>
+              </div>
+              </div>
+            </div>
+
+            {/* Accesorios Incluidos */}
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3 font-bold">
+                ✓ Accesorios Incluidos para la Instalación
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {configuracionCercado.cantidad_ganchos > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Ganchos tensores</span>
+              </div>
+                )}
+                {configuracionCercado.cantidad_planchuelas > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Planchuelas</span>
+                </div>
+              )}
+                {configuracionCercado.cantidad_torniquetes > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Torniquetes</span>
+              </div>
+                )}
+                {configuracionCercado.cantidad_esparragos > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Espárragos</span>
+                </div>
+              )}
+                {configuracionCercado.metros_alambre_ar > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Alambre alta resistencia</span>
+                  </div>
+                )}
+                {configuracionCercado.kg_clavos > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Clavos</span>
+                  </div>
+                )}
+                {configuracionCercado.kg_alambre_negro > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-600">✓</span>
+                    <span>Alambre negro</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                * Todos los accesorios necesarios para la correcta instalación del cerco perimetral están incluidos en el presupuesto.
+              </p>
+              </div>
+            </CardContent>
+          </Card>
+      )}
 
       {/* Observaciones y Condiciones + Acciones */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -1784,7 +2043,7 @@ export default function VerPresupuestoPage() {
         {(presupuesto.observaciones || presupuesto.condiciones_comerciales) && (
           <div className="md:col-span-2 space-y-4">
             {presupuesto.observaciones && (
-              <Card>
+          <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base sm:text-lg">Observaciones</CardTitle>
                 </CardHeader>
@@ -1810,20 +2069,20 @@ export default function VerPresupuestoPage() {
         <Card className={presupuesto.observaciones || presupuesto.condiciones_comerciales ? 'md:col-span-1' : 'md:col-span-3'}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base sm:text-lg">Acciones</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+            </CardHeader>
+            <CardContent className="space-y-2">
             <Button className="w-full" variant="outline" size="sm" onClick={descargarPDF}>
-              <Download className="h-4 w-4 mr-2" />
-              Descargar PDF
-            </Button>
+                <Download className="h-4 w-4 mr-2" />
+                Descargar PDF
+              </Button>
             <Button className="w-full" variant="outline" size="sm" onClick={descargarRemito}>
-              <FileText className="h-4 w-4 mr-2" />
-              Generar Remito
-            </Button>
+                <FileText className="h-4 w-4 mr-2" />
+                Generar Remito
+              </Button>
             <Button className="w-full" variant="outline" size="sm" onClick={copiarResumen}>
-              <MessageSquareText className="h-4 w-4 mr-2" />
-              Resumen WhatsApp
-            </Button>
+                <MessageSquareText className="h-4 w-4 mr-2" />
+                Resumen WhatsApp
+              </Button>
             <Button 
               className="w-full" 
               variant="destructive" 
@@ -1831,15 +2090,15 @@ export default function VerPresupuestoPage() {
               onClick={abrirDialogoBaja} 
               disabled={eliminando || presupuesto.estado === 'baja'}
             >
-              <Trash className="h-4 w-4 mr-2" />
-              {presupuesto.estado === 'baja'
-                ? 'Presupuesto dado de baja'
-                : eliminando
-                  ? 'Marcando como baja...'
-                  : 'Dar de baja'}
-            </Button>
-          </CardContent>
-        </Card>
+                <Trash className="h-4 w-4 mr-2" />
+                {presupuesto.estado === 'baja'
+                  ? 'Presupuesto dado de baja'
+                  : eliminando
+                    ? 'Marcando como baja...'
+                    : 'Dar de baja'}
+              </Button>
+            </CardContent>
+          </Card>
       </div>
 
       <Dialog

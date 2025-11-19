@@ -189,8 +189,14 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
         throw new Error('Usuario no autenticado')
       }
 
+      // Limpiar número de documento (quitar guiones y espacios) o enviar null si está vacío
+      const numeroDocumento = nuevoCliente.numero_documento?.trim()
+        ? nuevoCliente.numero_documento.replace(/[-\s]/g, '')
+        : null
+
       const clienteData = {
         ...nuevoCliente,
+        numero_documento: numeroDocumento,
         razon_social: nuevoCliente.razon_social || null,
         email: nuevoCliente.email || null,
         telefono_alternativo: nuevoCliente.telefono_alternativo || null,
@@ -371,18 +377,6 @@ export function BuscarCliente({ onClienteSeleccionado }: BuscarClienteProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Documento (bloqueado) */}
-            <div className="grid gap-4 grid-cols-2">
-              <div className="space-y-2">
-                <Label>Tipo Documento</Label>
-                <Input value={nuevoCliente.tipo_documento} disabled className="bg-muted font-mono" />
-              </div>
-              <div className="space-y-2">
-                <Label>Número</Label>
-                <Input value={nuevoCliente.numero_documento} disabled className="bg-muted font-mono" />
-              </div>
-            </div>
-
             {/* Nombre - OBLIGATORIO */}
             <div className="space-y-2">
               <Label htmlFor="dialog_nombre">
