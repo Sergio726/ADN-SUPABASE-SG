@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, RefreshCw, Filter, MessageSquareText } from 'lucide-react'
+import { Plus, Edit, Eye, RefreshCw, Filter, MessageSquareText, Download, FileSpreadsheet, FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -12,6 +12,9 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { exportarTejidosAExcel } from '@/lib/excel-generator'
+import { generarPDFListaTejidos } from '@/lib/pdf-generator'
 
 export default function TejidosPage() {
   const [tejidos, setTejidos] = useState<any[]>([])
@@ -159,6 +162,81 @@ export default function TejidosPage() {
       toast({
         title: 'No se pudo copiar',
         description: 'Tu navegador no permitió copiar el texto.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Función auxiliar para calcular precios por tipo de pago
+  const calcularPreciosPorTipoPagoParaExportacion = (precioVenta: number) => {
+    return {
+      efectivo: precioVenta * 1.0, // sin IVA
+      facturaLista: precioVenta * 1.21, // con IVA 21%
+      tarjeta: precioVenta * 1.3, // con IVA 21%
+    }
+  }
+
+  // Función para exportar a Excel
+  const exportarAExcel = () => {
+    try {
+      const datosParaExportar = tejidosFiltrados.map((tejido) => {
+        const preciosCalculados = calcularPreciosPorTipoPagoParaExportacion(Number(tejido.precio_venta) || 0)
+        return {
+          codigo: tejido.codigo || '-',
+          nombre: tejido.nombre || null,
+          categoria: tejido.categoria_calidad || tejido.calidad_sugerida || null,
+          unidad: 'rollo', // Los tejidos se venden por rollo
+          precioEfectivo: preciosCalculados.efectivo,
+          precioFactura: preciosCalculados.facturaLista,
+          precioTarjeta: preciosCalculados.tarjeta,
+          estado: tejido.activo ? 'Activo' : 'Inactivo',
+        }
+      })
+
+      exportarTejidosAExcel(datosParaExportar, 'Lista_Tejidos')
+      
+      toast({
+        title: 'Excel exportado',
+        description: `Se exportaron ${datosParaExportar.length} tejidos correctamente.`,
+      })
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error)
+      toast({
+        title: 'Error al exportar',
+        description: 'No se pudo exportar la lista de tejidos. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Función para exportar a PDF
+  const exportarAPDF = () => {
+    try {
+      const datosParaExportar = tejidosFiltrados.map((tejido) => {
+        const preciosCalculados = calcularPreciosPorTipoPagoParaExportacion(Number(tejido.precio_venta) || 0)
+        return {
+          codigo: tejido.codigo || '-',
+          nombre: tejido.nombre || null,
+          categoria: tejido.categoria_calidad || tejido.calidad_sugerida || null,
+          unidad: 'rollo', // Los tejidos se venden por rollo
+          precioEfectivo: preciosCalculados.efectivo,
+          precioFactura: preciosCalculados.facturaLista,
+          precioTarjeta: preciosCalculados.tarjeta,
+          estado: tejido.activo ? 'Activo' : 'Inactivo',
+        }
+      })
+
+      generarPDFListaTejidos(datosParaExportar, 'Lista_Tejidos')
+      
+      toast({
+        title: 'PDF exportado',
+        description: `Se exportaron ${datosParaExportar.length} tejidos correctamente.`,
+      })
+    } catch (error) {
+      console.error('Error al exportar a PDF:', error)
+      toast({
+        title: 'Error al exportar',
+        description: 'No se pudo exportar la lista de tejidos. Intenta nuevamente.',
         variant: 'destructive',
       })
     }
@@ -327,6 +405,24 @@ export default function TejidosPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportarAExcel}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Exportar a Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportarAPDF}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar a PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button asChild className="w-full sm:w-auto">
             <Link href="/dashboard/tejidos/nuevo">
               <Plus className="h-4 w-4 mr-2" />
