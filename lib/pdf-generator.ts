@@ -689,6 +689,145 @@ export function generarPDFListaPrecios(
   return nombreCompleto
 }
 
+/**
+ * Genera un PDF con la lista de tejidos
+ * @param datos Array de objetos con los datos de tejidos
+ * @param nombreArchivo Nombre del archivo (sin extensión)
+ */
+export function generarPDFListaTejidos(
+  datos: Array<{
+    codigo: string
+    nombre: string | null
+    categoria: string | null
+    unidad: string
+    precioEfectivo: number
+    precioFactura: number
+    precioTarjeta: number
+    estado: string
+  }>,
+  nombreArchivo: string = 'Lista_Tejidos'
+) {
+  const doc = new jsPDF('landscape', 'mm', 'a4') // Horizontal para mejor visualización de tabla
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let yPos = 20
+
+  // Helper para verificar espacio
+  const ensureSpace = (needed: number = 40) => {
+    const pageHeight = doc.internal.pageSize.getHeight()
+    if (yPos + needed > pageHeight - 30) {
+      doc.addPage('landscape')
+      yPos = 20
+      return true
+    }
+    return false
+  }
+
+  // ===== HEADER =====
+  try {
+    const logo = new Image()
+    logo.src = '/logos/logo-color.png'
+    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
+  } catch (error) {
+    console.warn('No se pudo cargar el logo para el PDF', error)
+  }
+
+  // Título
+  doc.setFontSize(18)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('LISTA DE TEJIDOS ROMBOIDALES', pageWidth / 2, yPos + 10, { align: 'center' })
+
+  // Fecha de emisión
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  const fechaEmision = new Date().toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  doc.text(`Fecha de emisión: ${fechaEmision}`, pageWidth - 15, yPos + 5, { align: 'right' })
+
+  yPos += 25
+
+  // ===== TABLA DE TEJIDOS =====
+  const tableData = datos.map((item) => [
+    item.codigo,
+    item.nombre || item.codigo,
+    item.categoria || 'Sin categoría',
+    item.unidad,
+    `$${item.precioEfectivo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$${item.precioFactura.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$${item.precioTarjeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    item.estado,
+  ])
+
+  autoTable(doc, {
+    head: [['Código', 'Nombre/Descripción', 'Categoría', 'Unidad', 'Precio Efectivo', 'Precio Factura/Lista\n(con IVA 21%)', 'Precio Tarjeta\n(con IVA 21%)', 'Estado']],
+    body: tableData,
+    startY: yPos,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [68, 114, 196], // Azul
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: {
+      fontSize: 8,
+      textColor: [0, 0, 0],
+    },
+    columnStyles: {
+      0: { cellWidth: 25, halign: 'center' }, // Código
+      1: { cellWidth: 60, halign: 'left' }, // Nombre
+      2: { cellWidth: 35, halign: 'left' }, // Categoría
+      3: { cellWidth: 20, halign: 'center' }, // Unidad
+      4: { cellWidth: 30, halign: 'right' }, // Precio Efectivo
+      5: { cellWidth: 35, halign: 'right' }, // Precio Factura
+      6: { cellWidth: 30, halign: 'right' }, // Precio Tarjeta
+      7: { cellWidth: 25, halign: 'center' }, // Estado
+    },
+    styles: {
+      overflow: 'linebreak',
+      cellPadding: 2,
+    },
+    margin: { left: 10, right: 10 },
+  })
+
+  // Obtener la posición final después de la tabla
+  yPos = (doc as any).lastAutoTable.finalY + 15
+
+  // ===== FOOTER =====
+  ensureSpace(20)
+  const pageHeight = doc.internal.pageSize.getHeight()
+  
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'italic')
+  doc.text('Los precios están sujetos a cambios sin previo aviso.', pageWidth / 2, pageHeight - 15, { align: 'center' })
+  doc.text(`Total de tejidos: ${datos.length}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+  
+  // Número de página
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
+  }
+
+  // Generar nombre de archivo con timestamp
+  const fecha = new Date()
+  const fechaStr = fecha.toISOString().split('T')[0].replace(/-/g, '-')
+  const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-').slice(0, 5)
+  const nombreCompleto = `${nombreArchivo}_${fechaStr}_${horaStr}.pdf`
+
+  // Descargar archivo
+  doc.save(nombreCompleto)
+  
+  return nombreCompleto
+}
+
 export function generarPDFRemito(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[],
