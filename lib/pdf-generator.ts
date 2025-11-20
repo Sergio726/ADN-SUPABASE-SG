@@ -98,17 +98,17 @@ export function generarPDFPresupuesto(
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
   doc.text('Tu seguridad comienza con nosotros', 15, yPos + 15)
-
+  
   // Número de presupuesto (derecha)
   doc.setFontSize(12)
   doc.setTextColor(0, 0, 0)
   doc.setFont('helvetica', 'bold')
   doc.text('PRESUPUESTO', pageWidth - 15, yPos, { align: 'right' })
-
+  
   doc.setFontSize(14)
   doc.setTextColor(220, 38, 38)
   doc.text(presupuesto.numero, pageWidth - 15, yPos + 6, { align: 'right' })
-
+  
   doc.setFontSize(9)
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
@@ -116,14 +116,14 @@ export function generarPDFPresupuesto(
   const fechaVenc = new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')
   doc.text(`Fecha: ${fechaEmision}`, pageWidth - 15, yPos + 12, { align: 'right' })
   doc.text(`Vencimiento: ${fechaVenc}`, pageWidth - 15, yPos + 17, { align: 'right' })
-
+  
   yPos = 50
 
   // Línea separadora
   doc.setDrawColor(220, 38, 38)
   doc.setLineWidth(0.5)
   doc.line(15, yPos, pageWidth - 15, yPos)
-
+  
   yPos += 10
 
   // ===== DATOS DEL CLIENTE =====
@@ -131,12 +131,12 @@ export function generarPDFPresupuesto(
   doc.setTextColor(0, 0, 0)
   doc.setFont('helvetica', 'bold')
   doc.text('CLIENTE:', 15, yPos)
-
+  
   yPos += 6
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(presupuesto.cliente_nombre, 15, yPos)
-
+  
   if (presupuesto.razon_social) {
     yPos += 5
     doc.text(`Razón social: ${presupuesto.razon_social}`, 15, yPos)
@@ -146,17 +146,17 @@ export function generarPDFPresupuesto(
     yPos += 5
     doc.text(`Documento: ${presupuesto.tipo_documento} ${presupuesto.numero_documento}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_telefono) {
     yPos += 5
     doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_email) {
     yPos += 5
     doc.text(`Email: ${presupuesto.cliente_email}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_direccion) {
     yPos += 5
     doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
@@ -169,13 +169,13 @@ export function generarPDFPresupuesto(
     doc.setFont('helvetica', 'normal')
     doc.text(presupuesto.vendedor_nombre, 45, yPos)
   }
-
+  
   // Si es cercado, mostrar datos del terreno
   if (presupuesto.tipo === 'cercado' && presupuesto.metros_lineales_total) {
     yPos += 8
     doc.setFont('helvetica', 'bold')
     doc.text('TERRENO:', 15, yPos)
-
+    
     yPos += 6
     doc.setFont('helvetica', 'normal')
     if (presupuesto.terreno_largo && presupuesto.terreno_ancho) {
@@ -357,7 +357,7 @@ export function generarPDFPresupuesto(
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.text('DETALLE:', 15, yPos)
-
+  
   yPos += 5
 
   const tableData = items.map((item, index) => [
@@ -399,7 +399,7 @@ export function generarPDFPresupuesto(
 
   // ===== TOTALES =====
   const totalesX = pageWidth - 80
-
+  
   ensureSpace(40)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
@@ -408,7 +408,7 @@ export function generarPDFPresupuesto(
   doc.text(`$${presupuesto.subtotal.toLocaleString('es-AR')}`, pageWidth - 15, yPos, {
     align: 'right',
   })
-
+  
   if (presupuesto.descuento > 0) {
     yPos += 6
     doc.setTextColor(220, 38, 38)
@@ -418,7 +418,7 @@ export function generarPDFPresupuesto(
     })
     doc.setTextColor(0, 0, 0)
   }
-
+  
   // Discriminación de IVA (21%) - Solo si NO es efectivo
   const esEfectivo = presupuesto.forma_pago === 'efectivo'
   if (!esEfectivo && presupuesto.total > 0) {
@@ -447,12 +447,12 @@ export function generarPDFPresupuesto(
       { align: 'right' }
     )
   }
-
+  
   yPos += 8
   doc.setDrawColor(0, 0, 0)
   doc.setLineWidth(0.5)
   doc.line(totalesX - 5, yPos - 3, pageWidth - 15, yPos - 3)
-
+  
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
   doc.text('TOTAL:', totalesX, yPos + 4)
@@ -462,7 +462,7 @@ export function generarPDFPresupuesto(
     align: 'right',
   })
   doc.setTextColor(0, 0, 0)
-
+  
   yPos += 19
 
   // ===== CONDICIONES COMERCIALES =====
@@ -471,7 +471,7 @@ export function generarPDFPresupuesto(
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('CONDICIONES COMERCIALES:', 15, yPos)
-
+    
     yPos += 6
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
@@ -482,7 +482,7 @@ export function generarPDFPresupuesto(
         yPos += 5
       }
     })
-
+    
     yPos += 5
   }
 
@@ -492,7 +492,7 @@ export function generarPDFPresupuesto(
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('OBSERVACIONES:', 15, yPos)
-
+    
     yPos += 6
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
@@ -510,12 +510,12 @@ export function generarPDFPresupuesto(
   if (yPos > pageHeight - 40) {
     doc.addPage()
   }
-
+  
   const footerY = pageHeight - 20
   doc.setDrawColor(0, 0, 0)
   doc.setLineWidth(0.3)
   doc.line(15, footerY - 5, pageWidth - 15, footerY - 5)
-
+  
   doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
   doc.text(
     'Tel: +54 387 77-3393 | Email: info@alambresdelnortesrl.com.ar',
@@ -550,6 +550,145 @@ export function generarPDFPresupuestoCercado(
   generarPDFPresupuesto(presupuesto, items)
 }
 
+/**
+ * Genera un PDF con la lista de precios
+ * @param datos Array de objetos con los datos de precios
+ * @param nombreArchivo Nombre del archivo (sin extensión)
+ */
+export function generarPDFListaPrecios(
+  datos: Array<{
+    codigo: string
+    nombre: string
+    categoria: string | null
+    unidad: string
+    precioEfectivo: number
+    precioFactura: number
+    precioTarjeta: number
+    estado: string
+  }>,
+  nombreArchivo: string = 'Lista_Precios'
+) {
+  const doc = new jsPDF('landscape', 'mm', 'a4') // Horizontal para mejor visualización de tabla
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let yPos = 20
+
+  // Helper para verificar espacio
+  const ensureSpace = (needed: number = 40) => {
+    const pageHeight = doc.internal.pageSize.getHeight()
+    if (yPos + needed > pageHeight - 30) {
+      doc.addPage('landscape')
+      yPos = 20
+      return true
+    }
+    return false
+  }
+
+  // ===== HEADER =====
+  try {
+    const logo = new Image()
+    logo.src = '/logos/logo-color.png'
+    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
+  } catch (error) {
+    console.warn('No se pudo cargar el logo para el PDF', error)
+  }
+
+  // Título
+  doc.setFontSize(18)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('LISTA DE PRECIOS', pageWidth / 2, yPos + 10, { align: 'center' })
+
+  // Fecha de emisión
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  const fechaEmision = new Date().toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  doc.text(`Fecha de emisión: ${fechaEmision}`, pageWidth - 15, yPos + 5, { align: 'right' })
+
+  yPos += 25
+
+  // ===== TABLA DE PRECIOS =====
+  const tableData = datos.map((item) => [
+    item.codigo,
+    item.nombre.substring(0, 40), // Limitar longitud del nombre
+    item.categoria || 'Sin categoría',
+    item.unidad,
+    `$${item.precioEfectivo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$${item.precioFactura.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$${item.precioTarjeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    item.estado,
+  ])
+
+  autoTable(doc, {
+    head: [['Código', 'Nombre/Descripción', 'Categoría', 'Unidad', 'Precio Efectivo', 'Precio Factura/Lista\n(con IVA 21%)', 'Precio Tarjeta\n(con IVA 21%)', 'Estado']],
+    body: tableData,
+    startY: yPos,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [68, 114, 196], // Azul
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: {
+      fontSize: 8,
+      textColor: [0, 0, 0],
+    },
+    columnStyles: {
+      0: { cellWidth: 25, halign: 'center' }, // Código
+      1: { cellWidth: 60, halign: 'left' }, // Nombre
+      2: { cellWidth: 35, halign: 'left' }, // Categoría
+      3: { cellWidth: 20, halign: 'center' }, // Unidad
+      4: { cellWidth: 30, halign: 'right' }, // Precio Efectivo
+      5: { cellWidth: 35, halign: 'right' }, // Precio Factura
+      6: { cellWidth: 30, halign: 'right' }, // Precio Tarjeta
+      7: { cellWidth: 25, halign: 'center' }, // Estado
+    },
+    styles: {
+      overflow: 'linebreak',
+      cellPadding: 2,
+    },
+    margin: { left: 10, right: 10 },
+  })
+
+  // Obtener la posición final después de la tabla
+  yPos = (doc as any).lastAutoTable.finalY + 15
+
+  // ===== FOOTER =====
+  ensureSpace(20)
+  const pageHeight = doc.internal.pageSize.getHeight()
+  
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'italic')
+  doc.text('Los precios están sujetos a cambios sin previo aviso.', pageWidth / 2, pageHeight - 15, { align: 'center' })
+  doc.text(`Total de artículos: ${datos.length}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+  
+  // Número de página
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
+  }
+
+  // Generar nombre de archivo con timestamp
+  const fecha = new Date()
+  const fechaStr = fecha.toISOString().split('T')[0].replace(/-/g, '-')
+  const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-').slice(0, 5)
+  const nombreCompleto = `${nombreArchivo}_${fechaStr}_${horaStr}.pdf`
+
+  // Descargar archivo
+  doc.save(nombreCompleto)
+  
+  return nombreCompleto
+}
+
 export function generarPDFRemito(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[],
@@ -579,35 +718,35 @@ export function generarPDFRemito(
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
   doc.text('Tu seguridad comienza con nosotros', 15, yPos + 15)
-
+  
   // Número de remito (derecha)
   doc.setFontSize(12)
   doc.setTextColor(0, 0, 0)
   doc.setFont('helvetica', 'bold')
   doc.text('REMITO', pageWidth - 15, yPos, { align: 'right' })
-
+  
   doc.setFontSize(14)
   doc.setTextColor(220, 38, 38)
   doc.text(remitoNumero, pageWidth - 15, yPos + 6, { align: 'right' })
-
+  
   doc.setFontSize(9)
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'normal')
   const fechaEntrega = new Date().toLocaleDateString('es-AR')
   doc.text(`Fecha de entrega: ${fechaEntrega}`, pageWidth - 15, yPos + 12, { align: 'right' })
-
+  
   // Referencia al presupuesto
   if (presupuesto.numero) {
     doc.text(`Presupuesto: ${presupuesto.numero}`, pageWidth - 15, yPos + 17, { align: 'right' })
   }
-
+  
   yPos = 50
 
   // Línea separadora
   doc.setDrawColor(220, 38, 38)
   doc.setLineWidth(0.5)
   doc.line(15, yPos, pageWidth - 15, yPos)
-
+  
   yPos += 10
 
   // ===== DATOS DEL REMITENTE =====
@@ -615,7 +754,7 @@ export function generarPDFRemito(
   doc.setTextColor(0, 0, 0)
   doc.setFont('helvetica', 'bold')
   doc.text('REMITENTE:', 15, yPos)
-
+  
   yPos += 6
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
@@ -624,19 +763,19 @@ export function generarPDFRemito(
   doc.text('Tel: +54 387 77-3393', 15, yPos)
   yPos += 5
   doc.text('Email: info@alambresdelnortesrl.com.ar', 15, yPos)
-
+  
   yPos += 12
 
   // ===== DATOS DEL DESTINATARIO =====
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.text('DESTINATARIO:', 15, yPos)
-
+  
   yPos += 6
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(presupuesto.cliente_nombre, 15, yPos)
-
+  
   if (presupuesto.razon_social) {
     yPos += 5
     doc.text(`Razón social: ${presupuesto.razon_social}`, 15, yPos)
@@ -646,29 +785,29 @@ export function generarPDFRemito(
     yPos += 5
     doc.text(`Documento: ${presupuesto.tipo_documento} ${presupuesto.numero_documento}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_telefono) {
     yPos += 5
     doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_email) {
     yPos += 5
     doc.text(`Email: ${presupuesto.cliente_email}`, 15, yPos)
   }
-
+  
   if (presupuesto.cliente_direccion) {
     yPos += 5
     doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
   }
-
+  
   yPos += 12
 
   // ===== TABLA DE ITEMS (SIN PRECIOS) =====
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.text('MERCADERÍA ENTREGADA:', 15, yPos)
-
+  
   yPos += 5
 
   const tableData = items.map((item, index) => [
@@ -714,7 +853,7 @@ export function generarPDFRemito(
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
     doc.text('OBSERVACIONES:', 15, yPos)
-
+    
     yPos += 6
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
@@ -727,15 +866,15 @@ export function generarPDFRemito(
   if (yPos < pageHeight - 60) {
     doc.setDrawColor(0, 0, 0)
     doc.setLineWidth(0.3)
-
+    
     // Línea para firma
     const firmaY = pageHeight - 50
     doc.line(15, firmaY, pageWidth - 15, firmaY)
-
+    
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     doc.text('Firma y aclaración del destinatario:', 15, firmaY - 5)
-
+    
     // Espacio para firma
     doc.setDrawColor(200, 200, 200)
     doc.rect(15, firmaY + 5, pageWidth - 30, 20)
@@ -745,7 +884,7 @@ export function generarPDFRemito(
   doc.setFontSize(8)
   doc.setTextColor(100, 100, 100)
   doc.setFont('helvetica', 'italic')
-
+  
   const footerY = pageHeight - 10
   doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
   doc.text(

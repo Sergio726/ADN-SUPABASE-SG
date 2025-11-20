@@ -10,10 +10,13 @@ import { DataTable } from '@/components/ui/data-table'
 import { SortableHeader } from '@/components/ui/sortable-header'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle, PlusCircle, Eye, FileText, CreditCard, Receipt, Copy, MessageCircle } from 'lucide-react'
+import { DollarSign, Edit, ExternalLink, CheckCircle, XCircle, PlusCircle, Eye, FileText, CreditCard, Receipt, Copy, MessageCircle, Download, FileSpreadsheet, FileDown } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
+import { exportarPreciosAExcel } from '@/lib/excel-generator'
+import { generarPDFListaPrecios } from '@/lib/pdf-generator'
 
 type Precio = {
   id: string
@@ -26,6 +29,7 @@ type Precio = {
     id: string
     nombre: string
     categoria: string | null
+    unidad: string | null
   } | null
 }
 
@@ -44,7 +48,7 @@ async function getTodosLosPrecios() {
     .from('precios_venta')
     .select(`
       *,
-      articulos(id, nombre, categoria)
+      articulos(id, nombre, categoria, unidad)
     `)
 
   if (error) {
@@ -221,6 +225,92 @@ async function getTodosLosPrecios() {
   const preciosVigentes = precios.filter((p) => p.vigente).length
   const preciosNoVigentes = precios.filter((p) => !p.vigente).length
 
+  // Función para calcular precios por tipo de pago para un precio dado
+  const calcularPreciosPorTipoPagoParaExportacion = (precioVenta: number) => {
+    return {
+      efectivo: precioVenta * 1.0, // sin IVA
+      facturaLista: precioVenta * 1.21, // con IVA 21%
+      tarjeta: precioVenta * 1.3, // con IVA 21%
+    }
+  }
+
+  // Función auxiliar para generar código desde ID
+  const generarCodigoDesdeId = (id: string | number | undefined): string => {
+    if (!id) return '-'
+    if (typeof id === 'string') {
+      return `ART-${id.slice(0, 8)}`
+    }
+    return `ART-${String(id).padStart(6, '0')}`
+  }
+
+  // Función para exportar a Excel
+  const exportarAExcel = () => {
+    try {
+      const datosParaExportar = precios.map((precio) => {
+        const preciosCalculados = calcularPreciosPorTipoPagoParaExportacion(precio.precio_venta)
+        // Usar el ID del artículo como código si no hay campo codigo en la tabla
+        return {
+          codigo: generarCodigoDesdeId(precio.articulos?.id),
+          nombre: precio.articulos?.nombre || 'Sin nombre',
+          categoria: precio.articulos?.categoria || null,
+          unidad: precio.articulos?.unidad || 'unidad',
+          precioEfectivo: preciosCalculados.efectivo,
+          precioFactura: preciosCalculados.facturaLista,
+          precioTarjeta: preciosCalculados.tarjeta,
+          estado: precio.vigente ? 'Vigente' : 'No vigente',
+        }
+      })
+
+      exportarPreciosAExcel(datosParaExportar, 'Lista_Precios')
+      
+      toast({
+        title: 'Excel exportado',
+        description: `Se exportaron ${datosParaExportar.length} precios correctamente.`,
+      })
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error)
+      toast({
+        title: 'Error al exportar',
+        description: 'No se pudo exportar la lista de precios. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Función para exportar a PDF
+  const exportarAPDF = () => {
+    try {
+      const datosParaExportar = precios.map((precio) => {
+        const preciosCalculados = calcularPreciosPorTipoPagoParaExportacion(precio.precio_venta)
+        // Usar el ID del artículo como código si no hay campo codigo en la tabla
+        return {
+          codigo: generarCodigoDesdeId(precio.articulos?.id),
+          nombre: precio.articulos?.nombre || 'Sin nombre',
+          categoria: precio.articulos?.categoria || null,
+          unidad: precio.articulos?.unidad || 'unidad',
+          precioEfectivo: preciosCalculados.efectivo,
+          precioFactura: preciosCalculados.facturaLista,
+          precioTarjeta: preciosCalculados.tarjeta,
+          estado: precio.vigente ? 'Vigente' : 'No vigente',
+        }
+      })
+
+      generarPDFListaPrecios(datosParaExportar, 'Lista_Precios')
+      
+      toast({
+        title: 'PDF exportado',
+        description: `Se exportaron ${datosParaExportar.length} precios correctamente.`,
+      })
+    } catch (error) {
+      console.error('Error al exportar a PDF:', error)
+      toast({
+        title: 'Error al exportar',
+        description: 'No se pudo exportar la lista de precios. Intenta nuevamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   // Calcular precios por tipo de pago
   const calcularPreciosPorTipoPago = (precio: Precio | null) => {
     if (!precio) return null
@@ -307,19 +397,39 @@ async function getTodosLosPrecios() {
 
   return (
     <div className="space-y-6">
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Gestión de Precios</h2>
           <p className="text-muted-foreground mt-2">
             Total: {precios.length} precios ({preciosVigentes} vigentes, {preciosNoVigentes} no vigentes)
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/precios/nuevo">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nuevo precio
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportarAExcel}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Exportar a Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportarAPDF}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar a PDF (.pdf)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button asChild>
+            <Link href="/dashboard/precios/nuevo">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Nuevo precio
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {precios.length > 0 ? (
