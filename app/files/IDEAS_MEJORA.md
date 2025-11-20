@@ -20,6 +20,11 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Visualizar el nivel de conversión entre cantidad de presupuestos enviados y cantidad de presupuestos aceptados.
   - Dashboard con métricas: tasa de conversión, presupuestos por estado, tendencias temporales.
   - Gráficos y reportes para análisis de efectividad comercial.
+- **Mejoras adicionales sugeridas (2025-02-04):**
+  - Gráficos visuales simples (barras, líneas de tendencia) para mejor comprensión de métricas
+  - Filtros por rango de fechas, vendedor, tipo de presupuesto
+  - Comparativa mes actual vs mes anterior de forma visual
+  - Exportación de datos del dashboard a Excel/PDF
 - **Funcionalidades específicas:**
   - **Dashboard de conversión:** Panel principal con KPI de tasa de conversión global y por período.
   - **Análisis por vendedor:** Comparativa de tasas de conversión por vendedor para identificar mejores prácticas.
@@ -97,11 +102,54 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Lista de precios (ver sección específica)
   - Lista de stock (ver sección específica)
   - Lista de clientes
-  - Lista de presupuestos
+  - Lista de presupuestos (ver sección específica)
   - Lista de productos/artículos
   - Lista de tejidos
   - Lista de vendedores
   - Lista de proveedores
+
+### Exportación de Lista de Presupuestos
+- **Fecha:** 2025-02-04
+- **Prioridad:** [Media]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Sistema para exportar la lista completa de presupuestos desde el dashboard a Excel/CSV para análisis y reportes.
+- **Funcionalidades específicas:**
+  - **Formatos de exportación:**
+    - Excel (.xlsx) con formato profesional
+    - CSV para importación en otros sistemas
+    - PDF con diseño para impresión (opcional)
+  - **Columnas disponibles:**
+    - Número de presupuesto
+    - Fecha de emisión
+    - Fecha de vencimiento
+    - Cliente (nombre/razón social)
+    - Tipo de presupuesto (artículos, cercado, general)
+    - Estado actual (borrador, enviado, aprobado, rechazado, vencido)
+    - Subtotal
+    - Descuento
+    - Total
+    - Forma de pago
+    - Vendedor (si aplica)
+    - Observaciones
+  - **Respetar filtros aplicados:**
+    - Exportar solo los presupuestos que están visibles en el dashboard
+    - Respetar búsquedas y filtros por estado, fecha, cliente, etc.
+  - **Formato de Excel:**
+    - Formato de moneda para columnas de montos
+    - Formato de fecha para columnas de fechas
+    - Encabezados con formato destacado
+    - Filtros automáticos en Excel
+    - Tabla formateada para fácil análisis
+  - **Nombre de archivo:**
+    - Con timestamp: `Presupuestos_2025-02-04_14-30.xlsx`
+    - Incluir rango de fechas si hay filtros aplicados
+- **Casos de uso:**
+  - Análisis de presupuestos en Excel
+  - Reportes gerenciales mensuales
+  - Compartir listado de presupuestos con otros departamentos
+  - Auditoría y seguimiento de presupuestos
+  - Análisis de tendencias y patrones de ventas
 
 ---
 
@@ -300,6 +348,49 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Drag & drop en listas
   - Vista previa mejorada de PDFs
   - Tutoriales interactivos para nuevos usuarios
+  - Filtros y búsqueda avanzada en módulos principales (ver sección específica)
+
+### Filtros y Búsqueda Avanzada en Presupuestos
+- **Fecha:** 2025-02-04
+- **Prioridad:** [Media]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Sistema de filtros y búsqueda mejorado para el módulo de presupuestos que permita encontrar rápidamente presupuestos específicos.
+- **Funcionalidades específicas:**
+  - **Filtros por:**
+    - Estado (borrador, enviado, aprobado, rechazado, vencido)
+    - Tipo de presupuesto (artículos, cercado, general)
+    - Cliente (búsqueda por nombre/razón social)
+    - Rango de fechas (emisión o vencimiento)
+    - Rango de montos (subtotal, total)
+    - Forma de pago
+    - Vendedor (si aplica)
+    - Múltiples filtros simultáneos
+  - **Búsqueda rápida:**
+    - Buscar por número de presupuesto
+    - Buscar por nombre/razón social del cliente
+    - Buscar por observaciones/contenido del presupuesto
+    - Búsqueda en tiempo real (as you type)
+  - **Interfaz de usuario:**
+    - Panel de filtros colapsable/expandible
+    - Indicador visual de filtros activos
+    - Botón de "Limpiar filtros"
+    - Contador de resultados filtrados
+    - Guardar filtros favoritos (opcional)
+  - **URL params:**
+    - Sincronizar filtros con URL para compartir vistas filtradas
+    - Permalink para vistas específicas
+- **Beneficios esperados:**
+  - Reducción de tiempo en búsqueda de presupuestos
+  - Mejor organización y navegación
+  - Análisis más eficiente de datos
+  - Mejor experiencia de usuario
+- **Casos de uso:**
+  - Encontrar todos los presupuestos aprobados del mes
+  - Buscar presupuestos de un cliente específico
+  - Filtrar presupuestos próximos a vencer
+  - Analizar presupuestos por rango de montos
+  - Ver historial completo de un cliente
 
 ---
 
