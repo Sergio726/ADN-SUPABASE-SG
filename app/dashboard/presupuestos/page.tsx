@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send } from 'lucide-react'
+import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send, Filter, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -11,19 +11,42 @@ import { SortableHeader } from '@/components/ui/sortable-header'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { generarPDFPresupuesto } from '@/lib/pdf-generator'
+
+// Funciones puras fuera del componente para evitar recreaciones
+const estadoBadgeVariant = (estado: string) => {
+  switch (estado) {
+    case 'aprobado': return 'default'
+    case 'enviado': return 'secondary'
+    case 'borrador': return 'outline'
+    case 'rechazado': return 'destructive'
+    case 'vencido': return 'destructive'
+    case 'baja': return 'destructive'
+    default: return 'outline'
+  }
+}
+
+const tipoBadgeVariant = (tipo: string) => {
+  if (tipo === 'cercado') return 'default'
+  if (tipo === 'general') return 'outline'
+  return 'secondary'
+}
 
 export default function PresupuestosPage() {
   const [presupuestos, setPresupuestos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [filtrosExpandidos, setFiltrosExpandidos] = useState(false)
   const { toast } = useToast()
+  
+  // Estados de filtros
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+  const [filtroTipo, setFiltroTipo] = useState('todos')
 
-  useEffect(() => {
-    cargarPresupuestos()
-  }, [])
-
-  async function cargarPresupuestos() {
+  // Memoizar función de cargar presupuestos
+  const cargarPresupuestos = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -52,27 +75,39 @@ export default function PresupuestosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const estadoBadgeVariant = (estado: string) => {
-    switch (estado) {
-      case 'aprobado': return 'default'
-      case 'enviado': return 'secondary'
-      case 'borrador': return 'outline'
-      case 'rechazado': return 'destructive'
-      case 'vencido': return 'destructive'
-      case 'baja': return 'destructive'
-      default: return 'outline'
+  // Memoizar función de limpiar filtros
+  const limpiarFiltros = useCallback(() => {
+    setFiltroEstado('todos')
+    setFiltroTipo('todos')
+  }, [])
+
+  // Filtrado optimizado con useMemo (evita render extra)
+  const presupuestosFiltrados = useMemo(() => {
+    let resultado = [...presupuestos]
+
+    // Filtro por Estado
+    if (filtroEstado !== 'todos') {
+      resultado = resultado.filter((p: any) => p.estado_actual === filtroEstado)
     }
-  }
 
-  const tipoBadgeVariant = (tipo: string) => {
-    if (tipo === 'cercado') return 'default'
-    if (tipo === 'general') return 'outline'
-    return 'secondary'
-  }
+    // Filtro por Tipo
+    if (filtroTipo !== 'todos') {
+      resultado = resultado.filter((p: any) => p.tipo === filtroTipo)
+    }
 
-  async function descargarPresupuesto(presupuestoId: string) {
+    return resultado
+  }, [presupuestos, filtroEstado, filtroTipo])
+
+  const filtrosActivos = filtroEstado !== 'todos' || filtroTipo !== 'todos'
+
+  useEffect(() => {
+    cargarPresupuestos()
+  }, [cargarPresupuestos])
+
+  // Memoizar función de descargar presupuesto
+  const descargarPresupuesto = useCallback(async (presupuestoId: string) => {
     try {
       setDownloadingId(presupuestoId)
 
@@ -171,9 +206,10 @@ export default function PresupuestosPage() {
     } finally {
       setDownloadingId(null)
     }
-  }
+  }, [toast])
 
-  const columns = [
+  // Memoizar columnas para evitar recreaciones en cada render
+  const columns = useMemo(() => [
     {
       accessorKey: 'numero',
       header: ({ column }: any) => <SortableHeader column={column} title="Número" />,
@@ -285,7 +321,7 @@ export default function PresupuestosPage() {
         </div>
       ),
     },
-  ]
+  ], [descargarPresupuesto, downloadingId])
 
   // Memoizar cálculos para evitar recálculos innecesarios
   const totalMonto = useMemo(() => 
@@ -463,12 +499,83 @@ export default function PresupuestosPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Listado de Presupuestos</CardTitle>
-          <CardDescription>
-            {presupuestos.length} presupuestos en total
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Listado de Presupuestos</CardTitle>
+              <CardDescription>
+                {presupuestosFiltrados.length} de {presupuestos.length} presupuestos
+                {filtrosActivos && ' (filtrados)'}
+              </CardDescription>
+            </div>
+            {filtrosActivos && (
+              <Button variant="outline" size="sm" onClick={limpiarFiltros}>
+                <X className="h-4 w-4 mr-2" />
+                Limpiar Filtros
+              </Button>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Panel de Filtros */}
+          <Collapsible open={filtrosExpandidos} onOpenChange={setFiltrosExpandidos}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between" type="button">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>Filtros</span>
+                  {filtrosActivos && (
+                    <Badge variant="secondary" className="ml-2">
+                      {[filtroEstado !== 'todos' && 'Estado', filtroTipo !== 'todos' && 'Tipo'].filter(Boolean).length}
+                    </Badge>
+                  )}
+                </div>
+                {filtrosExpandidos ? (
+                  <X className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg mt-2">
+                <div className="flex-1 grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Estado</label>
+                    <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        <SelectItem value="borrador">Borrador</SelectItem>
+                        <SelectItem value="enviado">Enviado</SelectItem>
+                        <SelectItem value="aprobado">Aprobado</SelectItem>
+                        <SelectItem value="rechazado">Rechazado</SelectItem>
+                        <SelectItem value="vencido">Vencido</SelectItem>
+                        <SelectItem value="baja">Baja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo</label>
+                    <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        <SelectItem value="articulos">Artículos</SelectItem>
+                        <SelectItem value="cercado">Cercado</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           {presupuestos.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -483,10 +590,22 @@ export default function PresupuestosPage() {
                 </Link>
               </Button>
             </div>
+          ) : presupuestosFiltrados.length === 0 && filtrosActivos ? (
+            <div className="text-center py-12">
+              <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No hay presupuestos que coincidan con los filtros</h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros o limpiarlos para ver todos los presupuestos
+              </p>
+              <Button variant="outline" onClick={limpiarFiltros}>
+                <X className="h-4 w-4 mr-2" />
+                Limpiar Filtros
+              </Button>
+            </div>
           ) : (
             <DataTable
               columns={columns}
-              data={presupuestos}
+              data={presupuestosFiltrados}
               searchKey="numero"
               searchPlaceholder="Buscar por número o cliente..."
             />
