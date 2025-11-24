@@ -1040,3 +1040,186 @@ export function generarPDFRemito(
   )}.pdf`
   doc.save(filename)
 }
+
+/**
+ * Genera un PDF con el control de stock de artículos
+ * @param datos Array de objetos con los datos de artículos y stock
+ * @param nombreArchivo Nombre del archivo (sin extensión)
+ */
+export function generarPDFListaStock(
+  datos: Array<{
+    nombre: string
+    categoria: string | null
+    stock_actual: number
+    stock_minimo: number
+    unidad: string
+  }>,
+  nombreArchivo: string = 'Control_Stock'
+) {
+  const doc = new jsPDF('portrait', 'mm', 'a4') // Vertical para mejor lectura de lista
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  let yPos = 20
+
+  // Helper para verificar espacio
+  const ensureSpace = (needed: number = 40) => {
+    if (yPos + needed > pageHeight - 30) {
+      doc.addPage()
+      yPos = 20
+      return true
+    }
+    return false
+  }
+
+  // ===== HEADER =====
+  try {
+    const logo = new Image()
+    logo.src = '/logos/logo-color.png'
+    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
+  } catch (error) {
+    console.warn('No se pudo cargar el logo para el PDF', error)
+  }
+
+  // Título
+  doc.setFontSize(18)
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'bold')
+  doc.text('CONTROL DE STOCK', pageWidth / 2, yPos + 12, { align: 'center' })
+
+  // Fecha de emisión
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  const fechaEmision = new Date().toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  doc.text(`Fecha de control: ${fechaEmision}`, pageWidth - 15, yPos + 5, { align: 'right' })
+
+  yPos += 25
+
+  // Helper para formatear números con unidad
+  const formatearStock = (valor: number, unidad: string) => {
+    const esEntero = valor % 1 === 0
+    return `${valor.toLocaleString('es-AR', { 
+      minimumFractionDigits: esEntero ? 0 : 2,
+      maximumFractionDigits: 2
+    })} ${unidad}`
+  }
+
+  // ===== TABLA DE STOCK =====
+  const tableData = datos.map((item) => {
+    const stockBajo = item.stock_actual <= item.stock_minimo
+    
+    return [
+      item.nombre.substring(0, 45), // Limitar longitud del nombre
+      item.categoria || 'Sin categoría',
+      formatearStock(item.stock_actual, item.unidad),
+      formatearStock(item.stock_minimo, item.unidad),
+      stockBajo ? 'BAJO' : 'OK', // Texto sin emojis para mejor compatibilidad PDF
+    ]
+  })
+
+  autoTable(doc, {
+    head: [['Artículo', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Estado']],
+    body: tableData,
+    startY: yPos,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [68, 114, 196], // Azul
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: [0, 0, 0],
+    },
+    columnStyles: {
+      0: { cellWidth: 75, halign: 'left' }, // Artículo
+      1: { cellWidth: 32, halign: 'left' }, // Categoría (reducida 20%: 40 * 0.8 = 32)
+      2: { cellWidth: 30, halign: 'right' }, // Stock Actual
+      3: { cellWidth: 30, halign: 'right' }, // Stock Mínimo
+      4: { cellWidth: 28, halign: 'center' }, // Estado (aumentado para compensar espacio)
+    },
+    styles: {
+      overflow: 'linebreak',
+      cellPadding: 3,
+    },
+    didParseCell: (data: any) => {
+      // Resaltar estado con colores y estilos
+      if (data.column.index === 4) {
+        const textoEstado = Array.isArray(data.cell.text) ? data.cell.text[0] : data.cell.text
+        if (textoEstado === 'BAJO') {
+          data.cell.styles.textColor = [220, 38, 38] // Rojo para stock bajo
+          data.cell.styles.fontStyle = 'bold'
+        } else if (textoEstado === 'OK') {
+          data.cell.styles.textColor = [34, 139, 34] // Verde para stock OK
+          data.cell.styles.fontStyle = 'normal'
+        }
+      }
+    },
+    margin: { left: 15, right: 15 },
+  })
+
+  // Obtener la posición final después de la tabla
+  yPos = (doc as any).lastAutoTable.finalY + 15
+
+  // ===== RESUMEN =====
+  ensureSpace(20)
+  // Calcular stock bajo reutilizando la lógica de la tabla
+  const stockBajoCount = tableData.filter((row: any) => row[4] === 'BAJO').length
+  
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(0, 0, 0)
+  doc.text('RESUMEN:', 15, yPos)
+  
+  yPos += 7
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Total de artículos: ${datos.length}`, 15, yPos)
+  
+  yPos += 5
+  if (stockBajoCount > 0) {
+    doc.setTextColor(220, 38, 38) // Rojo
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Artículos con stock bajo: ${stockBajoCount}`, 15, yPos)
+    doc.setTextColor(0, 0, 0)
+  } else {
+    doc.setTextColor(34, 139, 34) // Verde
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Todos los artículos tienen stock suficiente`, 15, yPos)
+    doc.setTextColor(0, 0, 0)
+  }
+
+  // ===== FOOTER =====
+  ensureSpace(25)
+  
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'italic')
+  doc.text('Documento generado para control interno de inventario.', pageWidth / 2, pageHeight - 15, { align: 'center' })
+  doc.text('Alambres del Norte SRL', pageWidth / 2, pageHeight - 10, { align: 'center' })
+  
+  // Número de página
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(8)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 15, pageHeight - 10, { align: 'right' })
+  }
+
+  // Generar nombre de archivo con timestamp
+  const fecha = new Date()
+  const fechaStr = fecha.toISOString().split('T')[0].replace(/-/g, '-')
+  const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-').slice(0, 5)
+  const nombreCompleto = `${nombreArchivo}_${fechaStr}_${horaStr}.pdf`
+
+  // Descargar archivo
+  doc.save(nombreCompleto)
+  
+  return nombreCompleto
+}

@@ -152,3 +152,61 @@ export function exportarTejidosAExcel(
   return nombreCompleto
 }
 
+/**
+ * Exporta control de stock a Excel con formato profesional
+ * @param datos Array de objetos con los datos de stock
+ * @param nombreArchivo Nombre del archivo (sin extensión)
+ */
+export function exportarStockAExcel(
+  datos: Array<{
+    nombre: string
+    categoria: string | null
+    stock_actual: number
+    stock_minimo: number
+    unidad: string
+  }>,
+  nombreArchivo: string = 'Control_Stock'
+) {
+  // Preparar datos para Excel
+  const datosParaExcel = datos.map((item) => ({
+    'Artículo': item.nombre,
+    'Categoría': item.categoria || 'Sin categoría',
+    'Stock Actual': item.stock_actual,
+    'Stock Mínimo': item.stock_minimo,
+    'Unidad': item.unidad,
+    'Estado': item.stock_actual <= item.stock_minimo ? '⚠️ BAJO' : '✅ OK',
+    'Diferencia': item.stock_actual - item.stock_minimo,
+  }))
+
+  // Crear workbook
+  const wb = XLSX.utils.book_new()
+
+  // Crear worksheet desde los datos
+  const ws = XLSX.utils.json_to_sheet(datosParaExcel)
+
+  // Ajustar ancho de columnas
+  const columnWidths = [
+    { wch: 40 }, // Artículo
+    { wch: 20 }, // Categoría
+    { wch: 15 }, // Stock Actual
+    { wch: 15 }, // Stock Mínimo
+    { wch: 12 }, // Unidad
+    { wch: 15 }, // Estado
+    { wch: 15 }, // Diferencia
+  ]
+  ws['!cols'] = columnWidths
+
+  // Agregar worksheet al workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Control de Stock')
+
+  // Generar nombre de archivo con timestamp
+  const fecha = new Date()
+  const fechaStr = fecha.toISOString().split('T')[0].replace(/-/g, '-')
+  const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-').slice(0, 5)
+  const nombreCompleto = `${nombreArchivo}_${fechaStr}_${horaStr}.xlsx`
+
+  // Descargar archivo
+  XLSX.writeFile(wb, nombreCompleto)
+  
+  return nombreCompleto
+}

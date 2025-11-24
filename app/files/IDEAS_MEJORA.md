@@ -15,7 +15,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Tasa de Conversión de Presupuestos
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
-- **Estado:** [Pendiente]
+- **Estado:** [En desarrollo - Parcial] ✅ Métricas básicas implementadas (2025-02-05)
 - **Descripción:** 
   - Visualizar el nivel de conversión entre cantidad de presupuestos enviados y cantidad de presupuestos aceptados.
   - Dashboard con métricas: tasa de conversión, presupuestos por estado, tendencias temporales.
@@ -34,6 +34,9 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - **Filtros avanzados:** Por rango de fechas, vendedor, tipo, cliente, monto.
   - **Exportación de reportes:** PDF y Excel para análisis externo.
 - **Métricas a mostrar:**
+  - ✅ Tasa de conversión del mes: `(Aprobados del mes / Total del mes) × 100` - **IMPLEMENTADO**
+  - ✅ Suma de montos aprobados del mes - **IMPLEMENTADO**
+  - ✅ Ordenamiento de presupuestos por estado - **IMPLEMENTADO**
   - Tasa de conversión global: `(Aprobados / Enviados) × 100`
   - Tasa de conversión por vendedor
   - Tiempo promedio desde envío hasta aprobación
@@ -353,29 +356,29 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Filtros y Búsqueda Avanzada en Presupuestos
 - **Fecha:** 2025-02-04
 - **Prioridad:** [Media]
-- **Estado:** [Pendiente]
+- **Estado:** [En desarrollo - Parcial] ✅ Filtros básicos implementados (2025-02-05)
 - **Descripción:**
   - Sistema de filtros y búsqueda mejorado para el módulo de presupuestos que permita encontrar rápidamente presupuestos específicos.
 - **Funcionalidades específicas:**
   - **Filtros por:**
-    - Estado (borrador, enviado, aprobado, rechazado, vencido)
-    - Tipo de presupuesto (artículos, cercado, general)
+    - ✅ Estado (borrador, enviado, aprobado, rechazado, vencido) - **IMPLEMENTADO**
+    - ✅ Tipo de presupuesto (artículos, cercado, general) - **IMPLEMENTADO**
+    - ✅ Múltiples filtros simultáneos - **IMPLEMENTADO**
     - Cliente (búsqueda por nombre/razón social)
     - Rango de fechas (emisión o vencimiento)
     - Rango de montos (subtotal, total)
     - Forma de pago
     - Vendedor (si aplica)
-    - Múltiples filtros simultáneos
   - **Búsqueda rápida:**
-    - Buscar por número de presupuesto
+    - ✅ Buscar por número de presupuesto - **IMPLEMENTADO (búsqueda básica en tabla)**
     - Buscar por nombre/razón social del cliente
     - Buscar por observaciones/contenido del presupuesto
     - Búsqueda en tiempo real (as you type)
   - **Interfaz de usuario:**
-    - Panel de filtros colapsable/expandible
-    - Indicador visual de filtros activos
-    - Botón de "Limpiar filtros"
-    - Contador de resultados filtrados
+    - ✅ Panel de filtros colapsable/expandible - **IMPLEMENTADO**
+    - ✅ Indicador visual de filtros activos - **IMPLEMENTADO**
+    - ✅ Botón de "Limpiar filtros" - **IMPLEMENTADO**
+    - ✅ Contador de resultados filtrados - **IMPLEMENTADO**
     - Guardar filtros favoritos (opcional)
   - **URL params:**
     - Sincronizar filtros con URL para compartir vistas filtradas
@@ -544,13 +547,13 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Exportación de Lista de Precios
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
-- **Estado:** [Pendiente]
+- **Estado:** [Completado - Básico] ✅ Exportación a Excel y PDF implementada (2025-02-05)
 - **Descripción:**
   - Sistema para descargar listas de precios actualizadas en diferentes formatos.
 - **Funcionalidades específicas:**
   - **Formatos de exportación:**
-    - Excel (.xlsx) con formato profesional
-    - PDF con diseño para impresión
+    - ✅ Excel (.xlsx) con formato profesional - **IMPLEMENTADO**
+    - ✅ PDF con diseño para impresión - **IMPLEMENTADO**
     - CSV para importación en otros sistemas
     - JSON para integraciones técnicas
   - **Filtros y personalización:**
@@ -601,13 +604,14 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Exportación de Lista de Stock
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
-- **Estado:** [Pendiente]
+- **Estado:** [En desarrollo - Parcial] ✅ Exportación básica a Excel y PDF implementada (2025-02-05)
 - **Descripción:**
   - Sistema para descargar listas de stock con valores actuales y sugeridos.
 - **Funcionalidades específicas:**
   - **Formatos de exportación:**
-    - Excel (.xlsx) con formato profesional y fórmulas
-    - PDF con diseño para impresión
+    - ✅ Excel (.xlsx) con formato profesional y fórmulas - **IMPLEMENTADO**
+    - ✅ PDF con diseño para impresión - **IMPLEMENTADO**
+    - ✅ Filtros: Todos los artículos / Solo stock bajo - **IMPLEMENTADO**
     - CSV para importación en otros sistemas
     - JSON para integraciones técnicas
   - **Valores actuales:**
@@ -642,18 +646,18 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
     - Incluir/excluir columnas específicas
     - Ordenar por stock actual, stock sugerido, categoría, nombre
   - **Columnas disponibles:**
+    - ✅ Nombre/Descripción - **IMPLEMENTADO**
+    - ✅ Categoría - **IMPLEMENTADO**
+    - ✅ Unidad de medida - **IMPLEMENTADO**
+    - ✅ Stock actual - **IMPLEMENTADO**
+    - ✅ Stock mínimo - **IMPLEMENTADO**
+    - ✅ Estado de stock (BAJO/OK con indicadores visuales) - **IMPLEMENTADO**
+    - ✅ Diferencia (Actual - Mínimo) en Excel - **IMPLEMENTADO**
     - Código del producto
-    - Nombre/Descripción
-    - Categoría
-    - Unidad de medida
-    - Stock actual
     - Stock reservado
     - Stock disponible real
-    - Stock mínimo
     - Stock máximo
     - Stock sugerido (cálculo automático)
-    - Diferencia (Sugerido - Actual)
-    - Estado de stock (con colores/indicadores)
     - Precio de costo
     - Valor de inventario (Stock × Precio costo)
     - Valor sugerido de compra (Stock sugerido × Precio costo)
@@ -986,10 +990,11 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Fase 1: Fundamentos (Q1 2025)
 - ✅ Sistema de presupuestos funcional
 - ✅ Generación de PDFs y remitos
-- 🔄 Dashboard de conversión de presupuestos
+- 🔄 Dashboard de conversión de presupuestos (Parcial: métricas básicas implementadas)
 - 🔄 Sistema de roles y permisos básico
-- 🔄 Exportación de lista de precios
-- 🔄 Exportación de lista de stock
+- ✅ Exportación de lista de precios (Básico: Excel y PDF implementados)
+- 🔄 Exportación de lista de stock (Parcial: Excel y PDF básicos implementados, faltan funcionalidades avanzadas)
+- 🔄 Filtros en presupuestos (Parcial: filtros básicos por estado y tipo implementados)
 - 🔄 Cálculo automático de materiales para cercados
 
 ### Fase 2: CRM, Analytics y Finanzas (Q2 2025)

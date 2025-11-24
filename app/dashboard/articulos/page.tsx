@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,10 +9,13 @@ import { DataTable } from '@/components/ui/data-table'
 import { SortableHeader } from '@/components/ui/sortable-header'
 import { ColumnDef } from '@tanstack/react-table'
 import Link from 'next/link'
-import { Package, Plus, Edit, ExternalLink, AlertTriangle } from 'lucide-react'
+import { Package, Plus, Edit, ExternalLink, AlertTriangle, Download, FileDown, FileSpreadsheet } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Switch } from '@/components/ui/switch'
-import { toast } from '@/hooks/use-toast'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
+import { generarPDFListaStock } from '@/lib/pdf-generator'
+import { exportarStockAExcel } from '@/lib/excel-generator'
 
 type Articulo = {
   id: string
@@ -33,6 +36,7 @@ export default function ArticulosPage() {
   const [loading, setLoading] = useState(true)
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const supabase = createClientComponentClient()
+  const { toast } = useToast()
 
   useEffect(() => {
     async function getArticulos() {
@@ -57,57 +61,148 @@ export default function ArticulosPage() {
     getArticulos()
   }, [supabase])
 
-  const actualizarPublicado = async (id: string, publicado: boolean) => {
+  // Función genérica para actualizar campos del artículo (reduce redundancia)
+  const actualizarCampoArticulo = useCallback(async (
+    id: string, 
+    campo: 'publicado' | 'mostrar_precio_publico',
+    valor: boolean,
+    mensajes: { error: string; exitoSiTrue: string; exitoSiFalse: string }
+  ) => {
     const { error } = await supabase
       .from('articulos')
-      .update({ publicado })
+      .update({ [campo]: valor })
       .eq('id', id)
 
     if (error) {
-      console.error('Error al actualizar publicación:', error)
+      console.error(`Error al actualizar ${campo}:`, error)
       toast({
         title: "Error",
-        description: "No se pudo actualizar la publicación del artículo",
+        description: mensajes.error,
         variant: "destructive",
       })
-    } else {
-      // Actualizar el estado local
-      setArticulos(prev => prev.map(articulo => 
-        articulo.id === id ? { ...articulo, publicado } : articulo
-      ))
+      return false
+    }
+
+    // Actualizar el estado local
+    setArticulos(prev => prev.map(articulo => 
+      articulo.id === id ? { ...articulo, [campo]: valor } : articulo
+    ))
+    
+    toast({
+      title: "Éxito",
+      description: valor ? mensajes.exitoSiTrue : mensajes.exitoSiFalse,
+    })
+    return true
+  }, [supabase, toast])
+
+  const actualizarPublicado = useCallback(async (id: string, publicado: boolean) => {
+    await actualizarCampoArticulo(id, 'publicado', publicado, {
+      error: "No se pudo actualizar la publicación del artículo",
+      exitoSiTrue: "Artículo publicado en web",
+      exitoSiFalse: "Artículo removido de la web"
+    })
+  }, [actualizarCampoArticulo])
+
+  const actualizarMostrarPrecio = useCallback(async (id: string, mostrar_precio_publico: boolean) => {
+    await actualizarCampoArticulo(id, 'mostrar_precio_publico', mostrar_precio_publico, {
+      error: "No se pudo actualizar la visibilidad del precio",
+      exitoSiTrue: "Precio visible en web",
+      exitoSiFalse: "Precio oculto en web"
+    })
+  }, [actualizarCampoArticulo])
+
+  // Función helper para determinar si el stock está bajo (evita repetición) - debe estar antes de usarse
+  const esStockBajo = useCallback((stockActual: number, stockMinimo: number) => {
+    return stockActual <= stockMinimo
+  }, [])
+
+  // Función helper para preparar datos de exportación (reduce redundancia)
+  const prepararDatosExportacion = useCallback((articulosParaExportar: Articulo[]) => {
+    return articulosParaExportar.map(({ nombre, categoria, stock_actual, stock_minimo, unidad }) => ({
+      nombre,
+      categoria,
+      stock_actual,
+      stock_minimo,
+      unidad,
+    }))
+  }, [])
+
+  // Función para exportar control de stock a PDF (memoizada)
+  const exportarStockAPDF = useCallback((soloStockBajo: boolean = false) => {
+    try {
+      const articulosFiltrados = soloStockBajo
+        ? articulos.filter(a => esStockBajo(a.stock_actual, a.stock_minimo))
+        : articulos
+
+      if (articulosFiltrados.length === 0) {
+        toast({
+          title: 'Sin datos para exportar',
+          description: soloStockBajo 
+            ? 'No hay artículos con stock bajo para exportar.' 
+            : 'No hay artículos para exportar.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const datosParaExportar = prepararDatosExportacion(articulosFiltrados)
+      const nombreArchivo = soloStockBajo ? 'Control_Stock_Bajo' : 'Control_Stock'
+      
+      generarPDFListaStock(datosParaExportar, nombreArchivo)
+      
       toast({
-        title: "Éxito",
-        description: publicado ? "Artículo publicado en web" : "Artículo removido de la web",
+        title: 'PDF exportado',
+        description: `Se generó el control de stock con ${datosParaExportar.length} artículos.`,
+      })
+    } catch (error) {
+      console.error('Error al exportar stock a PDF:', error)
+      toast({
+        title: 'Error al exportar',
+        description: 'No se pudo generar el PDF de control de stock. Intenta nuevamente.',
+        variant: 'destructive',
       })
     }
-  }
+  }, [articulos, toast, prepararDatosExportacion, esStockBajo])
 
-  const actualizarMostrarPrecio = async (id: string, mostrar_precio_publico: boolean) => {
-    const { error } = await supabase
-      .from('articulos')
-      .update({ mostrar_precio_publico })
-      .eq('id', id)
+  // Función para exportar control de stock a Excel (memoizada)
+  const exportarStockAExcelFunc = useCallback((soloStockBajo: boolean = false) => {
+    try {
+      const articulosFiltrados = soloStockBajo
+        ? articulos.filter(a => esStockBajo(a.stock_actual, a.stock_minimo))
+        : articulos
 
-    if (error) {
-      console.error('Error al actualizar mostrar precio:', error)
+      if (articulosFiltrados.length === 0) {
+        toast({
+          title: 'Sin datos para exportar',
+          description: soloStockBajo 
+            ? 'No hay artículos con stock bajo para exportar.' 
+            : 'No hay artículos para exportar.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const datosParaExportar = prepararDatosExportacion(articulosFiltrados)
+      const nombreArchivo = soloStockBajo ? 'Control_Stock_Bajo' : 'Control_Stock'
+      
+      exportarStockAExcel(datosParaExportar, nombreArchivo)
+      
       toast({
-        title: "Error",
-        description: "No se pudo actualizar la visibilidad del precio",
-        variant: "destructive",
+        title: 'Excel exportado',
+        description: `Se exportaron ${datosParaExportar.length} artículos correctamente.`,
       })
-    } else {
-      // Actualizar el estado local
-      setArticulos(prev => prev.map(articulo => 
-        articulo.id === id ? { ...articulo, mostrar_precio_publico } : articulo
-      ))
+    } catch (error) {
+      console.error('Error al exportar stock a Excel:', error)
       toast({
-        title: "Éxito",
-        description: mostrar_precio_publico ? "Precio visible en web" : "Precio oculto en web",
+        title: 'Error al exportar',
+        description: 'No se pudo exportar el control de stock. Intenta nuevamente.',
+        variant: 'destructive',
       })
     }
-  }
+  }, [articulos, toast, prepararDatosExportacion, esStockBajo])
 
-  const columns: ColumnDef<Articulo>[] = [
+  // Memoizar columnas para evitar recreaciones en cada render
+  const columns: ColumnDef<Articulo>[] = useMemo(() => [
     {
       accessorKey: "nombre",
       header: ({ column }) => <SortableHeader column={column} title="Artículo" />,
@@ -138,7 +233,7 @@ export default function ArticulosPage() {
       accessorKey: "stock_actual",
       header: ({ column }) => <SortableHeader column={column} title="Stock" />,
       cell: ({ row }) => {
-        const stockBajo = row.original.stock_actual <= row.original.stock_minimo
+        const stockBajo = esStockBajo(row.original.stock_actual, row.original.stock_minimo)
         return (
           <div className="flex items-center gap-2">
             <span className={stockBajo ? 'text-destructive font-medium' : ''}>
@@ -197,8 +292,8 @@ export default function ArticulosPage() {
       id: "actions",
       header: () => <div className="text-right">Acciones</div>,
       cell: ({ row }) => (
-        <div className="flex justify-end gap-2">
-          <TooltipProvider>
+        <TooltipProvider>
+          <div className="flex justify-end gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="sm" asChild>
@@ -211,9 +306,7 @@ export default function ArticulosPage() {
                 <p>Editar artículo</p>
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
+            
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="sm" asChild>
@@ -226,11 +319,11 @@ export default function ArticulosPage() {
                 <p>Ver en web pública</p>
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-        </div>
+          </div>
+        </TooltipProvider>
       ),
     },
-  ]
+  ], [actualizarPublicado, actualizarMostrarPrecio, esStockBajo])
 
   if (loading) {
     return (
@@ -249,12 +342,47 @@ export default function ArticulosPage() {
             Gestiona el catálogo completo de productos
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/articulos/nuevo">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Artículo
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar Stock
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                Exportar a Excel
+              </div>
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); exportarStockAExcelFunc(false); }}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Todos los artículos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); exportarStockAExcelFunc(true); }}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Solo stock bajo
+              </DropdownMenuItem>
+              <div className="my-1 h-px bg-border" />
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                Exportar a PDF
+              </div>
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); exportarStockAPDF(false); }}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Todos los artículos
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.preventDefault(); exportarStockAPDF(true); }}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Solo stock bajo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button asChild>
+            <Link href="/dashboard/articulos/nuevo">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Artículo
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {articulos.length > 0 ? (
