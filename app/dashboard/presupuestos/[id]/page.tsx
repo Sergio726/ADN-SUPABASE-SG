@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, Trash2, ChevronDown, Edit, Save, X, Plus, Grid, Columns, Circle, Zap } from 'lucide-react'
+import { ArrowLeft, Download, Copy, Calendar, User, Phone, Mail, MapPin, FileText, Package, MessageSquareText, Trash, Trash2, ChevronDown, Edit, Save, X, Plus, Grid, Columns, Circle, Zap, CheckCircle2, Clock, AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -37,12 +37,31 @@ export default function VerPresupuestoPage() {
   const [tejidos, setTejidos] = useState<any[]>([])
   const [configuracionCercado, setConfiguracionCercado] = useState<any>(null)
   const [descripcionesPostes, setDescripcionesPostes] = useState<Record<string, any>>({})
+  
+  // Estados para entregas
+  const [estadoEntrega, setEstadoEntrega] = useState<any>(null)
+  const [itemsEntregas, setItemsEntregas] = useState<any[]>([])
+  const [entregas, setEntregas] = useState<any[]>([])
+  const [dialogRegistrarEntrega, setDialogRegistrarEntrega] = useState(false)
+  const [registrandoEntrega, setRegistrandoEntrega] = useState(false)
+  const [itemsParaEntregar, setItemsParaEntregar] = useState<Record<string, number>>({})
+  const [fechaEntrega, setFechaEntrega] = useState<string>(new Date().toISOString().split('T')[0])
+  const [observacionesEntrega, setObservacionesEntrega] = useState<string>('')
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     cargarPresupuesto()
     cargarArticulos()
     cargarTejidos()
+    cargarUsuario()
   }, [params.id])
+
+  async function cargarUsuario() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserId(user.id)
+    }
+  }
 
   async function cargarPresupuesto() {
     try {
@@ -157,6 +176,11 @@ export default function VerPresupuestoPage() {
       if (presData?.tipo === 'cercado' && presData?.cercado_config_id) {
         await cargarConfiguracionCercado(presData.cercado_config_id)
       }
+
+      // Cargar estado de entregas si está aprobado
+      if (presData?.estado === 'aprobado') {
+        await cargarEstadoEntregas()
+      }
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -238,7 +262,340 @@ export default function VerPresupuestoPage() {
     setTejidos(data || [])
   }
 
+  // Cargar estado de entregas
+  async function cargarEstadoEntregas() {
+    if (!presupuesto || presupuesto.estado !== 'aprobado') {
+      setEstadoEntrega(null)
+      setItemsEntregas([])
+      setEntregas([])
+      return
+    }
+
+    try {
+      // Cargar estado general desde la vista
+      const { data: estadoData, error: estadoError } = await supabase
+        .from('v_presupuestos_estado_entrega')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+
+      // Si la vista no devuelve datos, crear estado por defecto
+      if (estadoError || !estadoData) {
+        // Crear estado inicial "pendiente" si no hay datos
+        const { data: itemsCount } = await supabase
+          .from('presupuestos_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('presupuesto_id', params.id)
+
+        setEstadoEntrega({
+          id: params.id,
+          numero: presupuesto.numero,
+          estado: 'aprobado',
+          cliente_nombre: presupuesto.cliente_nombre,
+          total: presupuesto.total,
+          fecha_emision: presupuesto.fecha_emision,
+          total_items: itemsCount?.length || 0,
+          items_completos: 0,
+          estado_entrega: 'pendiente',
+          fecha_ultima_entrega: null,
+          total_entregas: 0,
+        })
+      } else {
+        setEstadoEntrega(estadoData)
+      }
+
+      // Cargar resumen de items con entregas
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('v_presupuestos_entregas_resumen')
+        .select('*')
+        .eq('presupuesto_id', params.id)
+        .order('orden')
+
+      // Si no hay datos en la vista, cargar items desde presupuestos_items
+      if (itemsError || !itemsData || itemsData.length === 0) {
+        const { data: itemsPresupuesto, error: itemsPresError } = await supabase
+          .from('presupuestos_items')
+          .select('*')
+          .eq('presupuesto_id', params.id)
+          .order('orden')
+
+        if (!itemsPresError && itemsPresupuesto) {
+          // Mapear items a formato de entregas (todos pendientes)
+          const itemsMapeados = itemsPresupuesto.map((item: any) => ({
+            presupuesto_id: params.id,
+            presupuesto_item_id: item.id,
+            descripcion: item.descripcion,
+            cantidad_total: parseFloat(item.cantidad) || 0,
+            unidad: item.unidad,
+            cantidad_entregada: 0,
+            cantidad_pendiente: parseFloat(item.cantidad) || 0,
+            orden: item.orden || 0,
+            estado_item: 'pendiente',
+          }))
+          setItemsEntregas(itemsMapeados)
+        }
+      } else {
+        setItemsEntregas(itemsData)
+      }
+
+      // Cargar historial de entregas
+      const { data: entregasData, error: entregasError } = await supabase
+        .from('entregas')
+        .select(`
+          *,
+          entregas_items (
+            cantidad_entregada,
+            presupuesto_item_id,
+            presupuestos_items (
+              descripcion,
+              unidad
+            )
+          )
+        `)
+        .eq('presupuesto_id', params.id)
+        .order('fecha_entrega', { ascending: false })
+        .order('creado_en', { ascending: false })
+
+      if (!entregasError && entregasData) {
+        setEntregas(entregasData)
+      } else {
+        setEntregas([])
+      }
+    } catch (error: any) {
+      console.error('Error al cargar estado de entregas:', error)
+      // En caso de error, establecer valores por defecto
+      setEstadoEntrega({
+        id: params.id,
+        estado_entrega: 'pendiente',
+        total_items: items.length,
+        items_completos: 0,
+        total_entregas: 0,
+      })
+      setItemsEntregas([])
+      setEntregas([])
+    }
+  }
+
+  // Abrir modal de registrar entrega
+  function abrirRegistrarEntrega() {
+    // Si no hay itemsEntregas cargados, usar items del presupuesto
+    let itemsDisponibles = itemsEntregas
+    
+    if (!itemsDisponibles || itemsDisponibles.length === 0) {
+      // Si no hay items de entregas, crear desde items del presupuesto
+      itemsDisponibles = items.map((item: any) => ({
+        presupuesto_item_id: item.id,
+        descripcion: item.descripcion,
+        cantidad_total: parseFloat(item.cantidad) || 0,
+        unidad: item.unidad,
+        cantidad_entregada: 0,
+        cantidad_pendiente: parseFloat(item.cantidad) || 0,
+        orden: item.orden || 0,
+        estado_item: 'pendiente',
+      }))
+    }
+
+    // Filtrar items con cantidad pendiente > 0
+    const itemsConPendiente = itemsDisponibles.filter((item: any) => {
+      const pendiente = item.cantidad_pendiente || (item.cantidad_total - (item.cantidad_entregada || 0))
+      return pendiente > 0
+    })
+
+    if (itemsConPendiente.length === 0) {
+      toast({
+        title: "No hay items pendientes",
+        description: "Todos los items ya fueron entregados completamente",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Inicializar items con cantidades pendientes (autocompletar con lo pendiente)
+    const itemsInicial: Record<string, number> = {}
+    itemsConPendiente.forEach((item: any) => {
+      const cantidadPendiente = parseFloat(item.cantidad_pendiente || item.cantidad_total) || 0
+      itemsInicial[item.presupuesto_item_id] = cantidadPendiente
+    })
+
+    setItemsParaEntregar(itemsInicial)
+    setFechaEntrega(new Date().toISOString().split('T')[0])
+    setObservacionesEntrega('')
+    setDialogRegistrarEntrega(true)
+  }
+
+  // Autocompletar todas las cantidades con lo pendiente
+  function autocompletarCantidades() {
+    // Si no hay itemsEntregas cargados, usar items del presupuesto
+    let itemsDisponibles = itemsEntregas
+    
+    if (!itemsDisponibles || itemsDisponibles.length === 0) {
+      itemsDisponibles = items.map((item: any) => ({
+        presupuesto_item_id: item.id,
+        cantidad_total: parseFloat(item.cantidad) || 0,
+        cantidad_entregada: 0,
+        cantidad_pendiente: parseFloat(item.cantidad) || 0,
+      }))
+    }
+
+    const nuevosItems: Record<string, number> = {}
+    itemsDisponibles.forEach((item: any) => {
+      const cantidadPendiente = parseFloat(item.cantidad_pendiente || item.cantidad_total) || 0
+      if (cantidadPendiente > 0) {
+        nuevosItems[item.presupuesto_item_id] = cantidadPendiente
+      }
+    })
+
+    setItemsParaEntregar(nuevosItems)
+    
+    toast({
+      title: "Cantidades autocompletadas",
+      description: "Se completaron todos los campos con las cantidades pendientes",
+    })
+  }
+
+  // Limpiar todas las cantidades
+  function limpiarCantidades() {
+    const itemsVacios: Record<string, number> = {}
+    const itemsDisponibles = itemsEntregas.length > 0 ? itemsEntregas : items.map((item: any) => ({
+      presupuesto_item_id: item.id,
+    }))
+    
+    itemsDisponibles.forEach((item: any) => {
+      itemsVacios[item.presupuesto_item_id || item.id] = 0
+    })
+
+    setItemsParaEntregar(itemsVacios)
+  }
+
+  // Actualizar cantidad a entregar de un item
+  function actualizarCantidadEntregar(itemId: string, cantidad: number) {
+    // Buscar en itemsEntregas primero, si no existe buscar en items del presupuesto
+    let item = itemsEntregas.find((i: any) => i.presupuesto_item_id === itemId)
+    
+    if (!item) {
+      item = items.find((i: any) => i.id === itemId)
+      if (!item) return
+      
+      // Si viene de items del presupuesto, calcular pendiente
+      const cantidadTotal = parseFloat(item.cantidad) || 0
+      const cantidadMax = cantidadTotal
+      const cantidadValida = Math.max(0, Math.min(cantidad, cantidadMax))
+      
+      setItemsParaEntregar((prev) => ({
+        ...prev,
+        [itemId]: cantidadValida,
+      }))
+      return
+    }
+
+    const cantidadMax = parseFloat(item.cantidad_pendiente) || parseFloat(item.cantidad_total) || 0
+    const cantidadValida = Math.max(0, Math.min(cantidad, cantidadMax))
+
+    setItemsParaEntregar((prev) => ({
+      ...prev,
+      [itemId]: cantidadValida,
+    }))
+  }
+
+  // Registrar entrega
+  async function registrarEntrega() {
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "No se pudo identificar al usuario",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar que hay al menos un item con cantidad > 0
+    const itemsConCantidad = Object.entries(itemsParaEntregar).filter(
+      ([_, cantidad]) => cantidad > 0
+    )
+
+    if (itemsConCantidad.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar al menos un item para entregar",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setRegistrandoEntrega(true)
+
+      // 1. Crear entrega
+      const { data: entregaData, error: entregaError } = await supabase
+        .from('entregas')
+        .insert({
+          presupuesto_id: params.id,
+          fecha_entrega: fechaEntrega,
+          observaciones: observacionesEntrega || null,
+          usuario_id: userId,
+        })
+        .select()
+        .single()
+
+      if (entregaError) throw entregaError
+
+      // 2. Crear items de la entrega
+      const itemsAInsertar = itemsConCantidad.map(([presupuestoItemId, cantidad]) => ({
+        entrega_id: entregaData.id,
+        presupuesto_item_id: presupuestoItemId,
+        cantidad_entregada: cantidad,
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('entregas_items')
+        .insert(itemsAInsertar)
+
+      if (itemsError) throw itemsError
+
+      toast({
+        title: "¡Entrega registrada!",
+        description: `Se registraron ${itemsConCantidad.length} item(s) entregados`,
+      })
+
+      // Recargar datos
+      await Promise.all([
+        cargarEstadoEntregas(),
+        cargarPresupuesto() // Recargar también el presupuesto para actualizar datos generales
+      ])
+      setDialogRegistrarEntrega(false)
+    } catch (error: any) {
+      console.error('Error al registrar entrega:', error)
+      toast({
+        title: "Error al registrar entrega",
+        description: error.message || "No se pudo registrar la entrega",
+        variant: "destructive",
+      })
+    } finally {
+      setRegistrandoEntrega(false)
+    }
+  }
+
   async function cambiarEstado(nuevoEstado: string) {
+    // Validación: No permitir cambiar estado si está en "baja"
+    if (presupuesto?.estado === 'baja') {
+      toast({
+        title: "No se puede cambiar el estado",
+        description: "Los presupuestos dados de baja no pueden cambiar de estado.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validación: Confirmar cambio desde "aprobado" a otro estado
+    if (presupuesto?.estado === 'aprobado' && nuevoEstado !== 'aprobado') {
+      const confirmar = window.confirm(
+        `¿Está seguro que desea cambiar el estado de "Aprobado" a "${nuevoEstado}"?`
+      )
+      if (!confirmar) {
+        return
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('presupuestos')
@@ -252,7 +609,13 @@ export default function VerPresupuestoPage() {
         description: `Estado cambiado a ${nuevoEstado}`,
       })
 
-      cargarPresupuesto()
+      // Si el nuevo estado es "aprobado", cargar estado de entregas
+      if (nuevoEstado === 'aprobado') {
+        await cargarPresupuesto()
+        await cargarEstadoEntregas()
+      } else {
+        await cargarPresupuesto()
+      }
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -1013,20 +1376,36 @@ export default function VerPresupuestoPage() {
                   </div>
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Estado</p>
-              <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="borrador">Borrador</SelectItem>
-                  <SelectItem value="enviado">Enviado</SelectItem>
-                  <SelectItem value="aprobado">Aprobado</SelectItem>
-                  <SelectItem value="rechazado">Rechazado</SelectItem>
-                </SelectContent>
-              </Select>
+              {presupuesto.estado === 'baja' ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="h-8 text-sm">
+                      Baja
+                    </Badge>
                 </div>
-          </CardContent>
-        </Card>
+                  <p className="text-xs text-muted-foreground italic">
+                    Los presupuestos dados de baja no pueden cambiar de estado
+                  </p>
+                </div>
+              ) : (
+                <Select value={presupuesto.estado} onValueChange={cambiarEstado}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="borrador">Borrador</SelectItem>
+                    <SelectItem value="enviado">Enviado</SelectItem>
+                    <SelectItem value="aprobado">Aprobado</SelectItem>
+                    <SelectItem value="rechazado">Rechazado</SelectItem>
+                    {presupuesto.estado === 'vencido' && (
+                      <SelectItem value="vencido">Vencido</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+                </div>
+            </CardContent>
+          </Card>
 
         {/* Resumen Financiero - Compacto */}
         <Card className="md:col-span-1">
@@ -1060,6 +1439,186 @@ export default function VerPresupuestoPage() {
             </CardContent>
           </Card>
       </div>
+
+      {/* Sección de Estado de Entregas - Solo para presupuestos aprobados */}
+      {presupuesto?.estado === 'aprobado' && (
+        <Card className="border-2 border-amber-200 bg-amber-50/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-amber-600" />
+                  Estado de Entrega
+                </CardTitle>
+                <CardDescription>
+                  Seguimiento de entregas del presupuesto aprobado
+                </CardDescription>
+              </div>
+              {estadoEntrega && (
+                <Badge 
+                  variant={estadoEntrega.estado_entrega === 'completo' ? 'default' : 'secondary'}
+                  className={
+                    estadoEntrega.estado_entrega === 'pendiente' 
+                      ? 'bg-amber-100 text-amber-800'
+                      : estadoEntrega.estado_entrega === 'parcial'
+                      ? 'bg-orange-100 text-orange-800'
+                      : 'bg-green-100 text-green-800'
+                  }
+                >
+                  {estadoEntrega.estado_entrega === 'pendiente' && (
+                    <>
+                      <Clock className="h-3 w-3 mr-1" />
+                      Pendiente
+                    </>
+                  )}
+                  {estadoEntrega.estado_entrega === 'parcial' && (
+                    <>
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Parcial
+                    </>
+                  )}
+                  {estadoEntrega.estado_entrega === 'completo' && (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Completo
+                    </>
+                  )}
+                </Badge>
+              )}
+              {!estadoEntrega && (
+                <Badge variant="outline" className="bg-amber-50">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Pendiente
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Resumen */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 bg-white rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-1">Items Total</p>
+                <p className="text-2xl font-bold">{estadoEntrega?.total_items ?? items.length}</p>
+              </div>
+              <div className="p-3 bg-white rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-1">Items Completos</p>
+                <p className="text-2xl font-bold text-green-600">{estadoEntrega?.items_completos ?? 0}</p>
+              </div>
+              <div className="p-3 bg-white rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-1">Total Entregas</p>
+                <p className="text-2xl font-bold">{estadoEntrega?.total_entregas ?? entregas.length}</p>
+              </div>
+              <div className="p-3 bg-white rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-1">Última Entrega</p>
+                <p className="text-sm font-semibold">
+                  {estadoEntrega?.fecha_ultima_entrega 
+                    ? new Date(estadoEntrega.fecha_ultima_entrega).toLocaleDateString('es-AR')
+                    : entregas.length > 0 && entregas[0]?.fecha_entrega
+                    ? new Date(entregas[0].fecha_entrega).toLocaleDateString('es-AR')
+                    : 'Sin entregas'}
+                </p>
+              </div>
+            </div>
+
+            {/* Tabla de Items con Estado */}
+            {itemsEntregas && itemsEntregas.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Estado por Item:</h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-2">Item</th>
+                        <th className="text-right p-2">Total</th>
+                        <th className="text-right p-2">Entregado</th>
+                        <th className="text-right p-2">Pendiente</th>
+                        <th className="text-center p-2">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itemsEntregas.map((item: any) => (
+                        <tr key={item.presupuesto_item_id} className="border-t">
+                          <td className="p-2">{item.descripcion}</td>
+                          <td className="p-2 text-right">{item.cantidad_total} {item.unidad}</td>
+                          <td className="p-2 text-right text-green-600 font-semibold">
+                            {parseFloat(item.cantidad_entregada).toFixed(2)} {item.unidad}
+                          </td>
+                          <td className="p-2 text-right text-amber-600 font-semibold">
+                            {parseFloat(item.cantidad_pendiente).toFixed(2)} {item.unidad}
+                          </td>
+                          <td className="p-2 text-center">
+                            {item.estado_item === 'completo' && (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completo
+                              </Badge>
+                            )}
+                            {item.estado_item === 'parcial' && (
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Parcial
+                              </Badge>
+                            )}
+                            {item.estado_item === 'pendiente' && (
+                              <Badge variant="outline" className="bg-amber-50">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Pendiente
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Botón para Registrar Entrega */}
+            {(!estadoEntrega || estadoEntrega.estado_entrega !== 'completo') && (
+              <div className="flex justify-end pt-2 border-t">
+                <Button onClick={abrirRegistrarEntrega} className="bg-amber-600 hover:bg-amber-700">
+                  <Package className="h-4 w-4 mr-2" />
+                  Registrar Entrega
+                </Button>
+              </div>
+            )}
+
+            {/* Historial de Entregas */}
+            {entregas && entregas.length > 0 && (
+              <div className="space-y-2 pt-4 border-t">
+                <h4 className="font-semibold text-sm">Historial de Entregas:</h4>
+                <div className="space-y-2">
+                  {entregas.map((entrega: any, index: number) => (
+                    <div key={entrega.id} className="p-3 bg-white rounded-lg border">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold">
+                            Entrega #{entregas.length - index} - {new Date(entrega.fecha_entrega).toLocaleDateString('es-AR')}
+                          </p>
+                          {entrega.observaciones && (
+                            <p className="text-xs text-muted-foreground mt-1">{entrega.observaciones}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        {entrega.entregas_items && entrega.entregas_items.map((ei: any) => (
+                          <div key={ei.id} className="text-xs flex items-center gap-2">
+                            <span className="text-muted-foreground">•</span>
+                            <span>
+                              {ei.cantidad_entregada} {ei.presupuestos_items?.unidad || ''} de {ei.presupuestos_items?.descripcion || 'Item'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Items del Presupuesto - Ocupa todo el ancho */}
           <Collapsible open={itemsAbiertos} onOpenChange={setItemsAbiertos}>
@@ -2145,6 +2704,185 @@ export default function VerPresupuestoPage() {
               disabled={eliminando}
             >
               {eliminando ? 'Marcando...' : 'Confirmar baja'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Registrar Entrega */}
+      <Dialog open={dialogRegistrarEntrega} onOpenChange={setDialogRegistrarEntrega}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-amber-600" />
+                  Registrar Entrega
+                </DialogTitle>
+                <DialogDescription>
+                  Seleccione los items y cantidades a entregar
+                </DialogDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={autocompletarCantidades}
+                  className="text-xs"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Autocompletar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={limpiarCantidades}
+                  className="text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Limpiar
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+            {/* Fecha de Entrega */}
+            <div className="space-y-2">
+              <Label htmlFor="fecha-entrega">Fecha de Entrega</Label>
+              <Input
+                id="fecha-entrega"
+                type="date"
+                value={fechaEntrega}
+                onChange={(e) => setFechaEntrega(e.target.value)}
+              />
+            </div>
+
+            {/* Items Disponibles */}
+            <div className="space-y-3">
+              <Label>Items a Entregar</Label>
+              {(() => {
+                // Usar itemsEntregas si está disponible, sino usar items del presupuesto
+                let itemsDisponibles = itemsEntregas
+                
+                if (!itemsDisponibles || itemsDisponibles.length === 0) {
+                  itemsDisponibles = items.map((item: any) => ({
+                    presupuesto_item_id: item.id,
+                    descripcion: item.descripcion,
+                    cantidad_total: parseFloat(item.cantidad) || 0,
+                    unidad: item.unidad,
+                    cantidad_entregada: 0,
+                    cantidad_pendiente: parseFloat(item.cantidad) || 0,
+                    orden: item.orden || 0,
+                    estado_item: 'pendiente',
+                  }))
+                }
+
+                const itemsConPendiente = itemsDisponibles.filter((item: any) => {
+                  const pendiente = item.cantidad_pendiente || (item.cantidad_total - (item.cantidad_entregada || 0))
+                  return pendiente > 0
+                })
+
+                if (itemsConPendiente.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay items pendientes de entrega
+                    </p>
+                  )
+                }
+
+                return (
+                  <div className="space-y-3 border rounded-lg p-4">
+                    {itemsConPendiente.map((item: any) => {
+                      const cantidadPendiente = parseFloat(item.cantidad_pendiente || item.cantidad_total) || 0
+                      const cantidadEntregada = parseFloat(item.cantidad_entregada || 0)
+                      const cantidadTotal = parseFloat(item.cantidad_total) || 0
+                      const cantidadActual = itemsParaEntregar[item.presupuesto_item_id] || 0
+                      
+                      return (
+                        <div key={item.presupuesto_item_id} className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{item.descripcion}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Pendiente: {cantidadPendiente.toFixed(2)} {item.unidad} | 
+                                Entregado: {cantidadEntregada.toFixed(2)} {item.unidad} | 
+                                Total: {cantidadTotal.toFixed(2)} {item.unidad}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`cantidad-${item.presupuesto_item_id}`} className="text-xs whitespace-nowrap">
+                              Cantidad:
+                            </Label>
+                            <Input
+                              id={`cantidad-${item.presupuesto_item_id}`}
+                              type="number"
+                              min="0"
+                              max={cantidadPendiente}
+                              step="0.01"
+                              value={cantidadActual}
+                              onChange={(e) => {
+                                const valor = parseFloat(e.target.value) || 0
+                                actualizarCantidadEntregar(item.presupuesto_item_id, valor)
+                              }}
+                              className="w-32"
+                            />
+                            <span className="text-xs text-muted-foreground">{item.unidad}</span>
+                            {cantidadActual > 0 && (
+                              <Badge variant="secondary" className="ml-auto">
+                                {cantidadActual.toFixed(2)} {item.unidad}
+                              </Badge>
+                            )}
+                          </div>
+                          {cantidadActual > cantidadPendiente && (
+                            <p className="text-xs text-red-600">
+                              La cantidad no puede exceder {cantidadPendiente.toFixed(2)} {item.unidad}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-2">
+              <Label htmlFor="obs-entrega">Observaciones (Opcional)</Label>
+              <Textarea
+                id="obs-entrega"
+                placeholder="Notas adicionales sobre la entrega..."
+                value={observacionesEntrega}
+                onChange={(e) => setObservacionesEntrega(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogRegistrarEntrega(false)}
+              disabled={registrandoEntrega}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={registrarEntrega}
+              disabled={registrandoEntrega || Object.values(itemsParaEntregar).every((v) => v === 0)}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {registrandoEntrega ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <Package className="h-4 w-4 mr-2" />
+                  Registrar Entrega
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
