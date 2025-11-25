@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Package, Building2, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler } from 'lucide-react'
-import { PendientesEntregaCard } from '@/components/PendientesEntregaCard'
+import { EntregasPendientesExpandido } from '@/components/EntregasPendientesExpandido'
 
 async function getStats() {
   const supabase = createServerClient()
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -152,50 +152,10 @@ export default async function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-
-        <PendientesEntregaCard />
       </div>
 
-      {/* Recent Alerts */}
-      {stats.articulosBajoStock.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <CardTitle>Alertas de Stock</CardTitle>
-            </div>
-            <CardDescription>
-              Artículos que requieren atención inmediata
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {stats.articulosBajoStock.map((articulo) => (
-                <div
-                  key={articulo.id}
-                  className="flex flex-col gap-3 rounded-lg border border-destructive/20 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium text-sm sm:text-base">{articulo.nombre}</p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-                      <Badge variant="destructive" className="text-xs">
-                        Stock: {articulo.stock_actual}
-                      </Badge>
-                      <span className="hidden sm:inline">•</span>
-                      <span>Mínimo requerido: {articulo.stock_minimo}</span>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link href={`/dashboard/articulos/editar/${articulo.id}`}>
-                      Editar
-                    </Link>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Entregas Pendientes Expandido */}
+      <EntregasPendientesExpandido />
 
       {/* Quick Actions removed */}
     </div>
