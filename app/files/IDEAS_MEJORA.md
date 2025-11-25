@@ -395,6 +395,189 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Analizar presupuestos por rango de montos
   - Ver historial completo de un cliente
 
+### Mejoras de Optimización, Validaciones y UX en Módulo de Presupuestos
+- **Fecha:** 2025-02-05
+- **Prioridad:** [Alta]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Análisis completo de mejoras de performance, validaciones y experiencia de usuario para el módulo `dashboard/presupuestos/`.
+- **Optimización de Performance:**
+  - **Paginación/Virtualización:**
+    - Implementar paginación del lado del servidor (RPC o vista con LIMIT/OFFSET)
+    - Virtualización de tabla para listas grandes (react-window o react-virtual)
+    - Lazy loading de datos según scroll
+    - Carga incremental de presupuestos
+  - **Optimización de Queries:**
+    - Consolidar múltiples queries en `descargarPresupuesto` en una sola llamada RPC
+    - Usar JOINs en lugar de queries separadas para datos relacionados
+    - Implementar caché de datos frecuentemente accedidos
+    - Optimizar vista `v_presupuestos_completos` con índices apropiados
+  - **Re-renders Innecesarios:**
+    - Revisar `useEffect` que recarga entregas cuando cambia `presupuestos.length` (líneas 141-145)
+    - Evitar recargas automáticas duplicadas al montar componente
+    - Optimizar dependencias de `useMemo` y `useCallback` para evitar recálculos
+  - **Búsqueda en Servidor:**
+    - Mover búsqueda y filtros del cliente al servidor
+    - Implementar debounce en búsqueda (300-500ms)
+    - Búsqueda con índices full-text en PostgreSQL
+    - Filtros aplicados directamente en query SQL
+- **Validaciones y Manejo de Errores:**
+  - **Validación de Datos:**
+    - Reemplazar tipos `any` con interfaces TypeScript específicas
+    - Validar datos con Zod o Yup antes de usar
+    - Manejar casos de null/undefined en todos los campos
+    - Validar formato de fechas y montos antes de procesar
+  - **Manejo de Errores:**
+    - Mostrar toast/notificaciones en `cargarEstadoEntregas` cuando hay errores (actualmente solo console.error)
+    - Validar existencia de presupuesto antes de descargar PDF
+    - Implementar retry automático con backoff exponencial para errores de red
+    - Timeouts en queries para evitar carga infinita
+    - Mensajes de error más descriptivos y accionables
+  - **Validación de Filtros:**
+    - Validar que valores de filtros sean válidos antes de aplicar
+    - Sanitizar inputs de búsqueda para prevenir inyección
+    - Validar rangos de fechas y montos en filtros
+  - **Manejo de Estados de Carga:**
+    - Detectar problemas de red y mostrar mensaje apropiado
+    - Implementar estados de error específicos (sin conexión, timeout, error del servidor)
+    - Permitir reintentar operaciones fallidas
+- **Mejoras de UX/UI:**
+  - **Estados de Carga:**
+    - Implementar skeleton loaders para cards de estadísticas
+    - Skeleton loaders para filas de tabla durante carga inicial
+    - Spinner global discreto durante operaciones asíncronas
+    - Indicadores de progreso para descarga de PDF
+  - **Feedback Visual:**
+    - Mejorar feedback en botón de descarga (badge "Generando...", deshabilitar botones durante acción)
+    - Mostrar progreso de generación de PDF
+    - Confirmación visual después de acciones exitosas
+    - Animaciones sutiles para transiciones de estado
+  - **Mensajes Vacíos:**
+    - Mensajes contextuales más informativos cuando no hay datos
+    - Acciones rápidas en estados vacíos (crear presupuesto, limpiar filtros)
+    - Sugerencias basadas en contexto (ej: "Intenta ajustar los filtros" vs "Crea tu primer presupuesto")
+  - **Búsqueda y Filtros Avanzados:**
+    - Búsqueda por nombre/razón social del cliente (además de número)
+    - Filtro por rango de fechas (emisión y vencimiento)
+    - Filtro por rango de montos (subtotal, total)
+    - Filtro por forma de pago
+    - Filtro por vendedor
+    - Búsqueda en tiempo real con debounce
+    - Guardar filtros favoritos en localStorage
+    - Sincronizar filtros con URL params para compartir vistas
+  - **Ordenamiento:**
+    - Ordenamiento persistente en localStorage
+    - Orden por defecto configurable por usuario
+    - Múltiples criterios de ordenamiento
+    - Indicadores visuales claros de columna ordenada y dirección
+  - **Acciones Rápidas:**
+    - Selección múltiple de presupuestos
+    - Acciones masivas (cambiar estado, exportar seleccionados, eliminar)
+    - Menú contextual (click derecho) con acciones rápidas
+    - Atajos de teclado para acciones comunes
+    - Botón "Duplicar presupuesto"
+  - **Información Contextual:**
+    - Tooltips con información detallada en cards de estadísticas
+    - Comparación con mes anterior en tooltips
+    - Indicadores de tendencia (↑↓) en métricas
+    - Badges de "Nuevo" para presupuestos recientes
+  - **Responsive Design:**
+    - Columnas colapsables en móvil
+    - Vista móvil simplificada con información esencial
+    - Priorizar columnas más importantes en pantallas pequeñas
+    - Menú hamburguesa para acciones en móvil
+  - **Navegación:**
+    - Breadcrumbs para mejor orientación
+    - Botón "Atrás" con historial
+    - Navegación entre presupuestos (anterior/siguiente) desde vista detalle
+    - Enlaces rápidos a presupuestos relacionados (mismo cliente, mismo tipo)
+  - **Accesibilidad:**
+    - Labels ARIA apropiados en todos los elementos interactivos
+    - Contraste de colores según WCAG
+    - Navegación completa por teclado
+    - Soporte para lectores de pantalla
+    - Focus visible en todos los elementos interactivos
+- **Funcionalidades Adicionales:**
+  - **Exportación de Datos:**
+    - Exportar lista filtrada a Excel/CSV con todas las columnas
+    - Exportar a PDF con diseño profesional
+    - Opciones de columnas a incluir en exportación
+    - Nombre de archivo con timestamp y filtros aplicados
+  - **Comparación de Presupuestos:**
+    - Vista lado a lado para comparar 2-3 presupuestos
+    - Comparar montos, items, fechas, estados
+    - Resaltar diferencias visualmente
+  - **Historial de Cambios:**
+    - Ver historial completo de cambios de estado
+    - Quién y cuándo cambió cada estado
+    - Timeline visual de cambios
+    - Comentarios asociados a cambios
+  - **Notificaciones:**
+    - Alertas para presupuestos próximos a vencer
+    - Notificaciones de cambios de estado importantes
+    - Recordatorios de seguimiento de presupuestos enviados
+    - Notificaciones push (si PWA implementada)
+  - **Estadísticas Avanzadas:**
+    - Gráficos de tendencia de presupuestos (líneas)
+    - Gráficos de distribución por estado (pie/bar)
+    - KPIs: tiempo promedio de aprobación, tasa de conversión por período
+    - Comparativa mes actual vs mes anterior
+    - Proyecciones basadas en tendencias
+  - **Filtros Guardados:**
+    - Guardar combinaciones de filtros como favoritos
+    - Nombres personalizados para filtros guardados
+    - Compartir filtros guardados entre usuarios
+    - Aplicar filtros guardados con un click
+  - **Vista de Calendario:**
+    - Vista mensual/semanal de fechas de emisión
+    - Vista de fechas de vencimiento
+    - Eventos destacados (vencimientos, aprobaciones)
+    - Navegación rápida a presupuestos desde calendario
+- **Optimización de Código:**
+  - **Tipado TypeScript:**
+    - Crear interfaces específicas para `Presupuesto`, `PresupuestoItem`, `EstadoEntrega`, etc.
+    - Eliminar todos los `any` del código
+    - Tipos estrictos para funciones y props
+  - **Separación de Lógica:**
+    - Extraer funciones puras fuera del componente
+    - Crear hooks personalizados (`usePresupuestos`, `useFiltros`, `useEstadisticas`)
+    - Mover lógica de negocio a servicios/utilities
+    - Separar componentes de presentación de lógica
+  - **Constantes:**
+    - Extraer valores hardcodeados (estados, tipos, colores) a constantes
+    - Configuración centralizada de umbrales (días para urgencia, etc.)
+    - Enums para estados y tipos de presupuesto
+  - **Componentes Reutilizables:**
+    - Extraer cards de estadísticas a componentes (`CardEstadistica`, `CardConversion`)
+    - Componente reutilizable para modal de entregas
+    - Componente de filtros reutilizable
+    - Componente de búsqueda avanzada
+- **Prioridades de Implementación:**
+  - **Alta Prioridad:**
+    1. Paginación o virtualización de tabla
+    2. Estados de carga con skeletons
+    3. Validación de datos y tipado TypeScript
+    4. Mejoras en búsqueda y filtros (rango de fechas, montos)
+    5. Manejo de errores más robusto con notificaciones
+  - **Media Prioridad:**
+    6. Exportación a Excel/CSV de lista filtrada
+    7. Acciones rápidas/masivas (selección múltiple)
+    8. Mejoras responsive para móvil
+    9. Comparación de presupuestos
+    10. Notificaciones/alertas de vencimientos
+  - **Baja Prioridad:**
+    11. Gráficos y estadísticas avanzadas
+    12. Vista de calendario
+    13. Filtros guardados
+    14. Navegación entre presupuestos (anterior/siguiente)
+- **Beneficios Esperados:**
+  - Reducción significativa en tiempo de carga con paginación
+  - Mejor experiencia de usuario con feedback visual apropiado
+  - Menos errores con validaciones robustas
+  - Mayor eficiencia con búsqueda y filtros avanzados
+  - Mejor accesibilidad y usabilidad en dispositivos móviles
+  - Código más mantenible y escalable
+
 ---
 
 ## 🏭 Operaciones y Logística
@@ -996,6 +1179,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 - 🔄 Exportación de lista de stock (Parcial: Excel y PDF básicos implementados, faltan funcionalidades avanzadas)
 - 🔄 Filtros en presupuestos (Parcial: filtros básicos por estado y tipo implementados)
 - 🔄 Cálculo automático de materiales para cercados
+- 🔄 Mejoras de optimización, validaciones y UX en módulo de presupuestos (Pendiente: análisis completo realizado 2025-02-05)
 
 ### Fase 2: CRM, Analytics y Finanzas (Q2 2025)
 - 🔄 Funcionalidades CRM básicas
