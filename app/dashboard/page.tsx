@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Package, Building2, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler } from 'lucide-react'
+import { PendientesEntregaCard } from '@/components/PendientesEntregaCard'
 
 async function getStats() {
   const supabase = createServerClient()
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -151,6 +152,8 @@ export default async function DashboardPage() {
             </p>
           </CardContent>
         </Card>
+
+        <PendientesEntregaCard />
       </div>
 
       {/* Recent Alerts */}
