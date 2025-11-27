@@ -56,6 +56,13 @@ export default function VerPresupuestoPage() {
     cargarUsuario()
   }, [params.id])
 
+  // Cargar estado de entregas cuando el presupuesto esté aprobado
+  useEffect(() => {
+    if (presupuesto?.id && presupuesto?.estado === 'aprobado' && !loading) {
+      cargarEstadoEntregas()
+    }
+  }, [presupuesto?.id, presupuesto?.estado, loading])
+
   async function cargarUsuario() {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
@@ -177,10 +184,7 @@ export default function VerPresupuestoPage() {
         await cargarConfiguracionCercado(presData.cercado_config_id)
       }
 
-      // Cargar estado de entregas si está aprobado
-      if (presData?.estado === 'aprobado') {
-        await cargarEstadoEntregas()
-      }
+      // Nota: El estado de entregas se cargará automáticamente en el useEffect cuando el presupuesto esté aprobado
     } catch (error: any) {
       console.error('Error:', error)
       toast({
@@ -264,11 +268,29 @@ export default function VerPresupuestoPage() {
 
   // Cargar estado de entregas
   async function cargarEstadoEntregas() {
-    if (!presupuesto || presupuesto.estado !== 'aprobado') {
-      setEstadoEntrega(null)
-      setItemsEntregas([])
-      setEntregas([])
-      return
+    // Verificar si el presupuesto está aprobado (usar el estado o verificar directamente)
+    const estadoPresupuesto = presupuesto?.estado
+    if (!estadoPresupuesto || estadoPresupuesto !== 'aprobado') {
+      // Si no hay presupuesto cargado aún, verificar directamente desde la BD
+      if (!presupuesto) {
+        const { data: presData } = await supabase
+          .from('presupuestos')
+          .select('estado')
+          .eq('id', params.id)
+          .single()
+        
+        if (!presData || presData.estado !== 'aprobado') {
+          setEstadoEntrega(null)
+          setItemsEntregas([])
+          setEntregas([])
+          return
+        }
+      } else {
+        setEstadoEntrega(null)
+        setItemsEntregas([])
+        setEntregas([])
+        return
+      }
     }
 
     try {
@@ -287,14 +309,25 @@ export default function VerPresupuestoPage() {
           .select('id', { count: 'exact', head: true })
           .eq('presupuesto_id', params.id)
 
+        // Obtener datos del presupuesto si no están en el estado
+        let presData = presupuesto
+        if (!presData) {
+          const { data: presDataFromDb } = await supabase
+            .from('presupuestos')
+            .select('numero, cliente_nombre, total, fecha_emision')
+            .eq('id', params.id)
+            .single()
+          presData = presDataFromDb
+        }
+
         setEstadoEntrega({
           id: params.id,
-          numero: presupuesto.numero,
+          numero: presData?.numero || '',
           estado: 'aprobado',
-          cliente_nombre: presupuesto.cliente_nombre,
-          total: presupuesto.total,
-          fecha_emision: presupuesto.fecha_emision,
-          total_items: itemsCount?.length || 0,
+          cliente_nombre: presData?.cliente_nombre || '',
+          total: presData?.total || 0,
+          fecha_emision: presData?.fecha_emision || null,
+          total_items: itemsCount?.count || 0,
           items_completos: 0,
           estado_entrega: 'pendiente',
           fecha_ultima_entrega: null,
@@ -377,22 +410,44 @@ export default function VerPresupuestoPage() {
   }
 
   // Abrir modal de registrar entrega
-  function abrirRegistrarEntrega() {
-    // Si no hay itemsEntregas cargados, usar items del presupuesto
+  async function abrirRegistrarEntrega() {
+    // Asegurar que los datos de entregas estén cargados
+    if (!itemsEntregas || itemsEntregas.length === 0) {
+      await cargarEstadoEntregas()
+    }
+
+    // Si después de cargar aún no hay itemsEntregas, calcular desde entregas
     let itemsDisponibles = itemsEntregas
     
     if (!itemsDisponibles || itemsDisponibles.length === 0) {
-      // Si no hay items de entregas, crear desde items del presupuesto
-      itemsDisponibles = items.map((item: any) => ({
-        presupuesto_item_id: item.id,
-        descripcion: item.descripcion,
-        cantidad_total: parseFloat(item.cantidad) || 0,
-        unidad: item.unidad,
-        cantidad_entregada: 0,
-        cantidad_pendiente: parseFloat(item.cantidad) || 0,
-        orden: item.orden || 0,
-        estado_item: 'pendiente',
-      }))
+      // Calcular cantidades entregadas desde el historial de entregas
+      const cantidadesEntregadas: Record<string, number> = {}
+      
+      entregas.forEach((entrega: any) => {
+        entrega.entregas_items?.forEach((ei: any) => {
+          const itemId = ei.presupuesto_item_id
+          const cantidad = parseFloat(ei.cantidad_entregada) || 0
+          cantidadesEntregadas[itemId] = (cantidadesEntregadas[itemId] || 0) + cantidad
+        })
+      })
+
+      // Crear items desde items del presupuesto con cantidades entregadas calculadas
+      itemsDisponibles = items.map((item: any) => {
+        const cantidadTotal = parseFloat(item.cantidad) || 0
+        const cantidadEntregada = cantidadesEntregadas[item.id] || 0
+        const cantidadPendiente = Math.max(0, cantidadTotal - cantidadEntregada)
+        
+        return {
+          presupuesto_item_id: item.id,
+          descripcion: item.descripcion,
+          cantidad_total: cantidadTotal,
+          unidad: item.unidad,
+          cantidad_entregada: cantidadEntregada,
+          cantidad_pendiente: cantidadPendiente,
+          orden: item.orden || 0,
+          estado_item: cantidadPendiente === 0 ? 'completo' : (cantidadEntregada > 0 ? 'parcial' : 'pendiente'),
+        }
+      })
     }
 
     // Filtrar items con cantidad pendiente > 0
@@ -413,7 +468,7 @@ export default function VerPresupuestoPage() {
     // Inicializar items con cantidades pendientes (autocompletar con lo pendiente)
     const itemsInicial: Record<string, number> = {}
     itemsConPendiente.forEach((item: any) => {
-      const cantidadPendiente = parseFloat(item.cantidad_pendiente || item.cantidad_total) || 0
+      const cantidadPendiente = parseFloat(item.cantidad_pendiente || (item.cantidad_total - (item.cantidad_entregada || 0)).toString()) || 0
       itemsInicial[item.presupuesto_item_id] = cantidadPendiente
     })
 
@@ -425,21 +480,39 @@ export default function VerPresupuestoPage() {
 
   // Autocompletar todas las cantidades con lo pendiente
   function autocompletarCantidades() {
-    // Si no hay itemsEntregas cargados, usar items del presupuesto
+    // Si no hay itemsEntregas cargados, calcular desde entregas
     let itemsDisponibles = itemsEntregas
     
     if (!itemsDisponibles || itemsDisponibles.length === 0) {
-      itemsDisponibles = items.map((item: any) => ({
-        presupuesto_item_id: item.id,
-        cantidad_total: parseFloat(item.cantidad) || 0,
-        cantidad_entregada: 0,
-        cantidad_pendiente: parseFloat(item.cantidad) || 0,
-      }))
+      // Calcular cantidades entregadas desde el historial de entregas
+      const cantidadesEntregadas: Record<string, number> = {}
+      
+      entregas.forEach((entrega: any) => {
+        entrega.entregas_items?.forEach((ei: any) => {
+          const itemId = ei.presupuesto_item_id
+          const cantidad = parseFloat(ei.cantidad_entregada) || 0
+          cantidadesEntregadas[itemId] = (cantidadesEntregadas[itemId] || 0) + cantidad
+        })
+      })
+
+      // Crear items desde items del presupuesto con cantidades entregadas calculadas
+      itemsDisponibles = items.map((item: any) => {
+        const cantidadTotal = parseFloat(item.cantidad) || 0
+        const cantidadEntregada = cantidadesEntregadas[item.id] || 0
+        const cantidadPendiente = Math.max(0, cantidadTotal - cantidadEntregada)
+        
+        return {
+          presupuesto_item_id: item.id,
+          cantidad_total: cantidadTotal,
+          cantidad_entregada: cantidadEntregada,
+          cantidad_pendiente: cantidadPendiente,
+        }
+      })
     }
 
     const nuevosItems: Record<string, number> = {}
     itemsDisponibles.forEach((item: any) => {
-      const cantidadPendiente = parseFloat(item.cantidad_pendiente || item.cantidad_total) || 0
+      const cantidadPendiente = parseFloat(item.cantidad_pendiente || (item.cantidad_total - (item.cantidad_entregada || 0)).toString()) || 0
       if (cantidadPendiente > 0) {
         nuevosItems[item.presupuesto_item_id] = cantidadPendiente
       }
@@ -476,9 +549,21 @@ export default function VerPresupuestoPage() {
       item = items.find((i: any) => i.id === itemId)
       if (!item) return
       
-      // Si viene de items del presupuesto, calcular pendiente
+      // Si viene de items del presupuesto, calcular pendiente desde entregas
       const cantidadTotal = parseFloat(item.cantidad) || 0
-      const cantidadMax = cantidadTotal
+      
+      // Calcular cantidad entregada desde el historial
+      let cantidadEntregada = 0
+      entregas.forEach((entrega: any) => {
+        entrega.entregas_items?.forEach((ei: any) => {
+          if (ei.presupuesto_item_id === itemId) {
+            cantidadEntregada += parseFloat(ei.cantidad_entregada) || 0
+          }
+        })
+      })
+      
+      const cantidadPendiente = Math.max(0, cantidadTotal - cantidadEntregada)
+      const cantidadMax = cantidadPendiente
       const cantidadValida = Math.max(0, Math.min(cantidad, cantidadMax))
       
       setItemsParaEntregar((prev) => ({
@@ -2761,20 +2846,38 @@ export default function VerPresupuestoPage() {
             <div className="space-y-3">
               <Label>Items a Entregar</Label>
               {(() => {
-                // Usar itemsEntregas si está disponible, sino usar items del presupuesto
+                // Usar itemsEntregas si está disponible, sino calcular desde entregas
                 let itemsDisponibles = itemsEntregas
                 
                 if (!itemsDisponibles || itemsDisponibles.length === 0) {
-                  itemsDisponibles = items.map((item: any) => ({
-                    presupuesto_item_id: item.id,
-                    descripcion: item.descripcion,
-                    cantidad_total: parseFloat(item.cantidad) || 0,
-                    unidad: item.unidad,
-                    cantidad_entregada: 0,
-                    cantidad_pendiente: parseFloat(item.cantidad) || 0,
-                    orden: item.orden || 0,
-                    estado_item: 'pendiente',
-                  }))
+                  // Calcular cantidades entregadas desde el historial de entregas
+                  const cantidadesEntregadas: Record<string, number> = {}
+                  
+                  entregas.forEach((entrega: any) => {
+                    entrega.entregas_items?.forEach((ei: any) => {
+                      const itemId = ei.presupuesto_item_id
+                      const cantidad = parseFloat(ei.cantidad_entregada) || 0
+                      cantidadesEntregadas[itemId] = (cantidadesEntregadas[itemId] || 0) + cantidad
+                    })
+                  })
+
+                  // Crear items desde items del presupuesto con cantidades entregadas calculadas
+                  itemsDisponibles = items.map((item: any) => {
+                    const cantidadTotal = parseFloat(item.cantidad) || 0
+                    const cantidadEntregada = cantidadesEntregadas[item.id] || 0
+                    const cantidadPendiente = Math.max(0, cantidadTotal - cantidadEntregada)
+                    
+                    return {
+                      presupuesto_item_id: item.id,
+                      descripcion: item.descripcion,
+                      cantidad_total: cantidadTotal,
+                      unidad: item.unidad,
+                      cantidad_entregada: cantidadEntregada,
+                      cantidad_pendiente: cantidadPendiente,
+                      orden: item.orden || 0,
+                      estado_item: cantidadPendiente === 0 ? 'completo' : (cantidadEntregada > 0 ? 'parcial' : 'pendiente'),
+                    }
+                  })
                 }
 
                 const itemsConPendiente = itemsDisponibles.filter((item: any) => {
