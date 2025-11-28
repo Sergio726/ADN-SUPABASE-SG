@@ -304,7 +304,7 @@ export default function VerPresupuestoPage() {
       // Si la vista no devuelve datos, crear estado por defecto
       if (estadoError || !estadoData) {
         // Crear estado inicial "pendiente" si no hay datos
-        const { data: itemsCount } = await supabase
+        const { count: itemsCount } = await supabase
           .from('presupuestos_items')
           .select('id', { count: 'exact', head: true })
           .eq('presupuesto_id', params.id)
@@ -327,7 +327,7 @@ export default function VerPresupuestoPage() {
           cliente_nombre: presData?.cliente_nombre || '',
           total: presData?.total || 0,
           fecha_emision: presData?.fecha_emision || null,
-          total_items: itemsCount?.count || 0,
+          total_items: itemsCount || 0,
           items_completos: 0,
           estado_entrega: 'pendiente',
           fecha_ultima_entrega: null,
