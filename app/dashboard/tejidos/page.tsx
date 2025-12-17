@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, RefreshCw, Filter, MessageSquareText, Download, FileSpreadsheet, FileDown } from 'lucide-react'
+import { Plus, Edit, Eye, RefreshCw, Filter, MessageSquareText, Download, FileSpreadsheet, FileDown, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -122,6 +122,19 @@ export default function TejidosPage() {
       ? valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       : '—'
 
+  const getEtiquetaFiltro = (valor: string, sufijo?: string) => {
+    if (!valor || valor === 'todos') return 'Todos'
+    return `${valor}${sufijo || ''}`
+  }
+
+  const generarNombreWhatsappTejido = (tejido: any) => {
+    const calibre = tejido?.calibre != null ? `Cal.${tejido.calibre}` : (tejido?.codigo || 'Tejido')
+    const altura = tejido?.altura != null ? `${tejido.altura}m` : null
+    const rombo = tejido?.tamano_rombo != null ? `Rombo ${tejido.tamano_rombo}"` : null
+    const partes = ['Tejido Romboidal', calibre, altura, rombo].filter(Boolean)
+    return partes.join(' - ')
+  }
+
   const generarResumenWhatsapp = (tejido: any) => {
     const partes: string[] = []
     partes.push(`🧱 *${tejido.nombre || tejido.codigo}*`)
@@ -139,6 +152,37 @@ export default function TejidosPage() {
       partes.push('Precio efectivo: Consultar')
     }
     return partes.join('\n')
+  }
+
+  const generarListadoFiltradoWhatsapp = () => {
+    const filtros = [
+      `calibre ${getEtiquetaFiltro(filtroCalibre)}`,
+      `altura ${getEtiquetaFiltro(filtroAltura, 'm')}`,
+      `rombo ${getEtiquetaFiltro(filtroRombo)}`,
+      `Estado ${getEtiquetaFiltro(filtroEstado === 'activos' ? 'Activos' : filtroEstado === 'inactivos' ? 'Inactivos' : 'todos')}`,
+    ]
+
+    const encabezado = `*Lista de precios de tejidos romboidales* (Validez 1 dia)`
+
+    const items = tejidosFiltrados.map((tejido, idx) => {
+      const titulo = `${idx + 1}) 🧱 *${generarNombreWhatsappTejido(tejido)}*`
+      const detalles: string[] = []
+      if (tejido?.altura != null) detalles.push(`Altura ${tejido.altura} m`)
+      if (tejido?.calibre != null) detalles.push(`Calibre ${tejido.calibre}`)
+      if (tejido?.tamano_rombo != null) detalles.push(`Rombo ${tejido.tamano_rombo}"`)
+      if (tejido?.largo != null) detalles.push(`Largo ${tejido.largo} m`)
+      const specs = detalles.length ? `${detalles.join(' · ')}` : ''
+
+      const precioVenta = tejido?.precio_venta != null ? Number(tejido.precio_venta) : null
+      const precioEfectivo = precioVenta != null ? `$${formatearMoneda(precioVenta)}` : 'Consultar'
+      const precioFactura = precioVenta != null ? `$${formatearMoneda(precioVenta * 1.21)}` : 'Consultar'
+
+      return [titulo, '', specs, `Precio efectivo: ${precioEfectivo}`, `Factura/lista: ${precioFactura}`]
+        .filter((l) => l !== '')
+        .join('\n')
+    })
+
+    return [encabezado, '', ...items].join('\n\n').trim()
   }
 
   const copiarResumen = async (tejido: any) => {
@@ -159,6 +203,41 @@ export default function TejidosPage() {
       }
     } catch (error: any) {
       console.error('Error al copiar tejido:', error)
+      toast({
+        title: 'No se pudo copiar',
+        description: 'Tu navegador no permitió copiar el texto.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const copiarListadoFiltrado = async () => {
+    try {
+      if (!tejidosFiltrados?.length) {
+        toast({
+          title: 'Sin resultados',
+          description: 'No hay tejidos filtrados para copiar.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const texto = generarListadoFiltradoWhatsapp()
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(texto)
+        toast({
+          title: 'Listado copiado',
+          description: 'Listo para pegar en WhatsApp.',
+        })
+      } else {
+        toast({
+          title: 'No soportado',
+          description: 'Tu navegador no permite copiar automáticamente.',
+          variant: 'destructive',
+        })
+      }
+    } catch (error: any) {
+      console.error('Error al copiar listado de tejidos:', error)
       toast({
         title: 'No se pudo copiar',
         description: 'Tu navegador no permitió copiar el texto.',
@@ -474,11 +553,22 @@ export default function TejidosPage() {
                 {tejidosFiltrados.length} de {tejidos.length} configuraciones
               </CardDescription>
             </div>
-            {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos' || filtroEstado !== 'todos') && (
-              <Button variant="outline" size="sm" onClick={limpiarFiltros}>
-                Limpiar Filtros
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copiarListadoFiltrado}
+                disabled={tejidosFiltrados.length === 0}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar listado (WhatsApp)
               </Button>
-            )}
+              {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos' || filtroEstado !== 'todos') && (
+                <Button variant="outline" size="sm" onClick={limpiarFiltros}>
+                  Limpiar Filtros
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
