@@ -297,6 +297,263 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Sistemas de facturación electrónica
   - Plataformas de e-commerce (si aplica)
 
+### Notificaciones Automáticas de WhatsApp al Aprobar Presupuestos
+- **Fecha:** 2025-02-06
+- **Prioridad:** [Alta]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Sistema automático que envía mensajes de WhatsApp a los números de teléfono vinculados a la preparación de artículos o servicios cuando un presupuesto se aprueba.
+  - Notificar automáticamente a proveedores, almacén, logística y otros responsables de la preparación de pedidos.
+- **Funcionalidades específicas:**
+  - **Detección de aprobación:**
+    - Trigger automático cuando el estado de un presupuesto cambia a "aprobado"
+    - Detectar cambio de estado mediante webhook o trigger de base de datos
+    - Validar que el cambio sea de un estado previo a "aprobado" (no re-aprobaciones)
+  - **Identificación de destinatarios:**
+    - **Proveedores de artículos:**
+      - Obtener proveedores únicos de los artículos incluidos en el presupuesto
+      - Consultar tabla `proveedores` mediante relación: `presupuestos_items` → `articulos` → `proveedor_id`
+      - Filtrar proveedores que tengan número de teléfono válido
+    - **Equipo de logística/almacén:**
+      - Números de teléfono configurados en el sistema para notificaciones de logística
+      - Puede ser una tabla `usuarios_logistica` o configuración en `usuarios` con rol específico
+      - Números de almacén/depósito si aplica
+    - **Responsables de servicios:**
+      - Para presupuestos de tipo "cercado" o "general", identificar responsables de servicios
+      - Números de teléfono de equipos de instalación o preparación de servicios
+  - **Contenido del mensaje:**
+    - **Información del presupuesto:**
+      - Número de presupuesto (ej: PRES-2025-001)
+      - Cliente (nombre/razón social)
+      - Fecha de emisión
+      - Total del presupuesto
+    - **Detalles de artículos/servicios:**
+      - Lista de artículos a preparar (nombre, cantidad, unidad)
+      - Para proveedores: solo artículos de ese proveedor específico
+      - Para logística: lista completa de todos los items
+    - **Información adicional:**
+      - Fecha de entrega estimada (si está configurada)
+      - Observaciones del presupuesto (si aplica)
+      - Link al presupuesto en el sistema (opcional)
+  - **Personalización por destinatario:**
+    - **Mensaje para proveedores:**
+      - Enfoque en artículos que ese proveedor debe suministrar
+      - Incluir cantidades específicas
+      - Formato: "Nuevo pedido - Proveedor [Nombre]"
+    - **Mensaje para logística/almacén:**
+      - Vista completa del presupuesto
+      - Todos los items a preparar
+      - Prioridad o urgencia si aplica
+      - Formato: "Presupuesto aprobado - Preparar pedido"
+    - **Mensaje para servicios:**
+      - Detalles específicos del servicio (cercado, instalación, etc.)
+      - Dimensiones o especificaciones técnicas
+      - Formato: "Servicio aprobado - [Tipo de servicio]"
+- **Opciones de implementación:**
+  - **Opción 1: n8n (Recomendada) ✅**
+    - **Ventajas:**
+      - Flexibilidad total para personalizar flujos
+      - Integración fácil con Supabase mediante webhooks
+      - Múltiples integraciones simultáneas (WhatsApp, email, Slack, etc.)
+      - Visual workflow builder (no-code/low-code)
+      - Manejo de errores y reintentos automáticos
+      - Logs y monitoreo integrados
+      - Escalable y mantenible
+      - Puede ejecutarse en servidor propio o cloud
+    - **Implementación:**
+      - **Webhook desde Supabase:**
+        - Crear función/trigger en PostgreSQL que detecte cambio de estado a "aprobado"
+        - Trigger envía webhook HTTP a n8n con datos del presupuesto
+        - n8n recibe webhook y procesa el flujo
+      - **Flujo en n8n:**
+        1. **Nodo Webhook:** Recibe datos del presupuesto aprobado
+        2. **Nodo Supabase:** Consulta items del presupuesto y proveedores relacionados
+        3. **Nodo Function/Code:** Procesa y agrupa datos por proveedor/destinatario
+        4. **Nodo Split:** Divide en múltiples mensajes (uno por destinatario)
+        5. **Nodo WhatsApp:** Envía mensaje personalizado a cada número
+        6. **Nodo Error Handler:** Maneja errores y notifica fallos
+      - **Configuración de WhatsApp:**
+        - Usar nodo de WhatsApp Business API (oficial o servicio como Twilio, MessageBird)
+        - O usar servicio de terceros como ChatAPI, Evolution API, etc.
+        - Configurar plantillas de mensajes aprobadas por WhatsApp
+    - **Estructura del webhook:**
+      ```json
+      {
+        "event": "presupuesto_aprobado",
+        "presupuesto_id": "uuid",
+        "numero": "PRES-2025-001",
+        "cliente_nombre": "Cliente Ejemplo",
+        "total": 150000.00,
+        "fecha_emision": "2025-02-06",
+        "tipo": "articulos"
+      }
+      ```
+    - **Ejemplo de mensaje para proveedor:**
+      ```
+      🎉 *Nuevo Pedido Aprobado*
+      
+      Presupuesto: PRES-2025-001
+      Cliente: Cliente Ejemplo
+      Fecha: 06/02/2025
+      
+      *Artículos a suministrar:*
+      • Alambre Galvanizado 2.5mm - 50 rollos
+      • Poste Esquinero 2m - 20 unidades
+      
+      Total: $150,000.00
+      
+      Por favor confirmar disponibilidad.
+      ```
+    - **Ejemplo de mensaje para logística:**
+      ```
+      ✅ *Presupuesto Aprobado - Preparar Pedido*
+      
+      Número: PRES-2025-001
+      Cliente: Cliente Ejemplo
+      Fecha de emisión: 06/02/2025
+      
+      *Items a preparar:*
+      1. Alambre Galvanizado 2.5mm - 50 rollos
+      2. Poste Esquinero 2m - 20 unidades
+      3. Tejido Romboidal 1.5m - 10 rollos
+      
+      Total: $150,000.00
+      
+      Ver presupuesto: [link]
+      ```
+  - **Opción 2: WhatsApp Business API Directa**
+    - **Ventajas:**
+      - Integración directa sin intermediarios
+      - Control total sobre mensajes
+      - Menor latencia
+    - **Desventajas:**
+      - Requiere aprobación de WhatsApp Business
+      - Más complejo de implementar
+      - Menos flexible para cambios futuros
+      - Requiere manejar rate limiting manualmente
+      - Más difícil de mantener y escalar
+    - **Implementación:**
+      - Usar SDK oficial de WhatsApp Business API
+      - Crear función en Supabase Edge Function o API Route en Next.js
+      - Trigger desde base de datos o desde el frontend al cambiar estado
+      - Procesar lógica de agrupación y envío en código
+- **Recomendación: n8n (Opción 1) ✅**
+  - **Razones:**
+    1. **Flexibilidad:** Fácil agregar más destinatarios o canales (email, Slack) sin cambiar código
+    2. **Mantenibilidad:** Cambios en mensajes o flujos sin tocar código de la aplicación
+    3. **Escalabilidad:** Puede manejar múltiples presupuestos simultáneamente
+    4. **Robustez:** Manejo de errores, reintentos y logs integrados
+    5. **Extensibilidad:** Fácil agregar más automatizaciones en el futuro
+    6. **Separación de responsabilidades:** La app se enfoca en negocio, n8n en automatizaciones
+- **Configuración de números de teléfono:**
+  - **Tabla: `usuarios_logistica` (nueva):**
+    ```sql
+    CREATE TABLE usuarios_logistica (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      nombre VARCHAR(200) NOT NULL,
+      telefono VARCHAR(20) NOT NULL,
+      rol VARCHAR(50), -- 'almacen', 'logistica', 'servicios'
+      activo BOOLEAN DEFAULT true,
+      creado_en TIMESTAMP DEFAULT NOW()
+    );
+    ```
+  - **O usar tabla `usuarios` existente:**
+    - Agregar campo `telefono_whatsapp` y `rol_logistica`
+    - Filtrar usuarios con rol específico para notificaciones
+  - **Configuración de proveedores:**
+    - Usar tabla `proveedores` existente
+    - Campo `telefono` ya existe
+    - Agregar campo `notificar_whatsapp` (BOOLEAN) para habilitar/deshabilitar notificaciones
+- **Manejo de errores y casos especiales:**
+  - **Número de teléfono no válido:**
+    - Validar formato antes de enviar
+    - Registrar error en log
+    - Notificar al administrador
+  - **Proveedor sin teléfono:**
+    - Omitir envío a ese proveedor
+    - Registrar en log para seguimiento
+  - **Fallo en envío de WhatsApp:**
+    - Reintento automático (3 intentos con backoff exponencial)
+    - Notificar fallo al administrador
+    - Opción de reenvío manual desde dashboard
+  - **Presupuesto sin items:**
+    - Validar que existan items antes de enviar notificaciones
+    - No enviar mensajes si no hay items
+  - **Múltiples aprobaciones:**
+    - Validar que sea primera vez que se aprueba (no re-aprobación)
+    - Evitar envíos duplicados
+- **Seguridad y privacidad:**
+  - Validar consentimiento de destinatarios para recibir mensajes
+  - Cumplir con políticas de WhatsApp Business
+  - No exponer información sensible en mensajes
+  - Logs auditables de todos los mensajes enviados
+- **Monitoreo y reportes:**
+  - Dashboard en n8n para ver flujos ejecutados
+  - Logs de mensajes enviados (éxito/fallo)
+  - Métricas: cantidad de mensajes por día, tasa de éxito
+  - Alertas si hay muchos fallos
+- **Implementación técnica detallada:**
+  - **Paso 1: Crear trigger en PostgreSQL**
+    ```sql
+    -- Función que detecta cambio de estado a "aprobado"
+    CREATE OR REPLACE FUNCTION notificar_aprobacion_presupuesto()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      IF NEW.estado = 'aprobado' AND OLD.estado != 'aprobado' THEN
+        -- Llamar a webhook de n8n (usar pg_net o similar)
+        PERFORM net.http_post(
+          url := 'https://tu-n8n-instance.com/webhook/presupuesto-aprobado',
+          body := json_build_object(
+            'presupuesto_id', NEW.id,
+            'numero', NEW.numero,
+            'cliente_nombre', NEW.cliente_nombre,
+            'total', NEW.total,
+            'fecha_emision', NEW.fecha_emision,
+            'tipo', NEW.tipo
+          )::text
+        );
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    -- Trigger
+    CREATE TRIGGER trigger_notificar_aprobacion
+      AFTER UPDATE ON presupuestos
+      FOR EACH ROW
+      EXECUTE FUNCTION notificar_aprobacion_presupuesto();
+    ```
+  - **Paso 2: Configurar workflow en n8n**
+    - Importar workflow desde template o crear manualmente
+    - Configurar credenciales de WhatsApp Business API
+    - Configurar conexión a Supabase
+    - Probar con presupuesto de prueba
+  - **Paso 3: Configurar números de teléfono**
+    - Agregar números de logística/almacén
+    - Verificar números de proveedores
+    - Configurar preferencias de notificación
+- **Casos de uso adicionales:**
+  - Notificar cuando se registre un pago (para logística: preparar entrega)
+  - Notificar cuando se complete una entrega (para contabilidad: facturar)
+  - Recordatorios de presupuestos próximos a vencer
+  - Notificaciones de cambios en entregas
+- **Beneficios esperados:**
+  - Reducción de tiempo entre aprobación y preparación
+  - Mejor comunicación con proveedores
+  - Automatización de procesos manuales
+  - Reducción de errores por comunicación tardía
+  - Mejor coordinación entre equipos
+  - Trazabilidad de notificaciones enviadas
+- **Próximos pasos:**
+  1. Evaluar opciones de WhatsApp Business API (Twilio, MessageBird, Evolution API)
+  2. Configurar instancia de n8n (self-hosted o cloud)
+  3. Crear trigger en base de datos
+  4. Desarrollar workflow en n8n
+  5. Configurar números de teléfono de destinatarios
+  6. Probar con presupuestos de prueba
+  7. Implementar en producción
+  8. Monitorear y ajustar según feedback
+
 ### Integración con Sistemas de Facturación
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Media]
