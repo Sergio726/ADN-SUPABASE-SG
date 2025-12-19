@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send, Filter, X, Package } from 'lucide-react'
+import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send, Filter, X, Package, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -47,6 +47,8 @@ export default function PresupuestosPage() {
   // Estados de filtros
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [filtroVendedor, setFiltroVendedor] = useState('todos')
+  const [vendedores, setVendedores] = useState<Array<{id: string, nombre: string}>>([])
   
   // Estados para entregas pendientes
   const [presupuestosEntregas, setPresupuestosEntregas] = useState<any[]>([])
@@ -96,21 +98,78 @@ export default function PresupuestosPage() {
 
       if (error) {
         console.error('Error al cargar estado de entregas:', error)
+        toast({
+          title: "Error al cargar entregas",
+          description: error.message || "No se pudieron cargar los estados de entrega",
+          variant: "destructive",
+        })
         return
       }
 
       setPresupuestosEntregas(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al cargar entregas:', error)
+      toast({
+        title: "Error inesperado",
+        description: "No se pudieron cargar los estados de entrega",
+        variant: "destructive",
+      })
     } finally {
       setCargandoEntregas(false)
     }
-  }, [])
+  }, [toast])
+
+  // Cargar lista de vendedores desde presupuestos y usuarios
+  const cargarVendedores = useCallback(async () => {
+    try {
+      // Primero, obtener vendedores únicos de los presupuestos cargados
+      const vendedoresDePresupuestos = new Map<string, string>()
+      
+      presupuestos.forEach((p: any) => {
+        if (p.usuario_id && p.usuario_nombre) {
+          vendedoresDePresupuestos.set(p.usuario_id, p.usuario_nombre)
+        }
+      })
+
+      // También cargar todos los usuarios con rol vendedor/admin como respaldo
+      const { data: usuariosData, error: usuariosError } = await supabase
+        .from('usuarios')
+        .select('id, nombre, rol')
+        .not('nombre', 'is', null)
+        .in('rol', ['vendedor', 'admin'])
+        .order('nombre')
+
+      if (usuariosError) {
+        console.error('Error al cargar usuarios:', usuariosError)
+      }
+
+      // Combinar: primero los de presupuestos, luego los de usuarios (sin duplicar)
+      const vendedoresCombinados = new Map<string, string>(vendedoresDePresupuestos)
+      
+      if (usuariosData) {
+        usuariosData.forEach((u: any) => {
+          if (!vendedoresCombinados.has(u.id)) {
+            vendedoresCombinados.set(u.id, u.nombre)
+          }
+        })
+      }
+
+      // Convertir a array y ordenar por nombre
+      const vendedoresArray = Array.from(vendedoresCombinados.entries())
+        .map(([id, nombre]) => ({ id, nombre }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+      setVendedores(vendedoresArray)
+    } catch (error) {
+      console.error('Error al cargar vendedores:', error)
+    }
+  }, [presupuestos])
 
   // Memoizar función de limpiar filtros
   const limpiarFiltros = useCallback(() => {
     setFiltroEstado('todos')
     setFiltroTipo('todos')
+    setFiltroVendedor('todos')
   }, [])
 
   // Filtrado optimizado con useMemo (evita render extra)
@@ -127,22 +186,27 @@ export default function PresupuestosPage() {
       resultado = resultado.filter((p: any) => p.tipo === filtroTipo)
     }
 
-    return resultado
-  }, [presupuestos, filtroEstado, filtroTipo])
+    // Filtro por Vendedor
+    if (filtroVendedor !== 'todos') {
+      resultado = resultado.filter((p: any) => p.usuario_id === filtroVendedor)
+    }
 
-  const filtrosActivos = filtroEstado !== 'todos' || filtroTipo !== 'todos'
+    return resultado
+  }, [presupuestos, filtroEstado, filtroTipo, filtroVendedor])
+
+  const filtrosActivos = filtroEstado !== 'todos' || filtroTipo !== 'todos' || filtroVendedor !== 'todos'
 
   useEffect(() => {
     cargarPresupuestos()
     cargarEstadoEntregas()
   }, [cargarPresupuestos, cargarEstadoEntregas])
 
-  // Recargar estado de entregas cuando cambia el estado de un presupuesto
+  // Cargar vendedores después de que se carguen los presupuestos
   useEffect(() => {
     if (presupuestos.length > 0) {
-      cargarEstadoEntregas()
+      cargarVendedores()
     }
-  }, [presupuestos.length, cargarEstadoEntregas])
+  }, [presupuestos, cargarVendedores])
 
   // Memoizar función de descargar presupuesto
   const descargarPresupuesto = useCallback(async (presupuestoId: string) => {
@@ -252,83 +316,101 @@ export default function PresupuestosPage() {
       accessorKey: 'numero',
       header: ({ column }: any) => <SortableHeader column={column} title="Número" />,
       cell: ({ row }: any) => (
-        <div className="font-mono font-semibold">{row.original.numero}</div>
+        <div className="font-mono text-xs font-semibold whitespace-nowrap">{row.original.numero}</div>
       ),
+      size: 120,
     },
     {
       accessorKey: 'tipo',
       header: 'Tipo',
       cell: ({ row }: any) => (
-        <Badge variant={tipoBadgeVariant(row.original.tipo)}>
+        <Badge variant={tipoBadgeVariant(row.original.tipo)} className="text-xs">
           {row.original.tipo === 'articulos' 
-            ? 'Artículos' 
+            ? 'Art.' 
             : row.original.tipo === 'cercado'
-            ? 'Cercado'
-            : 'General'}
+            ? 'Cerc.'
+            : 'Gen.'}
         </Badge>
       ),
+      size: 70,
     },
     {
       accessorKey: 'cliente_nombre',
       header: ({ column }: any) => <SortableHeader column={column} title="Cliente" />,
       cell: ({ row }: any) => (
-        <div>
-          <div className="font-medium">{row.original.cliente_nombre}</div>
+        <div className="min-w-0">
+          <div className="text-sm font-medium truncate">{row.original.cliente_nombre}</div>
           {row.original.cliente_email && (
-            <div className="text-xs text-muted-foreground">{row.original.cliente_email}</div>
+            <div className="text-xs text-muted-foreground truncate">{row.original.cliente_email}</div>
           )}
         </div>
       ),
+      size: 180,
+    },
+    {
+      accessorKey: 'usuario_nombre',
+      header: ({ column }: any) => <SortableHeader column={column} title="Vendedor" />,
+      cell: ({ row }: any) => (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <span className="text-xs truncate">{row.original.usuario_nombre || '—'}</span>
+        </div>
+      ),
+      size: 110,
     },
     {
       accessorKey: 'fecha_emision',
       header: ({ column }: any) => <SortableHeader column={column} title="Fecha" />,
       cell: ({ row }: any) => (
-        <div className="text-sm">
+        <div className="text-xs whitespace-nowrap">
           {new Date(row.original.fecha_emision).toLocaleDateString('es-AR', {
             day: '2-digit',
             month: '2-digit',
-            year: 'numeric'
+            year: '2-digit'
           })}
         </div>
       ),
+      size: 85,
     },
     {
       accessorKey: 'total',
       header: ({ column }: any) => <SortableHeader column={column} title="Total" />,
       cell: ({ row }: any) => (
-        <span className="font-bold text-green-600">
+        <span className="text-sm font-bold text-green-600 whitespace-nowrap">
           ${row.original.total?.toLocaleString() || '0'}
         </span>
       ),
+      size: 120,
     },
     {
       accessorKey: 'estado_actual',
       header: ({ column }: any) => <SortableHeader column={column} title="Estado" />,
       cell: ({ row }: any) => (
-        <Badge variant={estadoBadgeVariant(row.original.estado_actual)}>
+        <Badge variant={estadoBadgeVariant(row.original.estado_actual)} className="text-xs">
           {row.original.estado_actual?.charAt(0).toUpperCase() + row.original.estado_actual?.slice(1)}
         </Badge>
       ),
+      size: 100,
     },
     {
       accessorKey: 'cantidad_items',
       header: 'Items',
       cell: ({ row }: any) => (
-        <Badge variant="outline">{row.original.cantidad_items || 0}</Badge>
+        <Badge variant="outline" className="text-xs">{row.original.cantidad_items || 0}</Badge>
       ),
+      size: 70,
     },
     {
       id: 'acciones',
       header: 'Acciones',
       cell: ({ row }: any) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                   <Link href={`/dashboard/presupuestos/${row.original.id}`}>
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </TooltipTrigger>
@@ -344,10 +426,11 @@ export default function PresupuestosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-7 w-7 p-0"
                   onClick={() => descargarPresupuesto(row.original.id)}
                   disabled={downloadingId === row.original.id}
                 >
-                  <Download className={`h-4 w-4 ${downloadingId === row.original.id ? 'animate-pulse' : ''}`} />
+                  <Download className={`h-3.5 w-3.5 ${downloadingId === row.original.id ? 'animate-pulse' : ''}`} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -358,6 +441,7 @@ export default function PresupuestosPage() {
 
         </div>
       ),
+      size: 80,
     },
   ], [descargarPresupuesto, downloadingId])
 
@@ -413,6 +497,75 @@ export default function PresupuestosPage() {
       porcentajeConversion,
     }
   }, [presupuestos])
+
+  // Calcular tasa de conversión por vendedor
+  const estadisticasPorVendedor = useMemo(() => {
+    const ahora = new Date()
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
+    
+    const presupuestosDelMes = presupuestos.filter((p: any) => {
+      const fecha = new Date(p.fecha_emision)
+      return fecha >= inicioMes && fecha <= ahora
+    })
+
+    const porVendedor: Record<string, {
+      nombre: string
+      total: number
+      aprobados: number
+      enviados: number
+      tasaConversion: number
+      montoAprobado: number
+    }> = {}
+
+    presupuestosDelMes.forEach((p: any) => {
+      const vendedorId = p.usuario_id || 'sin-vendedor'
+      const vendedorNombre = p.usuario_nombre || 'Sin asignar'
+
+      if (!porVendedor[vendedorId]) {
+        porVendedor[vendedorId] = {
+          nombre: vendedorNombre,
+          total: 0,
+          aprobados: 0,
+          enviados: 0,
+          tasaConversion: 0,
+          montoAprobado: 0,
+        }
+      }
+
+      porVendedor[vendedorId].total++
+      
+      if (p.estado_actual === 'aprobado') {
+        porVendedor[vendedorId].aprobados++
+        porVendedor[vendedorId].montoAprobado += parseFloat(p.total) || 0
+      }
+      
+      if (p.estado_actual === 'enviado') {
+        porVendedor[vendedorId].enviados++
+      }
+    })
+
+    // Calcular tasa de conversión para cada vendedor
+    Object.keys(porVendedor).forEach((vendedorId) => {
+      const stats = porVendedor[vendedorId]
+      stats.tasaConversion = stats.total > 0 
+        ? (stats.aprobados / stats.total) * 100 
+        : 0
+    })
+
+    return Object.values(porVendedor).sort((a, b) => b.tasaConversion - a.tasaConversion)
+  }, [presupuestos])
+
+  // Estadísticas del vendedor filtrado (si hay filtro activo)
+  const estadisticasVendedorFiltrado = useMemo(() => {
+    if (filtroVendedor === 'todos') return null
+
+    const vendedor = estadisticasPorVendedor.find((v: any) => {
+      const vendedorEnLista = vendedores.find((vend: any) => vend.id === filtroVendedor)
+      return vendedorEnLista?.nombre === v.nombre
+    })
+
+    return vendedor || null
+  }, [filtroVendedor, estadisticasPorVendedor, vendedores])
 
   // Calcular estadísticas de entregas
   const estadisticasEntregas = useMemo(() => {
@@ -691,7 +844,11 @@ export default function PresupuestosPage() {
                   <span>Filtros</span>
                   {filtrosActivos && (
                     <Badge variant="secondary" className="ml-2">
-                      {[filtroEstado !== 'todos' && 'Estado', filtroTipo !== 'todos' && 'Tipo'].filter(Boolean).length}
+                      {[
+                        filtroEstado !== 'todos' && 'Estado', 
+                        filtroTipo !== 'todos' && 'Tipo',
+                        filtroVendedor !== 'todos' && 'Vendedor'
+                      ].filter(Boolean).length}
                     </Badge>
                   )}
                 </div>
@@ -704,7 +861,7 @@ export default function PresupuestosPage() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="flex items-center gap-3 p-4 bg-muted rounded-lg mt-2">
-                <div className="flex-1 grid gap-3 md:grid-cols-2">
+                <div className="flex-1 grid gap-3 md:grid-cols-3">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Estado</label>
                     <Select value={filtroEstado} onValueChange={setFiltroEstado}>
@@ -737,8 +894,63 @@ export default function PresupuestosPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Vendedor</label>
+                    <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos</SelectItem>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
+              {/* Mostrar estadísticas del vendedor filtrado */}
+              {estadisticasVendedorFiltrado && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-semibold text-blue-900">
+                      Estadísticas de {estadisticasVendedorFiltrado.nombre}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">Tasa de Conversión</div>
+                      <div className="font-bold text-blue-600 text-base">
+                        {estadisticasVendedorFiltrado.tasaConversion.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Total del Mes</div>
+                      <div className="font-semibold">{estadisticasVendedorFiltrado.total}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Aprobados</div>
+                      <div className="font-semibold text-green-600">
+                        {estadisticasVendedorFiltrado.aprobados}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Monto Aprobado</div>
+                      <div className="font-semibold text-green-600">
+                        ${estadisticasVendedorFiltrado.montoAprobado.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CollapsibleContent>
           </Collapsible>
 
@@ -769,12 +981,109 @@ export default function PresupuestosPage() {
               </Button>
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={presupuestosFiltrados}
-              searchKey="numero"
-              searchPlaceholder="Buscar por número o cliente..."
-            />
+            <>
+              {/* Vista móvil: Tarjetas verticales */}
+              <div className="md:hidden space-y-3">
+                {presupuestosFiltrados.map((presupuesto: any) => {
+                  const inicialVendedor = presupuesto.usuario_nombre 
+                    ? presupuesto.usuario_nombre.charAt(0).toUpperCase() 
+                    : '—'
+                  
+                  return (
+                    <Card key={presupuesto.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        {/* Header: Número y Estado */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-semibold">{presupuesto.numero}</span>
+                            <Badge variant={estadoBadgeVariant(presupuesto.estado_actual)} className="text-xs">
+                              {presupuesto.estado_actual?.charAt(0).toUpperCase() + presupuesto.estado_actual?.slice(1)}
+                            </Badge>
+                          </div>
+                          <Badge variant={tipoBadgeVariant(presupuesto.tipo)} className="text-xs">
+                            {presupuesto.tipo === 'articulos' ? 'Art.' : presupuesto.tipo === 'cercado' ? 'Cerc.' : 'Gen.'}
+                          </Badge>
+                        </div>
+
+                        {/* Cliente */}
+                        <div className="mb-3">
+                          <div className="text-sm font-semibold text-gray-900 truncate">
+                            {presupuesto.cliente_nombre}
+                          </div>
+                          {presupuesto.cliente_email && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {presupuesto.cliente_email}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Vendedor y Fecha */}
+                        <div className="flex items-center justify-between mb-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-semibold">
+                              {inicialVendedor}
+                            </div>
+                            <span>{presupuesto.usuario_nombre || 'Sin asignar'}</span>
+                          </div>
+                          <span>
+                            {new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: '2-digit'
+                            })}
+                          </span>
+                        </div>
+
+                        {/* Precio destacado */}
+                        <div className="mb-3 pb-3 border-b">
+                          <div className="text-xs text-muted-foreground mb-1">Total</div>
+                          <div className="text-2xl font-bold text-green-600">
+                            ${presupuesto.total?.toLocaleString('es-AR', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }) || '0'}
+                          </div>
+                        </div>
+
+                        {/* Acciones: Botones grandes y accesibles */}
+                        <div className="flex gap-2 -mx-1">
+                          <Button
+                            variant="default"
+                            className="flex-1 text-xs sm:text-sm"
+                            onClick={() => descargarPresupuesto(presupuesto.id)}
+                            disabled={downloadingId === presupuesto.id}
+                          >
+                            <Download className={`h-4 w-4 mr-1.5 sm:mr-2 flex-shrink-0 ${downloadingId === presupuesto.id ? 'animate-pulse' : ''}`} />
+                            <span className="truncate">{downloadingId === presupuesto.id ? 'Generando...' : 'PDF'}</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1 text-xs sm:text-sm"
+                            asChild
+                          >
+                            <Link href={`/dashboard/presupuestos/${presupuesto.id}`} className="flex items-center justify-center">
+                              <Eye className="h-4 w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                              <span>Ver</span>
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {/* Vista desktop: Tabla */}
+              <div className="hidden md:block overflow-x-auto">
+                <DataTable
+                  columns={columns}
+                  data={presupuestosFiltrados}
+                  searchKey="numero"
+                  searchPlaceholder="Buscar por número o cliente..."
+                  tableWrapperClassName="min-w-full"
+                />
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
