@@ -432,6 +432,39 @@ export default function NuevaConfiguracionCercadoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.cordon_arena_id, formData.cordon_arena_m3, formData.cordon_ripio_id, formData.cordon_ripio_m3, formData.cordon_cemento_id, formData.cordon_cemento_bolsas, materialesConstruccion])
 
+  // Función para calcular cantidad de hileras de alambre alta resistencia según altura
+  function calcularHilerasAlambreAR(altura: string | number): number {
+    const alturaNum = typeof altura === 'string' ? parseFloat(altura) : altura
+    if (alturaNum <= 1.5) {
+      return 2 // 1.0m, 1.2m, 1.5m → 2 hileras
+    } else if (alturaNum === 1.8) {
+      return 3 // 1.8m → 3 hileras
+    } else {
+      return 4 // 2.0m, 2.5m, 3.0m → 4 hileras
+    }
+  }
+
+  // Función para calcular cantidad de torniquetes por alambre alta resistencia
+  // Cada hilera lleva 6 torniquetes (1 cada 30m para 180m)
+  function calcularTorniquetesAlambreAR(altura: string | number): number {
+    const hileras = calcularHilerasAlambreAR(altura)
+    return 6 * hileras // 6 torniquetes por hilera
+  }
+
+  // Función para calcular cantidad de torniquetes por hilos de púa
+  // Cada hilo de púa lleva 6 torniquetes (1 cada 30m para 180m)
+  function calcularTorniquetesPua(hilosPua: string | number): number {
+    const hilos = typeof hilosPua === 'string' ? parseInt(hilosPua) : hilosPua
+    return 6 * hilos // 6 torniquetes por hilo de púa
+  }
+
+  // Función para calcular cantidad total de torniquetes
+  function calcularTorniquetes(altura: string | number, hilosPua: string | number): number {
+    const torniquetesAR = calcularTorniquetesAlambreAR(altura)
+    const torniquetesPua = calcularTorniquetesPua(hilosPua)
+    return torniquetesAR + torniquetesPua
+  }
+
   // Actualizar cantidades cuando cambie el tipo de cordón
   useEffect(() => {
     if (formData.cordon_tipo && formData.cordon_tipo !== 'Sin cordón') {
@@ -452,6 +485,17 @@ export default function NuevaConfiguracionCercadoPage() {
       }))
     }
   }, [formData.cordon_tipo])
+
+  // Calcular automáticamente la cantidad de torniquetes cuando cambie la altura o hilos de púa
+  useEffect(() => {
+    if (formData.altura) {
+      const cantidadTorniquetes = calcularTorniquetes(formData.altura, formData.hilos_pua)
+      setFormData(prev => ({
+        ...prev,
+        cantidad_torniquetes: cantidadTorniquetes.toString()
+      }))
+    }
+  }, [formData.altura, formData.hilos_pua])
 
   // Autocompletar descripción cuando cambien los campos relevantes
   useEffect(() => {
@@ -1553,6 +1597,13 @@ export default function NuevaConfiguracionCercadoPage() {
                     ${formatearPrecio(180 * parseFloat(formData.hilos_pua) * parseFloat(formData.precio_pua_por_metro))}
                   </span>
                 </div>
+                {parseInt(formData.hilos_pua) > 0 && (
+                  <div className="mt-2 pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Torniquetes para púa: {formData.hilos_pua} hilo{parseInt(formData.hilos_pua) !== 1 ? 's' : ''} × 6 = {calcularTorniquetesPua(formData.hilos_pua)} torniquetes
+                    </p>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
                   Calculado automáticamente según materiales y cantidades seleccionadas
                 </p>
@@ -1569,26 +1620,33 @@ export default function NuevaConfiguracionCercadoPage() {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 {[
-                  { label: 'Ganchos', cant: 'cantidad_ganchos', precio: 'precio_unitario_ganchos', id: 'gancho_id', default: '48', tipo: 'gancho' },
-                  { label: 'Planchuelas', cant: 'cantidad_planchuelas', precio: 'precio_unitario_planchuelas', id: 'planchuela_id', default: '12', tipo: 'planchuela' },
-                  { label: 'Torniquetes', cant: 'cantidad_torniquetes', precio: 'precio_unitario_torniquetes', id: 'torniquete_id', default: '6', tipo: 'torniquete' },
-                  { label: 'Esparragos', cant: 'cantidad_esparragos', precio: 'precio_unitario_esparragos', id: 'esparrago_id', default: '6', tipo: 'esparrago' },
+                  { label: 'Ganchos', cant: 'cantidad_ganchos', precio: 'precio_unitario_ganchos', id: 'gancho_id', default: '48', tipo: 'gancho', calculado: false },
+                  { label: 'Planchuelas', cant: 'cantidad_planchuelas', precio: 'precio_unitario_planchuelas', id: 'planchuela_id', default: '12', tipo: 'planchuela', calculado: false },
+                  { label: 'Torniquetes', cant: 'cantidad_torniquetes', precio: 'precio_unitario_torniquetes', id: 'torniquete_id', default: '6', tipo: 'torniquete', calculado: true },
+                  { label: 'Esparragos', cant: 'cantidad_esparragos', precio: 'precio_unitario_esparragos', id: 'esparrago_id', default: '6', tipo: 'esparrago', calculado: false },
                 ].map((item) => (
-                  <div key={item.label} className="grid grid-cols-3 gap-2 items-center">
-                    <Label className="text-sm">{item.label}</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={formData[item.cant as keyof typeof formData] as string}
-                      onChange={(e) => {
-                        const valor = parseInt(e.target.value) || 0
-                        if (valor >= 0) {
-                          setFormData({ ...formData, [item.cant]: e.target.value })
-                        }
-                      }}
-                      placeholder={item.default}
-                      className="text-sm"
-                    />
+                  <div key={item.label} className="space-y-1">
+                    <div className="grid grid-cols-3 gap-2 items-center">
+                      <Label className="text-sm">
+                        {item.label}
+                        {item.calculado && (
+                          <span className="ml-1 text-xs text-muted-foreground">(calculado)</span>
+                        )}
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={formData[item.cant as keyof typeof formData] as string}
+                        onChange={(e) => {
+                          const valor = parseInt(e.target.value) || 0
+                          if (valor >= 0) {
+                            setFormData({ ...formData, [item.cant]: e.target.value })
+                          }
+                        }}
+                        placeholder={item.default}
+                        className={`text-sm ${item.calculado ? 'bg-muted' : ''}`}
+                        readOnly={item.calculado}
+                      />
                     <Select
                       value={formData[item.id as keyof typeof formData] as string}
                       onValueChange={(value) => {
@@ -1617,6 +1675,23 @@ export default function NuevaConfiguracionCercadoPage() {
                         )}
                       </SelectContent>
                     </Select>
+                    </div>
+                    {item.calculado && item.label === 'Torniquetes' && (
+                      <div className="text-xs text-muted-foreground ml-1 space-y-1">
+                        <p className="font-medium">Calculado automáticamente:</p>
+                        <p>
+                          • Alambre AR: {calcularHilerasAlambreAR(formData.altura)} hileras × 6 = {calcularTorniquetesAlambreAR(formData.altura)} torniquetes
+                        </p>
+                        {parseInt(formData.hilos_pua) > 0 && (
+                          <p>
+                            • Púa: {formData.hilos_pua} hilo{parseInt(formData.hilos_pua) !== 1 ? 's' : ''} × 6 = {calcularTorniquetesPua(formData.hilos_pua)} torniquetes
+                          </p>
+                        )}
+                        <p className="font-semibold">
+                          Total: {formData.cantidad_torniquetes} torniquetes
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
 
