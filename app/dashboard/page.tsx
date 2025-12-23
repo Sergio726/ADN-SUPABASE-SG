@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Package, Building2, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler } from 'lucide-react'
 import { EntregasPendientesExpandido } from '@/components/EntregasPendientesExpandido'
 
+// Forzar renderizado dinámico porque usa cookies
+export const dynamic = 'force-dynamic'
+
 async function getStats() {
   const supabase = createServerClient()
   const [

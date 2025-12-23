@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { LOGOS, BRAND } from '@/lib/logos'
 import { StructuredData } from '@/components/StructuredData'
+import { VisitasTrackerComponent } from '@/components/VisitasTracker'
 
 const montserrat = Montserrat({ subsets: ['latin'] })
 
@@ -36,6 +37,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={montserrat.className}>
         <StructuredData />
+        <VisitasTrackerComponent />
         {children}
         <Toaster />
       </body>

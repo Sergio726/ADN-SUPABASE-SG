@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Mail, Phone, Clock, MessageSquare } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
+// Forzar renderizado dinámico porque usa cookies
+export const dynamic = 'force-dynamic'
+
 async function getLeads() {
   const supabase = createServerClient()
   

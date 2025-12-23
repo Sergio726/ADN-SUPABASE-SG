@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   Settings,
+  BarChart3,
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 
@@ -93,6 +94,7 @@ export default function DashboardLayout({
       title: 'Administración',
       links: [
         { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
+        { name: 'Visitas Web', href: '/dashboard/visitas', icon: BarChart3 },
       ],
     },
   ]
