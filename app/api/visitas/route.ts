@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabaseServer'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { generateUUID } from '@/lib/utils'
 import * as crypto from 'crypto'
 
@@ -85,20 +86,23 @@ export async function POST(request: NextRequest) {
     // Generar session ID si no viene (formato UUID v4)
     const sessionIdFinal = sessionId || generateUUID()
     
-    // Verificar si es una visita nueva o retorno
-    const supabase = createServerClient()
+    // Crear cliente de Supabase para API route
+    const supabase = createRouteHandlerClient({ cookies })
     
-    // Buscar si existe una visita previa con esta sesión
-    const { data: visitaPrevia } = await supabase
-      .from('visitas_web')
-      .select('id')
-      .eq('session_id', sessionIdFinal)
-      .order('fecha_visita', { ascending: false })
-      .limit(1)
-      .single()
+    // Verificar si es una visita nueva o retorno usando función de BD
+    // Esta función usa SECURITY DEFINER, por lo que no requiere permisos RLS de lectura
+    let esNuevaVisita = true
+    let esRetorno = false
     
-    const esNuevaVisita = !visitaPrevia
-    const esRetorno = !!visitaPrevia
+    if (sessionIdFinal) {
+      const { data: tieneVisitaPrevia, error: errorVerificacion } = await supabase
+        .rpc('verificar_visita_previa', { p_session_id: sessionIdFinal })
+      
+      if (!errorVerificacion && tieneVisitaPrevia === true) {
+        esNuevaVisita = false
+        esRetorno = true
+      }
+    }
     
     // Insertar visita
     const { data, error } = await supabase
@@ -122,8 +126,12 @@ export async function POST(request: NextRequest) {
     
     if (error) {
       console.error('Error al insertar visita:', error)
+      console.error('Detalles del error:', JSON.stringify(error, null, 2))
       return NextResponse.json(
-        { error: 'Error al registrar visita' },
+        { 
+          error: 'Error al registrar visita',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        },
         { status: 500 }
       )
     }
@@ -146,7 +154,7 @@ export async function POST(request: NextRequest) {
 // GET para obtener estadísticas (solo para usuarios autenticados)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = createRouteHandlerClient({ cookies })
     
     // Verificar autenticación
     const { data: { session } } = await supabase.auth.getSession()
