@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { generateUUID } from '@/lib/utils'
@@ -86,8 +87,20 @@ export async function POST(request: NextRequest) {
     // Generar session ID si no viene (formato UUID v4)
     const sessionIdFinal = sessionId || generateUUID()
     
-    // Crear cliente de Supabase para API route
-    const supabase = createRouteHandlerClient({ cookies })
+    // Crear cliente de Supabase anónimo para operaciones públicas
+    // Usamos createClient directamente para asegurar que la API key anónima esté presente
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Faltan variables de entorno de Supabase')
+      return NextResponse.json(
+        { error: 'Error de configuración del servidor' },
+        { status: 500 }
+      )
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
     
     // Verificar si es una visita nueva o retorno usando función de BD
     // Esta función usa SECURITY DEFINER, por lo que no requiere permisos RLS de lectura
