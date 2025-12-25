@@ -1460,6 +1460,63 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 
 ---
 
+## 🐛 Bugs y Problemas Críticos
+
+### Contador de Visitas Web - Error RLS (42501)
+- **Fecha:** 2025-12-25
+- **Prioridad:** [Alta]
+- **Estado:** [Pendiente - Crítico]
+- **Release objetivo:** Próximo release
+- **Descripción:**
+  - El contador de visitas web no está funcionando correctamente.
+  - Error 500 al intentar registrar visitas desde el frontend.
+  - Error específico: `42501 - new row violates row-level security policy for table "visitas_web"`.
+  - El problema persiste incluso después de intentar aplicar el fix de RLS.
+- **Síntomas:**
+  - Error en consola del navegador: `api/visitas:1 Failed to load resource: the server responded with a status of 500 ()`
+  - Respuesta del servidor: `{"error":"Error al registrar visita","message":"new row violates row-level security policy for table \"visitas_web\"","code":"42501"}`
+  - Las visitas no se registran en la base de datos
+  - El contador no se actualiza
+- **Archivos afectados:**
+  - `app/api/visitas/route.ts` - API route que maneja POST de visitas
+  - `supabase/migrations/FIX_RLS_VISITAS.sql` - Script de migración para políticas RLS
+  - Tabla `visitas_web` en Supabase
+- **Causa probable:**
+  - Las políticas RLS (Row Level Security) no están correctamente configuradas en Supabase
+  - La política `"API puede insertar visitas"` para el rol `anon` no está aplicada o no funciona correctamente
+  - Posible problema con la aplicación de migraciones en Supabase
+- **Pasos para reproducir:**
+  1. Acceder a `http://localhost:3000/` desde cualquier navegador
+  2. Abrir consola del navegador (F12)
+  3. Observar error 500 en la petición POST a `/api/visitas`
+  4. Verificar que no se registra la visita en la tabla `visitas_web`
+- **Solución propuesta:**
+  1. Verificar que las políticas RLS estén correctamente aplicadas en Supabase Dashboard
+  2. Ejecutar manualmente el script `FIX_RLS_VISITAS.sql` en Supabase SQL Editor
+  3. Verificar que la política `"API puede insertar visitas"` exista y esté activa para el rol `anon`
+  4. Verificar que RLS esté habilitado en la tabla `visitas_web`
+  5. Probar la inserción directa desde Supabase SQL Editor con rol `anon`
+  6. Si persiste, considerar usar una función `SECURITY DEFINER` para insertar visitas
+- **Workaround temporal:**
+  - Ninguno disponible. El contador de visitas está completamente no funcional.
+- **Impacto:**
+  - **Alto:** El sistema de analytics de visitas web no está funcionando
+  - No se pueden rastrear visitas a la página web
+  - El dashboard de visitas no muestra datos actualizados
+  - Pérdida de métricas importantes para el negocio
+- **Notas técnicas:**
+  - El código del API route (`app/api/visitas/route.ts`) parece estar correcto
+  - El problema está en la configuración de RLS en Supabase
+  - Se intentó aplicar el fix múltiples veces sin éxito
+  - Necesita revisión manual en Supabase Dashboard
+- **Referencias:**
+  - Script de migración: `supabase/migrations/FIX_RLS_VISITAS.sql`
+  - API Route: `app/api/visitas/route.ts`
+  - Tabla: `visitas_web` en Supabase
+  - Error: PostgreSQL error code `42501` (insufficient_privilege)
+
+---
+
 ## 📝 Notas Adicionales
 
 - Las ideas se irán priorizando según las necesidades del negocio y la evolución de la empresa.

@@ -21,8 +21,13 @@ import {
   Shield,
   Settings,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDownUp,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 export default function DashboardLayout({
   children,
@@ -35,6 +40,13 @@ export default function DashboardLayout({
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // Estados para controlar secciones colapsables del sidebar
+  const [panelAbierto, setPanelAbierto] = useState(true)
+  const [catalogoAbierto, setCatalogoAbierto] = useState(true)
+  const [ventasAbierto, setVentasAbierto] = useState(true)
+  const [operacionesAbierto, setOperacionesAbierto] = useState(true)
+  const [administracionAbierto, setAdministracionAbierto] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -65,10 +77,16 @@ export default function DashboardLayout({
   const navSections = [
     {
       title: 'Panel',
+      key: 'panel',
+      open: panelAbierto,
+      setOpen: setPanelAbierto,
       links: [{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }],
     },
     {
       title: 'Catálogo',
+      key: 'catalogo',
+      open: catalogoAbierto,
+      setOpen: setCatalogoAbierto,
       links: [
         { name: 'Artículos', href: '/dashboard/articulos', icon: Package },
         { name: 'Tejidos', href: '/dashboard/tejidos', icon: Grid3x3 },
@@ -77,6 +95,9 @@ export default function DashboardLayout({
     },
     {
       title: 'Ventas y atención',
+      key: 'ventas',
+      open: ventasAbierto,
+      setOpen: setVentasAbierto,
       links: [
         { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
         { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
@@ -85,6 +106,9 @@ export default function DashboardLayout({
     },
     {
       title: 'Operaciones',
+      key: 'operaciones',
+      open: operacionesAbierto,
+      setOpen: setOperacionesAbierto,
       links: [
         { name: 'Precios', href: '/dashboard/precios', icon: DollarSign },
         { name: 'Proveedores', href: '/dashboard/proveedores', icon: Building2 },
@@ -92,12 +116,34 @@ export default function DashboardLayout({
     },
     {
       title: 'Administración',
+      key: 'administracion',
+      open: administracionAbierto,
+      setOpen: setAdministracionAbierto,
       links: [
         { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
         { name: 'Visitas Web', href: '/dashboard/visitas', icon: BarChart3 },
       ],
     },
   ]
+  
+  // Funciones para expandir/colapsar todo
+  const expandirTodo = () => {
+    setPanelAbierto(true)
+    setCatalogoAbierto(true)
+    setVentasAbierto(true)
+    setOperacionesAbierto(true)
+    setAdministracionAbierto(true)
+  }
+  
+  const colapsarTodo = () => {
+    setPanelAbierto(false)
+    setCatalogoAbierto(false)
+    setVentasAbierto(false)
+    setOperacionesAbierto(false)
+    setAdministracionAbierto(false)
+  }
+  
+  const todasExpandidas = panelAbierto && catalogoAbierto && ventasAbierto && operacionesAbierto && administracionAbierto
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -117,7 +163,7 @@ export default function DashboardLayout({
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 shrink-0">
             <Link href="/dashboard" className="flex items-center">
               <div className="bg-white p-2 rounded-lg">
                 <img 
@@ -147,43 +193,74 @@ export default function DashboardLayout({
             </Button>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-5">
+          {/* Botón expandir/colapsar todo */}
+          <div className="px-4 py-2 border-b border-gray-200 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={todasExpandidas ? colapsarTodo : expandirTodo}
+              className="w-full justify-between text-xs"
+            >
+              <span>{todasExpandidas ? 'Colapsar todo' : 'Expandir todo'}</span>
+              {todasExpandidas ? (
+                <ChevronsUpDown className="h-3 w-3" />
+              ) : (
+                <ChevronsDownUp className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+
+          {/* Navigation con scroll */}
+          <nav className="flex-1 px-4 py-4 space-y-3 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {navSections.map((section) => (
-              <div key={section.title} className="space-y-2">
-                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
-                  {section.title}
-                </p>
+              <Collapsible key={section.key} open={section.open} onOpenChange={section.setOpen}>
                 <div className="space-y-1">
-                  {section.links.map((item) => {
-                    const isActive =
-                      pathname === item.href || pathname?.startsWith(item.href + '/')
-                    const Icon = item.icon
-                    return (
-                      <Button
-                        key={item.name}
-                        variant="ghost"
-                        className={`w-full justify-start gap-3 text-sm font-medium transition ${
-                          isActive
-                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        asChild
-                      >
-                        <Link href={item.href}>
-                          <Icon className="h-5 w-5" />
-                          <span>{item.name}</span>
-                        </Link>
-                      </Button>
-                    )
-                  })}
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between px-2 py-1.5 h-auto text-xs font-semibold uppercase tracking-wide text-muted-foreground/70 hover:bg-muted/50"
+                    >
+                      <span>{section.title}</span>
+                      {section.open ? (
+                        <ChevronUp className="h-3 w-3" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-1 pl-2">
+                      {section.links.map((item) => {
+                        const isActive =
+                          pathname === item.href || pathname?.startsWith(item.href + '/')
+                        const Icon = item.icon
+                        return (
+                          <Button
+                            key={item.name}
+                            variant="ghost"
+                            className={`w-full justify-start gap-3 text-sm font-medium transition ${
+                              isActive
+                                ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            asChild
+                          >
+                            <Link href={item.href}>
+                              <Icon className="h-5 w-5" />
+                              <span>{item.name}</span>
+                            </Link>
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </CollapsibleContent>
                 </div>
-              </div>
+              </Collapsible>
             ))}
           </nav>
 
           {/* User info */}
-          <div className="border-t p-4 space-y-3">
+          <div className="border-t p-4 space-y-3 shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-semibold text-sm">
