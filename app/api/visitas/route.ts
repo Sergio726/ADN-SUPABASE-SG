@@ -102,45 +102,36 @@ export async function POST(request: NextRequest) {
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
     
-    // Verificar si es una visita nueva o retorno usando función de BD
-    // Esta función usa SECURITY DEFINER, por lo que no requiere permisos RLS de lectura
-    // Si la función no existe o falla, asumimos que es una nueva visita
-    let esNuevaVisita = true
-    let esRetorno = false
-    
-    if (sessionIdFinal) {
-      try {
-        const { data: tieneVisitaPrevia, error: errorVerificacion } = await supabase
-          .rpc('verificar_visita_previa', { p_session_id: sessionIdFinal })
-        
-        // Si hay error, lo registramos pero continuamos (asumimos nueva visita)
-        if (errorVerificacion) {
-          console.warn('Error al verificar visita previa (continuando como nueva visita):', errorVerificacion.message)
-        } else if (tieneVisitaPrevia === true) {
-          esNuevaVisita = false
-          esRetorno = true
-        }
-      } catch (rpcError: any) {
-        // Si la función RPC no existe o hay otro error, continuamos como nueva visita
-        console.warn('Error en RPC verificar_visita_previa (continuando como nueva visita):', rpcError?.message || 'Unknown error')
-      }
-    }
-    
-    // Insertar visita
-    // Asegurar que los valores sean válidos
-    const visitaData = {
+    // Por ahora, simplificamos: todas las visitas se registran como nuevas
+    // La verificación de visitas previas se puede agregar después cuando la función RPC esté disponible
+    // Insertar visita - asegurar que los valores sean válidos
+    const visitaData: any = {
       url: String(url).substring(0, 2048), // Limitar longitud de URL
       pathname: String(pathname).substring(0, 500), // Limitar longitud de pathname
-      referrer: referrer ? String(referrer).substring(0, 2048) : null,
-      user_agent: String(userAgent).substring(0, 500),
-      ip_hash: ipHash,
       session_id: sessionIdFinal,
-      dispositivo: dispositivo ? String(dispositivo).substring(0, 20) : null,
-      navegador: navegador ? String(navegador).substring(0, 50) : null,
-      sistema_operativo: sistemaOperativo ? String(sistemaOperativo).substring(0, 50) : null,
       duracion_segundos: Math.max(0, Math.floor(duration || 0)),
-      es_nueva_visita: Boolean(esNuevaVisita),
-      es_retorno: Boolean(esRetorno),
+      es_nueva_visita: true,
+      es_retorno: false,
+    }
+    
+    // Campos opcionales
+    if (referrer) {
+      visitaData.referrer = String(referrer).substring(0, 2048)
+    }
+    if (userAgent && userAgent !== 'unknown') {
+      visitaData.user_agent = String(userAgent).substring(0, 500)
+    }
+    if (ipHash) {
+      visitaData.ip_hash = ipHash
+    }
+    if (dispositivo) {
+      visitaData.dispositivo = String(dispositivo).substring(0, 20)
+    }
+    if (navegador && navegador !== 'unknown') {
+      visitaData.navegador = String(navegador).substring(0, 50)
+    }
+    if (sistemaOperativo && sistemaOperativo !== 'unknown') {
+      visitaData.sistema_operativo = String(sistemaOperativo).substring(0, 50)
     }
     
     const { data, error } = await supabase
@@ -155,10 +146,14 @@ export async function POST(request: NextRequest) {
       console.error('Mensaje del error:', error.message)
       console.error('Detalles del error:', JSON.stringify(error, null, 2))
       console.error('Datos que se intentaron insertar:', JSON.stringify(visitaData, null, 2))
+      
+      // Incluir el mensaje de error en la respuesta para diagnóstico
       return NextResponse.json(
         { 
           error: 'Error al registrar visita',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          message: error.message || 'Error desconocido',
+          code: error.code || 'UNKNOWN',
+          hint: error.hint || undefined
         },
         { status: 500 }
       )
