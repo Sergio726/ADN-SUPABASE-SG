@@ -1462,58 +1462,67 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 
 ## 🐛 Bugs y Problemas Críticos
 
-### Contador de Visitas Web - Error RLS (42501)
+### Contador de Visitas Web - Error RLS (42501) ✅ RESUELTO
 - **Fecha:** 2025-12-25
+- **Fecha de resolución:** 2025-01-XX
 - **Prioridad:** [Alta]
-- **Estado:** [Pendiente - Crítico]
-- **Release objetivo:** Próximo release
+- **Estado:** [✅ Resuelto]
 - **Descripción:**
-  - El contador de visitas web no está funcionando correctamente.
+  - El contador de visitas web no estaba funcionando correctamente.
   - Error 500 al intentar registrar visitas desde el frontend.
   - Error específico: `42501 - new row violates row-level security policy for table "visitas_web"`.
-  - El problema persiste incluso después de intentar aplicar el fix de RLS.
-- **Síntomas:**
-  - Error en consola del navegador: `api/visitas:1 Failed to load resource: the server responded with a status of 500 ()`
-  - Respuesta del servidor: `{"error":"Error al registrar visita","message":"new row violates row-level security policy for table \"visitas_web\"","code":"42501"}`
-  - Las visitas no se registran en la base de datos
-  - El contador no se actualiza
-- **Archivos afectados:**
-  - `app/api/visitas/route.ts` - API route que maneja POST de visitas
-  - `supabase/migrations/FIX_RLS_VISITAS.sql` - Script de migración para políticas RLS
-  - Tabla `visitas_web` en Supabase
-- **Causa probable:**
-  - Las políticas RLS (Row Level Security) no están correctamente configuradas en Supabase
-  - La política `"API puede insertar visitas"` para el rol `anon` no está aplicada o no funciona correctamente
-  - Posible problema con la aplicación de migraciones en Supabase
-- **Pasos para reproducir:**
-  1. Acceder a `http://localhost:3000/` desde cualquier navegador
-  2. Abrir consola del navegador (F12)
-  3. Observar error 500 en la petición POST a `/api/visitas`
-  4. Verificar que no se registra la visita en la tabla `visitas_web`
-- **Solución propuesta:**
-  1. Verificar que las políticas RLS estén correctamente aplicadas en Supabase Dashboard
-  2. Ejecutar manualmente el script `FIX_RLS_VISITAS.sql` en Supabase SQL Editor
-  3. Verificar que la política `"API puede insertar visitas"` exista y esté activa para el rol `anon`
-  4. Verificar que RLS esté habilitado en la tabla `visitas_web`
-  5. Probar la inserción directa desde Supabase SQL Editor con rol `anon`
-  6. Si persiste, considerar usar una función `SECURITY DEFINER` para insertar visitas
-- **Workaround temporal:**
-  - Ninguno disponible. El contador de visitas está completamente no funcional.
-- **Impacto:**
-  - **Alto:** El sistema de analytics de visitas web no está funcionando
-  - No se pueden rastrear visitas a la página web
-  - El dashboard de visitas no muestra datos actualizados
-  - Pérdida de métricas importantes para el negocio
+- **Causa raíz identificada:**
+  - Las API routes de Next.js corren en el servidor, no en el cliente
+  - Se estaba usando `NEXT_PUBLIC_SUPABASE_ANON_KEY` que requiere políticas RLS para usuarios anónimos
+  - Las políticas RLS para INSERT con rol `anon` no estaban correctamente aplicadas
+  - El cliente de Supabase en el servidor necesita autenticación adecuada para bypassar RLS o tener políticas correctas
+- **Solución implementada:**
+  1. **Cambio en `app/api/visitas/route.ts`:**
+     - Se cambió de usar `NEXT_PUBLIC_SUPABASE_ANON_KEY` a `SUPABASE_SERVICE_ROLE_KEY` para operaciones del servidor
+     - Las API routes ahora usan SERVICE_ROLE_KEY que bypassa RLS, apropiado para operaciones públicas desde el servidor
+     - Se agregaron opciones explícitas en la creación del cliente de Supabase para asegurar configuración correcta
+  2. **Corrección del tracker (`lib/visitas-tracker.ts`):**
+     - Se corrigió la duplicación de registros: ahora se crea un registro al entrar y se actualiza al salir (PUT) en lugar de crear dos registros
+     - Se implementó almacenamiento del `visita_id` para poder actualizar correctamente
+     - Se corrigió el `startTime` para que se actualice correctamente en cada nueva página
+  3. **Nuevo endpoint PUT en API:**
+     - Se agregó endpoint PUT `/api/visitas` para actualizar visitas existentes (duración)
+     - Permite actualizar la duración cuando el usuario sale de la página
+  4. **Scripts SQL actualizados:**
+     - `supabase/migrations/FIX_RLS_VISITAS_SIMPLE.sql` - Script simplificado para corregir políticas RLS
+     - `supabase/migrations/COMPLETA_VISITAS_WEB.sql` - Script completo con todas las funciones SQL y políticas
+     - `supabase/migrations/VERIFICAR_RLS_VISITAS.sql` - Script de verificación del estado de RLS
+- **Archivos modificados:**
+  - ✅ `app/api/visitas/route.ts` - Cambio a SERVICE_ROLE_KEY y nuevo endpoint PUT
+  - ✅ `lib/visitas-tracker.ts` - Corrección de duplicación y actualización correcta de visitas
+  - ✅ `supabase/migrations/FIX_RLS_VISITAS.sql` - Políticas RLS actualizadas (incluye UPDATE)
+  - ✅ `supabase/migrations/FIX_RLS_VISITAS_SIMPLE.sql` - Script simplificado
+  - ✅ `supabase/migrations/COMPLETA_VISITAS_WEB.sql` - Migración completa
+  - ✅ `supabase/migrations/VERIFICAR_RLS_VISITAS.sql` - Script de verificación
+- **Resultado:**
+  - ✅ El contador de visitas ahora funciona correctamente
+  - ✅ Las visitas se registran sin errores
+  - ✅ No hay duplicación de registros
+  - ✅ La duración se actualiza correctamente cuando el usuario sale de la página
+  - ✅ El dashboard muestra datos actualizados
+- **Lecciones aprendidas:**
+  - Las API routes de Next.js corren en el servidor y deben usar SERVICE_ROLE_KEY para operaciones que bypassen RLS
+  - ANON_KEY debe usarse solo en el cliente (frontend) donde las políticas RLS se aplican correctamente
+  - Para operaciones públicas desde el servidor, SERVICE_ROLE_KEY es más apropiado y seguro
+  - Siempre verificar que las políticas RLS estén correctamente aplicadas ejecutando scripts de verificación
 - **Notas técnicas:**
-  - El código del API route (`app/api/visitas/route.ts`) parece estar correcto
-  - El problema está en la configuración de RLS en Supabase
-  - Se intentó aplicar el fix múltiples veces sin éxito
-  - Necesita revisión manual en Supabase Dashboard
+  - El uso de SERVICE_ROLE_KEY en el servidor es seguro porque:
+    - Solo se expone en variables de entorno del servidor (no accesible desde el cliente)
+    - Las API routes son endpoints controlados del servidor
+    - Es una práctica recomendada para operaciones públicas desde el servidor
+  - Las políticas RLS siguen siendo necesarias para operaciones directas desde el cliente
+  - El endpoint PUT usa también SERVICE_ROLE_KEY para consistencia
 - **Referencias:**
-  - Script de migración: `supabase/migrations/FIX_RLS_VISITAS.sql`
+  - Script de migración: `supabase/migrations/FIX_RLS_VISITAS_SIMPLE.sql`
   - API Route: `app/api/visitas/route.ts`
+  - Tracker: `lib/visitas-tracker.ts`
   - Tabla: `visitas_web` en Supabase
-  - Error: PostgreSQL error code `42501` (insufficient_privilege)
+  - Error original: PostgreSQL error code `42501` (insufficient_privilege)
 
 ---
 

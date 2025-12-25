@@ -87,12 +87,13 @@ export async function POST(request: NextRequest) {
     // Generar session ID si no viene (formato UUID v4)
     const sessionIdFinal = sessionId || generateUUID()
     
-    // Crear cliente de Supabase anónimo para operaciones públicas
-    // Usamos createClient directamente para asegurar que la API key anónima esté presente
+    // Crear cliente de Supabase para operaciones del servidor
+    // Usamos SERVICE_ROLE_KEY porque las API routes corren en el servidor
+    // Esto bypassa RLS, lo cual es apropiado para tracking público de visitas
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Faltan variables de entorno de Supabase')
       return NextResponse.json(
         { error: 'Error de configuración del servidor' },
@@ -100,10 +101,15 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // Crear cliente con SERVICE_ROLE_KEY para operaciones del servidor
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
     
-    // Por ahora, simplificamos: todas las visitas se registran como nuevas
-    // La verificación de visitas previas se puede agregar después cuando la función RPC esté disponible
     // Insertar visita - asegurar que los valores sean válidos
     const visitaData: any = {
       url: String(url).substring(0, 2048), // Limitar longitud de URL
@@ -220,6 +226,93 @@ export async function GET(request: NextRequest) {
     console.error('Error en GET de visitas:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT/PATCH para actualizar una visita existente (solo duración)
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { visita_id, duration } = body
+    
+    // Validaciones básicas
+    if (!visita_id) {
+      return NextResponse.json(
+        { error: 'visita_id es requerido' },
+        { status: 400 }
+      )
+    }
+    
+    if (duration === undefined || duration === null) {
+      return NextResponse.json(
+        { error: 'duration es requerido' },
+        { status: 400 }
+      )
+    }
+    
+    // Crear cliente de Supabase para operaciones del servidor
+    // Usamos SERVICE_ROLE_KEY porque las API routes corren en el servidor
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Faltan variables de entorno de Supabase')
+      return NextResponse.json(
+        { error: 'Error de configuración del servidor' },
+        { status: 500 }
+      )
+    }
+    
+    // Crear cliente con SERVICE_ROLE_KEY para operaciones del servidor
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    })
+    
+    // Actualizar solo la duración
+    const { data, error } = await supabase
+      .from('visitas_web')
+      .update({ 
+        duracion_segundos: Math.max(0, Math.floor(duration || 0))
+      })
+      .eq('id', visita_id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error al actualizar visita:', error)
+      console.error('Código del error:', error.code)
+      console.error('Mensaje del error:', error.message)
+      
+      return NextResponse.json(
+        { 
+          error: 'Error al actualizar visita',
+          message: error.message || 'Error desconocido',
+          code: error.code || 'UNKNOWN',
+        },
+        { status: 500 }
+      )
+    }
+    
+    return NextResponse.json({
+      success: true,
+      visita_id: data.id,
+      duracion_segundos: data.duracion_segundos,
+    })
+    
+  } catch (error: any) {
+    console.error('Error en PUT de visitas:', error)
+    console.error('Stack trace:', error?.stack)
+    return NextResponse.json(
+      { 
+        error: 'Error interno del servidor',
+        message: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     )
   }

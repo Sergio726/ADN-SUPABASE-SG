@@ -235,16 +235,16 @@ export default function VisitasPage() {
   return (
     <div className="max-h-[calc(100vh-10rem)] overflow-y-auto overflow-x-hidden -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
       <div className="space-y-4 md:space-y-6 pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sticky top-0 bg-white z-10 py-4 border-b">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">Analytics de Visitantes</h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Analytics de Visitantes</h1>
+            <p className="text-sm text-muted-foreground sm:text-base">
               Estadísticas y análisis de visitas a la página web
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Select value={rangoDias} onValueChange={setRangoDias}>
-              <SelectTrigger className="w-full sm:w-[160px] md:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -258,35 +258,33 @@ export default function VisitasPage() {
               variant="outline"
               onClick={cargarDatos}
               disabled={loading}
-              className="flex-1 sm:flex-initial"
+              className="w-full sm:w-auto"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Actualizar</span>
-              <span className="sm:hidden">Actualizar</span>
+              Actualizar
             </Button>
             <Button 
               variant="outline" 
               onClick={exportarAExcel}
-              className="flex-1 sm:flex-initial"
+              className="w-full sm:w-auto"
             >
-              <span className="hidden sm:inline">Exportar</span>
-              <span className="sm:hidden">Exportar</span>
+              Exportar
             </Button>
             <Button
               variant="outline"
               onClick={todasExpandidas ? colapsarTodo : expandirTodo}
-              className="flex-1 sm:flex-initial"
+              className="w-full sm:w-auto"
               title={todasExpandidas ? "Colapsar todo" : "Expandir todo"}
             >
               {todasExpandidas ? (
                 <>
                   <ChevronsUpDown className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Colapsar</span>
+                  Colapsar
                 </>
               ) : (
                 <>
                   <ChevronsDownUp className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Expandir</span>
+                  Expandir
                 </>
               )}
             </Button>
