@@ -3,8 +3,9 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send, Filter, X, Package, User } from 'lucide-react'
+import { Plus, Eye, FileText, RefreshCw, Download, Info, TrendingUp, CheckCircle2, Send, Filter, X, Package, User, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { SortableHeader } from '@/components/ui/sortable-header'
@@ -48,6 +49,8 @@ export default function PresupuestosPage() {
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const [filtroVendedor, setFiltroVendedor] = useState('todos')
+  const [fechaDesde, setFechaDesde] = useState<string>('')
+  const [fechaHasta, setFechaHasta] = useState<string>('')
   const [vendedores, setVendedores] = useState<Array<{id: string, nombre: string}>>([])
   
   // Estados para entregas pendientes
@@ -170,6 +173,43 @@ export default function PresupuestosPage() {
     setFiltroEstado('todos')
     setFiltroTipo('todos')
     setFiltroVendedor('todos')
+    setFechaDesde('')
+    setFechaHasta('')
+  }, [])
+
+  // Funciones para establecer rangos rápidos de fechas
+  const establecerRangoRapido = useCallback((rango: 'hoy' | 'semana' | 'mes' | 'trimestre' | 'año') => {
+    const hoy = new Date()
+    hoy.setHours(23, 59, 59, 999)
+    
+    let desde = new Date()
+    
+    switch (rango) {
+      case 'hoy':
+        desde.setHours(0, 0, 0, 0)
+        break
+      case 'semana':
+        desde.setDate(hoy.getDate() - 7)
+        desde.setHours(0, 0, 0, 0)
+        break
+      case 'mes':
+        desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+        desde.setHours(0, 0, 0, 0)
+        break
+      case 'trimestre':
+        const mesActual = hoy.getMonth()
+        const trimestreInicio = Math.floor(mesActual / 3) * 3
+        desde = new Date(hoy.getFullYear(), trimestreInicio, 1)
+        desde.setHours(0, 0, 0, 0)
+        break
+      case 'año':
+        desde = new Date(hoy.getFullYear(), 0, 1)
+        desde.setHours(0, 0, 0, 0)
+        break
+    }
+    
+    setFechaDesde(desde.toISOString().split('T')[0])
+    setFechaHasta(hoy.toISOString().split('T')[0])
   }, [])
 
   // Filtrado optimizado con useMemo (evita render extra)
@@ -191,10 +231,34 @@ export default function PresupuestosPage() {
       resultado = resultado.filter((p: any) => p.usuario_id === filtroVendedor)
     }
 
-    return resultado
-  }, [presupuestos, filtroEstado, filtroTipo, filtroVendedor])
+    // Filtro por Rango de Fechas
+    if (fechaDesde || fechaHasta) {
+      resultado = resultado.filter((p: any) => {
+        if (!p.fecha_emision) return false
+        
+        const fechaPresupuesto = new Date(p.fecha_emision)
+        fechaPresupuesto.setHours(0, 0, 0, 0)
+        
+        if (fechaDesde) {
+          const desde = new Date(fechaDesde)
+          desde.setHours(0, 0, 0, 0)
+          if (fechaPresupuesto < desde) return false
+        }
+        
+        if (fechaHasta) {
+          const hasta = new Date(fechaHasta)
+          hasta.setHours(23, 59, 59, 999)
+          if (fechaPresupuesto > hasta) return false
+        }
+        
+        return true
+      })
+    }
 
-  const filtrosActivos = filtroEstado !== 'todos' || filtroTipo !== 'todos' || filtroVendedor !== 'todos'
+    return resultado
+  }, [presupuestos, filtroEstado, filtroTipo, filtroVendedor, fechaDesde, fechaHasta])
+
+  const filtrosActivos = filtroEstado !== 'todos' || filtroTipo !== 'todos' || filtroVendedor !== 'todos' || fechaDesde !== '' || fechaHasta !== ''
 
   useEffect(() => {
     cargarPresupuestos()
@@ -675,7 +739,7 @@ export default function PresupuestosPage() {
             </CardTitle>
               <div>
                 <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white font-semibold">
-                  {porEstado.aprobado} aprobados
+                  {estadisticasMesActual.aprobadosDelMes} aprobados
                 </Badge>
               </div>
             </div>
@@ -847,7 +911,8 @@ export default function PresupuestosPage() {
                       {[
                         filtroEstado !== 'todos' && 'Estado', 
                         filtroTipo !== 'todos' && 'Tipo',
-                        filtroVendedor !== 'todos' && 'Vendedor'
+                        filtroVendedor !== 'todos' && 'Vendedor',
+                        (fechaDesde || fechaHasta) && 'Fecha'
                       ].filter(Boolean).length}
                     </Badge>
                   )}
@@ -860,13 +925,17 @@ export default function PresupuestosPage() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg mt-2">
-                <div className="flex-1 grid gap-3 md:grid-cols-3">
+              <div className="mt-4 space-y-4 p-4 bg-gradient-to-br from-muted/50 to-muted rounded-lg border">
+                {/* Filtros principales en grid */}
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Estado</label>
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Filter className="h-3.5 w-3.5" />
+                      Estado
+                    </label>
                     <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Todos los estados" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos</SelectItem>
@@ -881,10 +950,13 @@ export default function PresupuestosPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Tipo</label>
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5" />
+                      Tipo
+                    </label>
                     <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Todos los tipos" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos</SelectItem>
@@ -896,10 +968,13 @@ export default function PresupuestosPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Vendedor</label>
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-3.5 w-3.5" />
+                      Vendedor
+                    </label>
                     <Select value={filtroVendedor} onValueChange={setFiltroVendedor}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Todos los vendedores" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos</SelectItem>
@@ -910,6 +985,113 @@ export default function PresupuestosPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Separador */}
+                <div className="border-t pt-4">
+                  <div className="space-y-3">
+                    {/* Título del rango de fechas */}
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Rango de Fechas
+                      </label>
+                      {(fechaDesde || fechaHasta) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setFechaDesde('')
+                            setFechaHasta('')
+                          }}
+                          className="h-7 text-xs"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Limpiar
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Botones rápidos de rango */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant={fechaDesde && fechaHasta ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => establecerRangoRapido('hoy')}
+                        className="text-xs h-8"
+                      >
+                        Hoy
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => establecerRangoRapido('semana')}
+                        className="text-xs h-8"
+                      >
+                        Últimos 7 días
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => establecerRangoRapido('mes')}
+                        className="text-xs h-8"
+                      >
+                        Este mes
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => establecerRangoRapido('trimestre')}
+                        className="text-xs h-8"
+                      >
+                        Este trimestre
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => establecerRangoRapido('año')}
+                        className="text-xs h-8"
+                      >
+                        Este año
+                      </Button>
+                    </div>
+
+                    {/* Inputs de fecha personalizados */}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Desde</label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          <Input
+                            type="date"
+                            value={fechaDesde}
+                            onChange={(e) => setFechaDesde(e.target.value)}
+                            className="pl-10 bg-background"
+                            placeholder="Fecha desde"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Hasta</label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          <Input
+                            type="date"
+                            value={fechaHasta}
+                            onChange={(e) => setFechaHasta(e.target.value)}
+                            className="pl-10 bg-background"
+                            placeholder="Fecha hasta"
+                            min={fechaDesde || undefined}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
