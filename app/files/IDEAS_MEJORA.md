@@ -1313,6 +1313,200 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 
 ---
 
+## ⚙️ Configuración del Sistema
+
+### Gestión de Horarios y Días de Atención Configurables
+- **Fecha:** 2025-02-06
+- **Prioridad:** [Media]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Sistema configurable para gestionar horarios y días de atención de la empresa, permitiendo personalización según necesidades operativas, temporadas, días especiales y diferentes tipos de atención.
+- **Funcionalidades específicas:**
+  - **Configuración de horarios generales:**
+    - Horarios de atención por día de la semana (Lunes a Domingo)
+    - Múltiples rangos horarios por día (ej: 08:00-12:00 y 14:00-18:00)
+    - Días de cierre configurable (feriados, días especiales)
+    - Zona horaria configurable (Argentina/Buenos_Aires por defecto)
+    - Validación de horarios (hora inicio < hora fin, no solapamientos)
+  - **Tipos de atención configurables:**
+    - **Atención presencial:**
+      - Horarios específicos para atención en oficina/sucursal
+      - Días y horarios de atención al público
+      - Capacidad máxima de atención simultánea (opcional)
+    - **Atención telefónica:**
+      - Horarios para llamadas entrantes
+      - Números de teléfono por tipo de atención
+      - Redirección automática fuera de horario
+    - **Atención online/chat:**
+      - Horarios de disponibilidad de chat en vivo
+      - Respuestas automáticas fuera de horario
+      - Mensaje personalizado de "volveremos pronto"
+    - **Atención de emergencias:**
+      - Horarios extendidos para casos urgentes
+      - Número de contacto de emergencia
+      - Criterios para considerar una emergencia
+  - **Configuración por temporada/período:**
+    - Horarios de verano vs invierno
+    - Horarios especiales para épocas de alta demanda
+    - Configuración de horarios reducidos en períodos específicos
+    - Calendario de excepciones (días con horarios especiales)
+  - **Días especiales y excepciones:**
+    - **Feriados nacionales:**
+      - Calendario de feriados configurable
+      - Marcar días como no laborables
+      - Horarios especiales para días previos a feriados
+    - **Días de cierre programado:**
+      - Cierres por mantenimiento
+      - Cierres por eventos internos
+      - Cierres por vacaciones colectivas
+    - **Días con horarios especiales:**
+      - Horarios extendidos en fechas específicas
+      - Horarios reducidos en días particulares
+      - Configuración de "media jornada"
+  - **Mensajes automáticos:**
+    - **Fuera de horario:**
+      - Mensaje personalizado para clientes que contactan fuera de horario
+      - Información de próximos horarios de atención
+      - Opción de dejar mensaje o solicitar callback
+    - **En horario de atención:**
+      - Mensaje de bienvenida configurable
+      - Tiempo estimado de respuesta
+      - Información de contacto alternativa
+    - **Días de cierre:**
+      - Mensaje explicando el motivo del cierre
+      - Fecha de reapertura
+      - Contacto de emergencia si aplica
+  - **Integración con otros módulos:**
+    - **WhatsApp Business:**
+      - Respuestas automáticas basadas en horarios configurados
+      - Mensajes fuera de horario con información de próximos horarios
+      - Activación/desactivación automática de respuestas según horarios
+    - **Sitio web:**
+      - Banner de "Horarios de atención" dinámico
+      - Widget de chat que se activa/desactiva según horarios
+      - Formulario de contacto con indicador de tiempo de respuesta esperado
+    - **Sistema de presupuestos:**
+      - Mostrar tiempo estimado de respuesta según horarios
+      - Alertas de presupuestos recibidos fuera de horario
+      - Programación automática de seguimiento según horarios
+    - **Notificaciones:**
+      - Recordatorios a vendedores de horarios de atención
+      - Alertas cuando se reciben consultas fuera de horario
+      - Notificaciones de cambios en horarios programados
+  - **Gestión de múltiples sucursales:**
+    - Horarios independientes por sucursal/oficina
+    - Configuración centralizada con posibilidad de personalización local
+    - Sincronización de horarios entre sucursales
+    - Vista consolidada de horarios de todas las sucursales
+  - **Historial y auditoría:**
+    - Registro de cambios en horarios (quién, cuándo, qué cambió)
+    - Historial de horarios por período
+    - Restauración de configuraciones anteriores
+    - Reportes de uso de horarios (consultas recibidas por horario)
+  - **Validaciones y reglas de negocio:**
+    - Validar que no haya solapamientos en rangos horarios
+    - Validar que días de cierre no sean todos los días
+    - Alertas de configuración inválida (ej: horario de inicio después de fin)
+    - Sugerencias de optimización de horarios basadas en datos históricos
+  - **Interfaz de configuración:**
+    - **Vista de calendario:**
+      - Calendario mensual con indicadores visuales de horarios
+      - Colores diferentes para días normales, feriados, cierres
+      - Vista semanal con horarios detallados
+    - **Editor de horarios:**
+      - Formulario intuitivo para configurar horarios por día
+      - Drag & drop para ajustar rangos horarios
+      - Plantillas predefinidas (horario comercial estándar, horario extendido, etc.)
+      - Copiar horarios de un día a otros
+    - **Configuración rápida:**
+      - Botones de acción rápida: "Horario comercial estándar", "Lunes a Viernes", "Solo mañanas", etc.
+      - Aplicar horarios a múltiples días simultáneamente
+      - Duplicar configuración de una semana a otra
+  - **API y webhooks:**
+    - Endpoint para consultar horarios actuales
+    - Webhook cuando cambian los horarios
+    - API para verificar si está en horario de atención
+    - Integración con sistemas externos (calendarios, apps de turnos)
+- **Casos de uso:**
+  - Configurar horario comercial estándar (Lunes a Viernes 8:00-18:00)
+  - Ajustar horarios para temporada de verano (horarios reducidos)
+  - Configurar cierre por vacaciones colectivas
+  - Establecer horarios extendidos para época de alta demanda
+  - Configurar atención de emergencias 24/7
+  - Personalizar mensajes según tipo de contacto (presencial, telefónico, online)
+  - Gestionar horarios de múltiples sucursales
+- **Beneficios esperados:**
+  - Mejor comunicación con clientes sobre disponibilidad
+  - Automatización de respuestas fuera de horario
+  - Reducción de consultas perdidas por falta de información
+  - Optimización de recursos según horarios reales de demanda
+  - Profesionalismo en la atención al cliente
+  - Flexibilidad para adaptarse a necesidades operativas cambiantes
+  - Mejor planificación de recursos humanos
+  - Análisis de patrones de consultas por horario
+- **Implementación técnica:**
+  - **Tabla: `configuracion_horarios`**
+    ```sql
+    CREATE TABLE configuracion_horarios (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tipo_atencion VARCHAR(50) NOT NULL, -- 'presencial', 'telefonica', 'online', 'emergencias'
+      dia_semana INTEGER NOT NULL, -- 0=Domingo, 1=Lunes, ..., 6=Sábado
+      hora_inicio TIME NOT NULL,
+      hora_fin TIME NOT NULL,
+      activo BOOLEAN DEFAULT true,
+      fecha_desde DATE,
+      fecha_hasta DATE, -- NULL = permanente
+      sucursal_id UUID REFERENCES sucursales(id), -- NULL = todas las sucursales
+      creado_en TIMESTAMP DEFAULT NOW(),
+      actualizado_en TIMESTAMP DEFAULT NOW()
+    );
+    ```
+  - **Tabla: `dias_especiales`**
+    ```sql
+    CREATE TABLE dias_especiales (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      fecha DATE NOT NULL UNIQUE,
+      tipo VARCHAR(50) NOT NULL, -- 'feriado', 'cierre', 'horario_especial'
+      descripcion TEXT,
+      horario_especial JSONB, -- Horarios específicos para este día
+      activo BOOLEAN DEFAULT true,
+      creado_en TIMESTAMP DEFAULT NOW()
+    );
+    ```
+  - **Tabla: `mensajes_automaticos`**
+    ```sql
+    CREATE TABLE mensajes_automaticos (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      tipo VARCHAR(50) NOT NULL, -- 'fuera_horario', 'en_horario', 'cierre'
+      canal VARCHAR(50) NOT NULL, -- 'whatsapp', 'web', 'telefono', 'email'
+      mensaje TEXT NOT NULL,
+      activo BOOLEAN DEFAULT true,
+      creado_en TIMESTAMP DEFAULT NOW(),
+      actualizado_en TIMESTAMP DEFAULT NOW()
+    );
+    ```
+  - **Funciones SQL:**
+    - Función para verificar si está en horario de atención
+    - Función para obtener próximo horario de atención
+    - Función para obtener mensaje automático según contexto
+  - **Componentes frontend:**
+    - Página de configuración de horarios (`/dashboard/configuracion/horarios`)
+    - Componente de calendario interactivo
+    - Editor de horarios con validaciones
+    - Vista previa de mensajes automáticos
+    - Dashboard de horarios activos
+- **Consideraciones adicionales:**
+  - Soporte para múltiples zonas horarias si hay sucursales en diferentes ubicaciones
+  - Considerar horarios de verano/invierno automáticamente
+  - Integración con calendarios externos (Google Calendar, Outlook)
+  - Notificaciones push a administradores cuando se cambian horarios críticos
+  - Backup automático de configuraciones antes de cambios importantes
+  - Permisos granulares: quién puede modificar horarios (solo admins o también gerentes)
+  - Exportación de horarios a PDF para comunicación externa
+  - API pública para que clientes consulten horarios desde sitio web
+
+---
+
 ## 🔐 Seguridad y Permisos
 
 ### Sistema de Roles y Permisos Avanzado
