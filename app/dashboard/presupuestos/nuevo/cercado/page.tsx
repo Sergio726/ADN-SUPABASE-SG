@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, ArrowRight, Save, Calculator, CheckCircle, DollarSign, FileText, CreditCard, Receipt, AlertCircle, User, Mail, Phone, MapPin, Info, Grid, Columns, Circle, Zap, Filter, X, Search } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, Calculator, CheckCircle, DollarSign, FileText, CreditCard, Receipt, AlertCircle, User, Mail, Phone, MapPin, Info, Grid, Columns, Circle, Zap, Filter, X, Search, ArrowUpDown, Gauge, Diamond } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
 import { BuscarCliente } from '@/components/BuscarCliente'
@@ -753,152 +754,237 @@ export default function NuevoPresupuestoCercadoPage() {
                         </div>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[90vw] max-w-[800px] p-0" align="start">
-                      <div className="flex flex-col max-h-[600px]">
-                        {/* Header con búsqueda y filtros */}
-                        <div className="p-4 border-b space-y-3 bg-muted/30">
-                          {/* Búsqueda por texto */}
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar por nombre, código o tipo de poste..."
-                              value={busquedaTexto}
-                              onChange={(e) => setBusquedaTexto(e.target.value)}
-                              className="pl-10"
-                            />
-                          </div>
-                          
-                          {/* Filtros compactos */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                            <Select value={filtroAltura} onValueChange={setFiltroAltura}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroAltura === 'todas' ? 'Altura' : `Altura: ${filtroAltura}m`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todas">Todas</SelectItem>
-                                {valoresUnicos.alturas.map((altura) => (
-                                  <SelectItem key={altura} value={altura}>
-                                    {altura}m
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                    <PopoverContent className="w-[95vw] max-w-[900px] p-0" align="start" sideOffset={8}>
+                      <div className="flex flex-col max-h-[70vh]">
+                        {/* Header compacto con búsqueda y filtros en una sola línea */}
+                        <div className="p-3 border-b bg-gradient-to-r from-muted/40 to-muted/20 sticky top-0 z-10">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Búsqueda compacta */}
+                            <div className="relative flex-1 min-w-[200px]">
+                              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                              <Input
+                                placeholder="Buscar..."
+                                value={busquedaTexto}
+                                onChange={(e) => setBusquedaTexto(e.target.value)}
+                                className="pl-8 h-8 text-xs"
+                              />
+                            </div>
+                            
+                            {/* Filtros principales compactos con iconos */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroAltura} onValueChange={setFiltroAltura}>
+                                    <SelectTrigger className="h-8 w-[100px] text-xs px-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroAltura === 'todas' ? 'Altura' : `${filtroAltura}m`}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todas">Todas</SelectItem>
+                                      {valoresUnicos.alturas.map((altura) => (
+                                        <SelectItem key={altura} value={altura}>
+                                          {altura}m
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por altura del cerco</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroCalibre === 'todos' ? 'Calibre' : `Calibre: ${filtroCalibre}`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                {valoresUnicos.calibres.map((calibre) => (
-                                  <SelectItem key={calibre} value={calibre}>
-                                    Cal.{calibre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroTipoPoste} onValueChange={setFiltroTipoPoste}>
+                                    <SelectTrigger className="h-8 w-[120px] text-xs px-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <Columns className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroTipoPoste === 'todos' ? 'Poste' : filtroTipoPoste.length > 8 ? `${filtroTipoPoste.substring(0, 8)}...` : filtroTipoPoste}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todos">Todos</SelectItem>
+                                      {valoresUnicos.tiposPoste.map((tipo) => (
+                                        <SelectItem key={tipo} value={tipo}>
+                                          {tipo}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por tipo de poste</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            <Select value={filtroRombo} onValueChange={setFiltroRombo}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroRombo === 'todos' ? 'Rombo' : `Rombo: ${filtroRombo}"`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                {valoresUnicos.rombos.map((rombo) => (
-                                  <SelectItem key={rombo} value={rombo}>
-                                    {rombo}"
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroCordon} onValueChange={setFiltroCordon}>
+                                    <SelectTrigger className="h-8 w-[100px] text-xs px-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <Circle className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroCordon === 'todos' ? 'Cordón' : filtroCordon.length > 6 ? `${filtroCordon.substring(0, 6)}...` : filtroCordon}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todos">Todos</SelectItem>
+                                      {valoresUnicos.cordones.map((cordon) => (
+                                        <SelectItem key={cordon} value={cordon}>
+                                          {cordon}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por tipo de cordón</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            <Select value={filtroTipoPoste} onValueChange={setFiltroTipoPoste}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroTipoPoste === 'todos' ? 'Poste' : `Poste: ${filtroTipoPoste}`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                {valoresUnicos.tiposPoste.map((tipo) => (
-                                  <SelectItem key={tipo} value={tipo}>
-                                    {tipo}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {/* Filtros secundarios compactos */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
+                                    <SelectTrigger className="h-8 w-[85px] text-xs px-2">
+                                      <div className="flex items-center gap-1">
+                                        <Gauge className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroCalibre === 'todos' ? 'Cal.' : `Cal.${filtroCalibre}`}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todos">Todos</SelectItem>
+                                      {valoresUnicos.calibres.map((calibre) => (
+                                        <SelectItem key={calibre} value={calibre}>
+                                          Cal.{calibre}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por calibre del tejido</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            <Select value={filtroCordon} onValueChange={setFiltroCordon}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroCordon === 'todos' ? 'Cordón' : `Cordón: ${filtroCordon}`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                {valoresUnicos.cordones.map((cordon) => (
-                                  <SelectItem key={cordon} value={cordon}>
-                                    {cordon}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroRombo} onValueChange={setFiltroRombo}>
+                                    <SelectTrigger className="h-8 w-[80px] text-xs px-2">
+                                      <div className="flex items-center gap-1">
+                                        <Diamond className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroRombo === 'todos' ? 'Rombo' : `${filtroRombo}"`}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todos">Todos</SelectItem>
+                                      {valoresUnicos.rombos.map((rombo) => (
+                                        <SelectItem key={rombo} value={rombo}>
+                                          {rombo}"
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por tamaño de rombo</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                            <Select value={filtroHilosPua} onValueChange={setFiltroHilosPua}>
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue>
-                                  {filtroHilosPua === 'todos' 
-                                    ? 'Púa' 
-                                    : `Púa: ${filtroHilosPua === '0' ? 'Sin púa' : `${filtroHilosPua} hilos`}`}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                {valoresUnicos.hilosPua.map((hilos) => (
-                                  <SelectItem key={hilos} value={hilos.toString()}>
-                                    {hilos === 0 ? 'Sin púa' : `${hilos} hilos`}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Select value={filtroHilosPua} onValueChange={setFiltroHilosPua}>
+                                    <SelectTrigger className="h-8 w-[75px] text-xs px-2">
+                                      <div className="flex items-center gap-1">
+                                        <Zap className="h-3 w-3 text-muted-foreground" />
+                                        <SelectValue>
+                                          {filtroHilosPua === 'todos' 
+                                            ? 'Púa' 
+                                            : filtroHilosPua === '0' ? 'Sin' : filtroHilosPua}
+                                        </SelectValue>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="todos">Todos</SelectItem>
+                                      {valoresUnicos.hilosPua.map((hilos) => (
+                                        <SelectItem key={hilos} value={hilos.toString()}>
+                                          {hilos === 0 ? 'Sin púa' : `${hilos} hilos`}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Filtrar por cantidad de hilos de púa</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                          {/* Contador de resultados */}
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>
-                              {configuracionesFiltradas.length} de {configuraciones.length} esquemas
-                              {filtrosActivos && ' (filtrados)'}
-                            </span>
-                            {filtrosActivos && (
-                              <Button variant="ghost" size="sm" onClick={limpiarFiltros} className="h-6 text-xs">
-                                <X className="h-3 w-3 mr-1" />
-                                Limpiar
-                              </Button>
-                            )}
+                            {/* Botón limpiar y contador compacto */}
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {configuracionesFiltradas.length}/{configuraciones.length}
+                              </span>
+                              {filtrosActivos && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={limpiarFiltros} 
+                                        className="h-7 w-7 p-0"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="text-xs">Limpiar todos los filtros</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Lista de esquemas */}
-                        <div className="overflow-y-auto max-h-[300px]">
+                        {/* Lista de esquemas compacta */}
+                        <div className="overflow-y-auto max-h-[calc(70vh-120px)]">
                           {configuracionesFiltradas.length === 0 ? (
-                            <div className="p-8 text-center text-sm text-muted-foreground">
+                            <div className="p-6 text-center text-sm text-muted-foreground">
                               {filtrosActivos || busquedaTexto ? (
                                 <>
                                   <p className="font-medium mb-1">No se encontraron esquemas</p>
-                                  <p className="text-xs">Intenta ajustar los filtros o la búsqueda</p>
+                                  <p className="text-xs">Ajusta los filtros o la búsqueda</p>
                                 </>
                               ) : (
                                 'No hay esquemas disponibles'
                               )}
                             </div>
                           ) : (
-                            <div className="p-2">
+                            <div className="p-1.5">
                               {configuracionesFiltradas.map((config) => (
                                 <div
                                   key={config.id}
@@ -906,23 +992,38 @@ export default function NuevoPresupuestoCercadoPage() {
                                     handleConfiguracionSeleccionada(config.id)
                                     setSelectorAbierto(false)
                                   }}
-                                  className={`relative flex cursor-pointer select-none items-center rounded-sm px-3 py-3 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
-                                    formData.cercado_config_id === config.id ? 'bg-accent' : ''
+                                  className={`relative flex cursor-pointer select-none items-center rounded-md px-2.5 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
+                                    formData.cercado_config_id === config.id ? 'bg-accent border border-primary/20' : ''
                                   }`}
                                 >
                                   <div className="flex items-center justify-between w-full gap-2">
                                     <div className="flex flex-col flex-1 min-w-0">
-                                      <span className="font-semibold">{config.nombre}</span>
-                                      <span className="text-xs text-muted-foreground mt-1">
-                                        {obtenerAltura(config)}m • 
-                                        {config.tejido_codigo} • 
-                                        Postes: {config.tipo_poste} • 
-                                        {config.cordon_tipo !== 'Sin cordón' ? `Cordón ${config.cordon_tipo} • ` : ''}
-                                        {config.hilos_pua > 0 ? `${config.hilos_pua} hilos púa` : 'Sin púa'}
-                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm truncate">{config.nombre}</span>
+                                        <Badge variant="outline" className="h-4 px-1.5 text-[10px] shrink-0">
+                                          {obtenerAltura(config)}m
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                        <span className="text-[11px] text-muted-foreground">{config.tejido_codigo}</span>
+                                        <span className="text-[10px] text-muted-foreground">•</span>
+                                        <span className="text-[11px] text-muted-foreground">{config.tipo_poste}</span>
+                                        {config.cordon_tipo !== 'Sin cordón' && (
+                                          <>
+                                            <span className="text-[10px] text-muted-foreground">•</span>
+                                            <span className="text-[11px] text-muted-foreground">{config.cordon_tipo}</span>
+                                          </>
+                                        )}
+                                        {config.hilos_pua > 0 && (
+                                          <>
+                                            <span className="text-[10px] text-muted-foreground">•</span>
+                                            <span className="text-[11px] text-muted-foreground">{config.hilos_pua} púa</span>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
                                     {config.precio_por_metro_lineal && (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 shrink-0">
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 shrink-0 text-xs font-semibold px-2 py-0.5">
                                         ${formatearPrecio(config.precio_por_metro_lineal)}/m
                                       </Badge>
                                     )}
