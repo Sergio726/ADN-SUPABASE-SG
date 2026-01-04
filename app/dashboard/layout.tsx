@@ -25,6 +25,7 @@ import {
   ChevronUp,
   ChevronsDownUp,
   ChevronsUpDown,
+  CheckSquare,
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -101,6 +102,7 @@ export default function DashboardLayout({
       links: [
         { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
         { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
+        { name: 'Tareas', href: '/dashboard/tareas', icon: CheckSquare },
         { name: 'Leads', href: '/dashboard/leads', icon: Mail },
       ],
     },

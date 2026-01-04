@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { ArrowLeft, Edit, User, Phone, Mail, MapPin, FileText, Calendar, CreditCard, Building2 } from 'lucide-react'
+import { ArrowLeft, Edit, User, Phone, Mail, MapPin, FileText, Calendar, CreditCard, Building2, CheckSquare } from 'lucide-react'
+import { TareasSection } from '@/components/TareasSection'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -273,6 +274,14 @@ export default function VerClientePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Tareas del Cliente */}
+          <TareasSection
+            clienteId={params.id as string}
+            titulo="Tareas"
+            descripcion="Gestiona las tareas y seguimientos relacionados con este cliente"
+            mostrarEstadisticas={true}
+          />
 
           {/* Notas */}
           {cliente.notas && (
