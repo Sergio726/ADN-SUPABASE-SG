@@ -353,16 +353,19 @@ export default function NuevoPresupuestoCercadoPage() {
 
       if (!error && articulosPostes) {
         const descripciones: Record<string, Articulo> = {}
-        const posteMap: Record<string, keyof typeof descripciones> = {
-          [config.poste_esquinero_id!]: 'esquinero',
-          [config.poste_refuerzo_id!]: 'refuerzo',
-          [config.poste_intermedio_id!]: 'intermedio',
-          [config.poste_puntal_id!]: 'puntal',
-        }
-        
         articulosPostes.forEach((art) => {
-          const tipo = posteMap[art.id]
-          if (tipo) descripciones[tipo] = art
+          if (config.poste_esquinero_id === art.id) {
+            descripciones.esquinero = art
+          }
+          if (config.poste_refuerzo_id === art.id) {
+            descripciones.refuerzo = art
+          }
+          if (config.poste_intermedio_id === art.id) {
+            descripciones.intermedio = art
+          }
+          if (config.poste_puntal_id === art.id) {
+            descripciones.puntal = art
+          }
         })
         setDescripcionesPostes(descripciones)
       }

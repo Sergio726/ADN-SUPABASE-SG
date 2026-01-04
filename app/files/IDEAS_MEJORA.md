@@ -219,6 +219,494 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Seguimiento de origen del lead (web, referido, publicidad, etc.)
   - Conversión de lead a cliente
 
+### CRM Avanzado - Mejoras Adicionales
+- **Fecha:** 2025-02-06
+- **Prioridad:** [Alta]
+- **Estado:** [Pendiente]
+- **Descripción:**
+  - Mejoras y funcionalidades avanzadas para transformar el sistema actual en un CRM completo y robusto, aprovechando la infraestructura existente y las integraciones planificadas.
+- **Funcionalidades específicas:**
+
+  #### 1. Perfil 360 del Cliente Mejorado
+  - **Historial completo de interacciones:**
+    - Timeline visual de todas las interacciones (presupuestos, llamadas, emails, reuniones)
+    - Filtros por tipo de interacción y fecha
+    - Búsqueda en historial completo
+    - Exportación del historial a PDF
+  - **Métricas del cliente:**
+    - Valor total de compras (LTV - Lifetime Value)
+    - Frecuencia de compra (días promedio entre compras)
+    - Ticket promedio por compra
+    - Tasa de conversión de presupuestos (aprobados/enviados)
+    - Tiempo promedio de aprobación de presupuestos
+    - Productos más comprados por este cliente
+    - Tendencia de compras (aumentando, estable, disminuyendo)
+  - **Análisis de comportamiento:**
+    - Patrones de compra (estacionalidad, frecuencia)
+    - Preferencias de productos (categorías, tipos)
+    - Formas de pago preferidas
+    - Días/horarios preferidos para contacto
+    - Canales de comunicación preferidos
+  - **Documentos y archivos:**
+    - Subir y gestionar documentos (contratos, facturas, certificados)
+    - Organización por categorías (fiscales, comerciales, técnicos)
+    - Versiones y historial de documentos
+    - Compartir documentos con el cliente
+  - **Notas y observaciones avanzadas:**
+    - Notas con formato rico (markdown)
+    - Etiquetas y categorías de notas
+    - Notas privadas vs compartidas entre vendedores
+    - Búsqueda en notas
+    - Notas automáticas del sistema (ej: "Cliente contactado vía WhatsApp")
+
+  #### 2. Sistema de Tareas y Recordatorios Avanzado
+  - **Tareas personalizables:**
+    - Crear tareas relacionadas con clientes o presupuestos
+    - Asignación de tareas a vendedores específicos
+    - Prioridades (alta, media, baja)
+    - Fechas de vencimiento
+    - Subtareas y checklist
+    - Adjuntar archivos a tareas
+  - **Recordatorios inteligentes:**
+    - Recordatorios automáticos basados en reglas:
+      - "Contactar cliente X días después de enviar presupuesto"
+      - "Seguimiento post-entrega Y días después de entrega"
+      - "Revisar cliente inactivo Z meses sin compras"
+    - Recordatorios personalizados por vendedor
+    - Notificaciones push y email
+    - Integración con calendario (Google Calendar, Outlook)
+  - **Calendario de actividades:**
+    - Vista mensual/semanal/diaria de todas las actividades
+    - Reuniones, llamadas, entregas programadas
+    - Filtros por vendedor, cliente, tipo de actividad
+    - Sincronización bidireccional con calendarios externos
+  - **Workflows automatizados:**
+    - Flujos predefinidos (ej: "Nuevo presupuesto enviado" → crear tarea de seguimiento en 3 días)
+    - Workflows personalizables por tipo de cliente
+    - Integración con n8n para automatizaciones complejas
+
+  #### 3. Pipeline de Ventas Visual (Kanban)
+  - **Tablero Kanban:**
+    - Columnas personalizables por etapa (Contacto inicial, Presupuesto enviado, Negociación, Aprobado, Cerrado)
+    - Drag & drop para mover presupuestos entre etapas
+    - Vista por vendedor o global
+    - Filtros por fecha, monto, tipo de presupuesto
+  - **Información en cada tarjeta:**
+    - Cliente y monto del presupuesto
+    - Fecha de última actualización
+    - Días en etapa actual
+    - Probabilidad de cierre (configurable)
+    - Vendedor asignado
+    - Indicadores visuales (urgente, próximo a vencer, etc.)
+  - **Métricas del pipeline:**
+    - Valor total en cada etapa
+    - Tiempo promedio en cada etapa
+    - Tasa de conversión entre etapas
+    - Proyección de cierres basada en probabilidades
+    - Gráfico de embudo de ventas
+
+  #### 4. Segmentación y Scoring de Clientes
+  - **Scoring automático:**
+    - Puntuación basada en múltiples factores:
+      - Valor total de compras (peso: 30%)
+      - Frecuencia de compras (peso: 25%)
+      - Antigüedad como cliente (peso: 15%)
+      - Tasa de conversión de presupuestos (peso: 20%)
+      - Puntualidad en pagos (peso: 10%)
+    - Actualización automática del score
+    - Clasificación automática: A (alto valor), B (medio), C (bajo)
+  - **Segmentación avanzada:**
+    - Segmentos predefinidos:
+      - Clientes VIP (top 10% por valor)
+      - Clientes activos (compras en últimos 3 meses)
+      - Clientes en riesgo (sin compras en 6+ meses)
+      - Clientes nuevos (primer compra en últimos 30 días)
+      - Clientes frecuentes (más de X compras al año)
+    - Segmentos personalizables con reglas
+    - Etiquetas manuales y automáticas
+    - Filtros combinados (ej: "Clientes VIP de Córdoba con compras > $500k")
+  - **Análisis de segmentos:**
+    - Comparativa de métricas entre segmentos
+    - Tendencias de cada segmento
+    - Recomendaciones de acciones por segmento
+
+  #### 5. Comunicación Integrada
+  - **Historial de comunicaciones:**
+    - Registro automático de:
+      - Envíos de presupuestos por email/WhatsApp
+      - Llamadas telefónicas (manual o integración con sistema telefónico)
+      - Reuniones presenciales
+      - Mensajes de WhatsApp (si integrado)
+    - Búsqueda en historial de comunicaciones
+    - Exportación de conversaciones
+  - **Plantillas de comunicación:**
+    - Plantillas de email personalizables
+    - Plantillas de WhatsApp con variables dinámicas
+    - Plantillas de mensajes SMS
+    - Variables disponibles: {nombre_cliente}, {numero_presupuesto}, {monto}, etc.
+  - **Programación de comunicaciones:**
+    - Programar envío de emails/WhatsApp para fecha/hora específica
+    - Campañas de comunicación masiva a segmentos
+    - Seguimiento de aperturas y clics (si aplica)
+
+  #### 6. Análisis Predictivo y Recomendaciones
+  - **Predicción de compras:**
+    - Predecir próxima compra basada en historial
+    - Alertas de "momento óptimo para contactar"
+    - Sugerencias de productos basadas en compras anteriores
+  - **Detección de riesgos:**
+    - Clientes en riesgo de abandono (sin actividad reciente)
+    - Presupuestos con alta probabilidad de rechazo
+    - Alertas de cambios en patrones de compra
+  - **Recomendaciones inteligentes:**
+    - Productos complementarios a sugerir
+    - Ofertas personalizadas según historial
+    - Mejor momento para contactar según patrones
+    - Estrategias de seguimiento recomendadas
+
+  #### 7. Integración con WhatsApp Business (n8n)
+  - **Chat integrado:**
+    - Panel de conversaciones de WhatsApp dentro del CRM
+    - Historial completo de mensajes con cada cliente
+    - Respuestas rápidas desde el CRM
+    - Envío de presupuestos directamente por WhatsApp
+  - **Automatizaciones:**
+    - Respuestas automáticas a consultas frecuentes
+    - Notificaciones automáticas de cambios de estado
+    - Recordatorios automáticos por WhatsApp
+    - Seguimiento automático post-venta
+  - **Análisis de conversaciones:**
+    - Sentimiento de conversaciones (positivo, neutro, negativo)
+    - Tiempo de respuesta promedio
+    - Tasa de respuesta del cliente
+    - Temas más consultados
+
+  #### 8. Dashboard CRM Ejecutivo
+  - **KPIs principales:**
+    - Total de clientes activos
+    - Nuevos clientes este mes
+    - Clientes en riesgo
+    - Tasa de retención
+    - Valor promedio por cliente
+    - Pipeline de ventas (valor total)
+  - **Gráficos y visualizaciones:**
+    - Evolución de clientes activos (línea de tiempo)
+    - Distribución por segmentos (gráfico de pastel)
+    - Top 10 clientes por valor
+    - Pipeline de ventas (embudo)
+    - Actividad de clientes (heatmap por día/semana)
+  - **Alertas y notificaciones:**
+    - Clientes que requieren atención urgente
+    - Presupuestos sin seguimiento
+    - Oportunidades próximas a vencer
+    - Tareas pendientes por vendedor
+
+  #### 9. Reportes y Analytics CRM
+  - **Reportes predefinidos:**
+    - Reporte de actividad de clientes
+    - Análisis de ciclo de vida del cliente
+    - Reporte de efectividad de vendedores
+    - Análisis de canales de adquisición
+    - Reporte de retención y churn
+  - **Exportación:**
+    - Exportar reportes a Excel/PDF
+    - Programar envío automático de reportes
+    - Dashboards personalizables
+  - **Comparativas:**
+    - Comparar períodos (mes actual vs anterior)
+    - Comparar vendedores
+    - Comparar segmentos de clientes
+
+  #### 10. Mobile CRM (PWA)
+  - **Acceso móvil:**
+    - Vista optimizada para móviles
+    - Acceso offline básico
+    - Notificaciones push
+  - **Funcionalidades móviles:**
+    - Ver perfil de cliente rápido
+    - Agregar notas desde campo
+    - Registrar llamadas/visitas
+    - Ver tareas del día
+    - Enviar presupuestos por WhatsApp
+
+- **Implementación técnica:**
+  - **Nuevas tablas necesarias:**
+    ```sql
+    -- Tareas y recordatorios
+    CREATE TABLE tareas_crm (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      cliente_id UUID REFERENCES clientes(id),
+      presupuesto_id UUID REFERENCES presupuestos(id),
+      titulo VARCHAR(200) NOT NULL,
+      descripcion TEXT,
+      asignado_a UUID REFERENCES usuarios(id),
+      prioridad VARCHAR(20) CHECK (prioridad IN ('alta', 'media', 'baja')),
+      estado VARCHAR(20) DEFAULT 'pendiente',
+      fecha_vencimiento TIMESTAMP,
+      completada_en TIMESTAMP,
+      creado_en TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Interacciones y comunicaciones
+    CREATE TABLE interacciones_cliente (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      cliente_id UUID REFERENCES clientes(id),
+      tipo VARCHAR(50) NOT NULL, -- 'llamada', 'email', 'whatsapp', 'reunion', 'nota'
+      descripcion TEXT,
+      usuario_id UUID REFERENCES usuarios(id),
+      fecha TIMESTAMP DEFAULT NOW(),
+      metadata JSONB -- Para almacenar datos adicionales según tipo
+    );
+
+    -- Documentos del cliente
+    CREATE TABLE documentos_cliente (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      cliente_id UUID REFERENCES clientes(id),
+      nombre_archivo VARCHAR(200) NOT NULL,
+      tipo_documento VARCHAR(50), -- 'contrato', 'factura', 'certificado', etc.
+      url_storage TEXT NOT NULL,
+      subido_por UUID REFERENCES usuarios(id),
+      creado_en TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Segmentos de clientes
+    CREATE TABLE segmentos_clientes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      nombre VARCHAR(100) NOT NULL,
+      descripcion TEXT,
+      reglas JSONB NOT NULL, -- Reglas para definir el segmento
+      activo BOOLEAN DEFAULT true,
+      creado_en TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Clientes en segmentos (relación muchos a muchos)
+    CREATE TABLE clientes_segmentos (
+      cliente_id UUID REFERENCES clientes(id),
+      segmento_id UUID REFERENCES segmentos_clientes(id),
+      asignado_en TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (cliente_id, segmento_id)
+    );
+
+    -- Scoring de clientes (historial)
+    CREATE TABLE scoring_clientes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      cliente_id UUID REFERENCES clientes(id),
+      score INTEGER NOT NULL, -- 0-100
+      factores JSONB, -- Desglose de factores que componen el score
+      calculado_en TIMESTAMP DEFAULT NOW()
+    );
+    ```
+
+  - **Vistas y funciones SQL:**
+    - Vista consolidada de perfil 360 del cliente
+    - Función para calcular scoring automático
+    - Función para detectar clientes en riesgo
+    - Función para predecir próxima compra
+
+  - **Integraciones:**
+    - n8n para automatizaciones de WhatsApp
+    - Google Calendar API para sincronización
+    - Email service (SendGrid, Resend) para emails
+    - Storage de Supabase para documentos
+
+- **Prioridades de implementación:**
+  - **Fase 1 - CRM Básico (Alta prioridad) - Dividida en entregables incrementales:**
+    
+    **Entregable 1.1: Perfil de Cliente Mejorado (Sprint 1 - 1-2 semanas)**
+    - Objetivo: Mejorar la página de detalle de cliente existente con información más completa
+    - Funcionalidades:
+      - Expandir vista actual de cliente con métricas básicas (LTV, frecuencia, ticket promedio)
+      - Agregar sección de "Métricas del Cliente" en la página existente
+      - Mejorar visualización de historial de presupuestos (agregar gráfico simple)
+      - Agregar badges de estado (Activo, Inactivo, VIP) basados en reglas simples
+    - Tablas necesarias: Ninguna nueva (usar datos existentes)
+    - Valor: Visión más completa del cliente sin cambios mayores
+    - Dependencias: Ninguna
+    
+    **Entregable 1.2: Sistema de Notas y Observaciones (Sprint 2 - 1 semana)**
+    - Objetivo: Permitir agregar y gestionar notas sobre clientes
+    - Funcionalidades:
+      - Agregar sección "Notas" en perfil de cliente
+      - Formulario para crear notas (texto simple)
+      - Lista de notas ordenadas por fecha (más recientes primero)
+      - Editar/eliminar notas propias
+      - Búsqueda en notas
+    - Tablas necesarias:
+      ```sql
+      CREATE TABLE notas_cliente (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        cliente_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
+        contenido TEXT NOT NULL,
+        usuario_id UUID REFERENCES usuarios(id),
+        creado_en TIMESTAMP DEFAULT NOW(),
+        actualizado_en TIMESTAMP DEFAULT NOW()
+      );
+      ```
+    - Valor: Capturar información importante sobre clientes
+    - Dependencias: Ninguna
+    
+    **Entregable 1.3: Timeline de Interacciones Básica (Sprint 3 - 1-2 semanas)**
+    - Objetivo: Mostrar línea de tiempo de interacciones con el cliente
+    - Funcionalidades:
+      - Timeline visual mostrando: presupuestos, notas, cambios de estado
+      - Filtros por tipo de interacción
+      - Orden cronológico (más recientes primero)
+      - Enlaces rápidos a presupuestos desde timeline
+    - Tablas necesarias: Ninguna nueva (usar datos existentes + notas_cliente)
+    - Valor: Ver historial completo de relación con cliente
+    - Dependencias: Entregable 1.2 (notas)
+    
+    **Entregable 1.4: Sistema de Tareas Básico (Sprint 4 - 2 semanas)**
+    - Objetivo: Permitir crear y gestionar tareas relacionadas con clientes
+    - Funcionalidades:
+      - Crear tareas desde perfil de cliente
+      - Lista de tareas pendientes/completadas
+      - Marcar tareas como completadas
+      - Asignar tareas a vendedores
+      - Fecha de vencimiento opcional
+      - Vista de "Mis Tareas" en dashboard
+    - Tablas necesarias:
+      ```sql
+      CREATE TABLE tareas_crm (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        cliente_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
+        presupuesto_id UUID REFERENCES presupuestos(id) ON DELETE SET NULL,
+        titulo VARCHAR(200) NOT NULL,
+        descripcion TEXT,
+        asignado_a UUID REFERENCES usuarios(id),
+        estado VARCHAR(20) DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'en_progreso', 'completada', 'cancelada')),
+        fecha_vencimiento TIMESTAMP,
+        completada_en TIMESTAMP,
+        creado_por UUID REFERENCES usuarios(id),
+        creado_en TIMESTAMP DEFAULT NOW()
+      );
+      ```
+    - Valor: No perder seguimientos importantes
+    - Dependencias: Ninguna
+    
+    **Entregable 1.5: Recordatorios Automáticos Básicos (Sprint 5 - 1-2 semanas)**
+    - Objetivo: Crear tareas automáticamente basadas en eventos
+    - Funcionalidades:
+      - Crear tarea automática cuando se envía presupuesto (seguimiento en X días)
+      - Crear tarea automática cuando presupuesto se aprueba (seguimiento post-entrega)
+      - Crear tarea automática para clientes inactivos (sin compras en X meses)
+      - Configuración de días para cada tipo de recordatorio
+    - Tablas necesarias: Ninguna nueva (usar tareas_crm)
+    - Funciones SQL: Triggers en presupuestos para crear tareas automáticas
+    - Valor: Automatizar seguimientos rutinarios
+    - Dependencias: Entregable 1.4 (tareas)
+    
+    **Entregable 1.6: Pipeline Kanban Básico (Sprint 6 - 2-3 semanas)**
+    - Objetivo: Visualizar presupuestos en tablero Kanban
+    - Funcionalidades:
+      - Tablero con columnas: Borrador, Enviado, Negociación, Aprobado, Rechazado
+      - Drag & drop para cambiar estado de presupuestos
+      - Filtros: por vendedor, por fecha, por monto
+      - Información en tarjeta: cliente, monto, fecha, vendedor
+      - Vista por vendedor o global
+    - Tablas necesarias: Ninguna nueva (usar presupuestos existente)
+    - Valor: Visualización clara del estado de ventas
+    - Dependencias: Ninguna
+    
+    **Entregable 1.7: Scoring Básico de Clientes (Sprint 7 - 1-2 semanas)**
+    - Objetivo: Calcular y mostrar score de valor de cada cliente
+    - Funcionalidades:
+      - Cálculo automático de score (0-100) basado en:
+        - Valor total de compras (40%)
+        - Frecuencia de compras (30%)
+        - Antigüedad (15%)
+        - Tasa de conversión (15%)
+      - Mostrar score en perfil de cliente
+      - Clasificación automática: A (80-100), B (50-79), C (0-49)
+      - Badge visual según clasificación
+    - Tablas necesarias:
+      ```sql
+      CREATE TABLE scoring_clientes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        cliente_id UUID REFERENCES clientes(id) ON DELETE CASCADE,
+        score INTEGER NOT NULL CHECK (score >= 0 AND score <= 100),
+        clasificacion VARCHAR(1) CHECK (clasificacion IN ('A', 'B', 'C')),
+        factores JSONB, -- Desglose de factores
+        calculado_en TIMESTAMP DEFAULT NOW()
+      );
+      ```
+    - Funciones SQL: Función para calcular score automáticamente
+    - Valor: Identificar clientes más valiosos
+    - Dependencias: Ninguna
+    
+    **Entregable 1.8: Segmentación Básica (Sprint 8 - 1 semana)**
+    - Objetivo: Crear segmentos predefinidos de clientes
+    - Funcionalidades:
+      - Segmentos predefinidos:
+        - Clientes VIP (score A)
+        - Clientes Activos (compras últimos 3 meses)
+        - Clientes en Riesgo (sin compras 6+ meses)
+        - Clientes Nuevos (primer compra últimos 30 días)
+      - Vista de lista por segmento
+      - Filtro por segmento en lista de clientes
+      - Contador de clientes por segmento
+    - Tablas necesarias: Ninguna nueva (usar scoring_clientes)
+    - Funciones SQL: Vistas para cada segmento
+    - Valor: Agrupar clientes para estrategias específicas
+    - Dependencias: Entregable 1.7 (scoring)
+    
+    **Entregable 1.9: Dashboard CRM Básico (Sprint 9 - 1-2 semanas)**
+    - Objetivo: Dashboard con métricas principales de CRM
+    - Funcionalidades:
+      - Cards con KPIs: Total clientes, Clientes activos, Nuevos este mes
+      - Gráfico de distribución por segmentos (pie chart)
+      - Lista de tareas pendientes
+      - Lista de clientes en riesgo
+      - Top 10 clientes por valor
+    - Tablas necesarias: Ninguna nueva
+    - Valor: Visión ejecutiva del estado del CRM
+    - Dependencias: Entregables 1.7 y 1.8 (scoring y segmentación)
+  
+  - **Fase 2 (Media prioridad):**
+    5. Comunicación integrada (WhatsApp, email)
+    6. Dashboard CRM ejecutivo avanzado
+    7. Reportes y analytics avanzados
+  - **Fase 3 (Baja prioridad):**
+    8. Análisis predictivo avanzado
+    9. Mobile CRM (PWA)
+    10. Integraciones avanzadas
+
+- **Plan de implementación recomendado:**
+  - **Sprint 1-2 (2-3 semanas):** Entregables 1.1 y 1.2 - Base sólida del perfil de cliente
+  - **Sprint 3 (1-2 semanas):** Entregable 1.3 - Timeline para ver historial
+  - **Sprint 4-5 (3-4 semanas):** Entregables 1.4 y 1.5 - Sistema de tareas y automatización
+  - **Sprint 6 (2-3 semanas):** Entregable 1.6 - Pipeline visual
+  - **Sprint 7-8 (2-3 semanas):** Entregables 1.7 y 1.8 - Scoring y segmentación
+  - **Sprint 9 (1-2 semanas):** Entregable 1.9 - Dashboard consolidado
+  
+  **Total estimado: 11-18 semanas (3-4.5 meses) para Fase 1 completa**
+  
+  **Alternativa rápida (MVP en 4-6 semanas):**
+  - Sprint 1: Entregable 1.1 (Perfil mejorado)
+  - Sprint 2: Entregable 1.2 (Notas)
+  - Sprint 3: Entregable 1.4 (Tareas básicas)
+  - Sprint 4: Entregable 1.6 (Pipeline Kanban)
+  
+  Esto daría un CRM funcional básico en 1 mes.
+
+- **Beneficios esperados:**
+  - Visión completa de cada cliente en un solo lugar
+  - Mejor seguimiento y no perder oportunidades
+  - Automatización de tareas repetitivas
+  - Mejor comunicación con clientes
+  - Datos para tomar decisiones informadas
+  - Aumento de tasa de conversión de presupuestos
+  - Mejor retención de clientes
+  - Optimización del tiempo de vendedores
+
+- **Casos de uso:**
+  - Vendedor ve perfil completo del cliente antes de llamar
+  - Sistema alerta automáticamente sobre cliente inactivo
+  - Gerente visualiza pipeline de ventas en tiempo real
+  - Envío automático de seguimiento post-venta
+  - Identificación de mejores clientes para ofertas especiales
+  - Análisis de efectividad de estrategias de seguimiento
+
 ---
 
 ## 🔗 Integraciones y Automatizaciones
