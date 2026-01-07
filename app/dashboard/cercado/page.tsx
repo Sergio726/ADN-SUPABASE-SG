@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, RefreshCw, Calculator, Filter, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, Edit, Eye, RefreshCw, Calculator, Filter, AlertCircle, CheckCircle2, ArrowUpDown, Columns, Circle, Gauge, Diamond, Zap, ToggleLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -505,10 +505,13 @@ export default function ConfiguracionesCercadoPage() {
                 <div className="flex-1 grid gap-2 md:grid-cols-4 lg:grid-cols-7">
                   <Select value={filtroAlturaFinal} onValueChange={setFiltroAlturaFinal}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Altura Final" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Altura Final" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todas las alturas</SelectItem>
+                      <SelectItem value="todos">Alturas</SelectItem>
                       {alturasUnicas.map((altura: any) => (
                         <SelectItem key={altura} value={altura.toString()}>
                           {altura}m
@@ -519,10 +522,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroTipoPoste} onValueChange={setFiltroTipoPoste}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Tipo Poste" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Columns className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Tipo Poste" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los tipos</SelectItem>
+                      <SelectItem value="todos">Tipos</SelectItem>
                       <SelectItem value="Olimp">Olimp</SelectItem>
                       <SelectItem value="Punta Diamante">Punta Diamante</SelectItem>
                       <SelectItem value="Eucalipto">Eucalipto</SelectItem>
@@ -531,10 +537,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroCordon} onValueChange={setFiltroCordon}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Cordón" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Cordón" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los cordones</SelectItem>
+                      <SelectItem value="todos">Cordones</SelectItem>
                       <SelectItem value="10cm">10cm</SelectItem>
                       <SelectItem value="15cm">15cm</SelectItem>
                       <SelectItem value="20cm">20cm</SelectItem>
@@ -544,10 +553,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroHilosPua} onValueChange={setFiltroHilosPua}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Hilos Púa" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Zap className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Hilos Púa" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los hilos</SelectItem>
+                      <SelectItem value="todos">Hilos</SelectItem>
                       <SelectItem value="0">0 hilos</SelectItem>
                       <SelectItem value="1">1 hilo</SelectItem>
                       <SelectItem value="2">2 hilos</SelectItem>
@@ -558,10 +570,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Calibre" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Gauge className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Calibre" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los calibres</SelectItem>
+                      <SelectItem value="todos">Calibres</SelectItem>
                       {calibresUnicos.map((calibre: any) => (
                         <SelectItem key={calibre} value={calibre.toString()}>
                           Cal. {calibre}
@@ -572,10 +587,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroRombo} onValueChange={setFiltroRombo}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Rombo" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Diamond className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Rombo" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los rombos</SelectItem>
+                      <SelectItem value="todos">Rombos</SelectItem>
                       {rombosUnicos.map((rombo: any) => (
                         <SelectItem key={rombo} value={rombo.toString()}>
                           {rombo}"
@@ -586,10 +604,13 @@ export default function ConfiguracionesCercadoPage() {
 
                   <Select value={filtroEstado} onValueChange={setFiltroEstado}>
                     <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Estado" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <ToggleLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <SelectValue placeholder="Estado" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos los estados</SelectItem>
+                      <SelectItem value="todos">Estados</SelectItem>
                       <SelectItem value="activos">Activos</SelectItem>
                       <SelectItem value="inactivos">Inactivos</SelectItem>
                     </SelectContent>
