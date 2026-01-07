@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Edit, Package, Hammer, Ruler, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Edit, Package, Hammer, Ruler, RefreshCw, AlertCircle, CheckCircle2, Calendar, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { recalcularPreciosCercado, esPrecioDesactualizado, diasDesdeActualizacion } from '@/lib/cercado-service'
 
 export default function VerConfiguracionCercadoPage() {
   const router = useRouter()
@@ -48,157 +49,13 @@ export default function VerConfiguracionCercadoPage() {
   }
 
   async function recalcularPrecios() {
+    if (!params?.id) return
+    
     try {
       setRecalculando(true)
-
-      // 1) Leer configuración base (con IDs) desde la tabla
-      const { data: cfg, error: errCfg } = await supabase
-        .from('configuraciones_cercado')
-        .select('*')
-        .eq('id', params?.id)
-        .single()
-      if (errCfg) throw errCfg
-
-      // 2) Precios actuales de tejido
-      let precioTejido = 0
-      let largoRollo = 10
-      if (cfg.tejido_config_id) {
-        const { data: t, error: errT } = await supabase
-          .from('tejidos_configuraciones')
-          .select('precio_venta, largo')
-          .eq('id', cfg.tejido_config_id)
-          .single()
-        if (errT) throw errT
-        precioTejido = t?.precio_venta || 0
-        largoRollo = t?.largo || 10
-      }
-      const rollosNecesarios = Math.ceil(180 / (largoRollo || 10))
-      const costoTejido = precioTejido * rollosNecesarios
-
-      // 3) Helper para artículo con precio vigente
-      const fetchArticuloVigente = async (articuloId: any) => {
-        if (!articuloId) return { precio_venta: 0, nombre: '', unidad: '' }
-        const { data: art } = await supabase
-          .from('articulos')
-          .select('id, nombre, unidad')
-          .eq('id', articuloId)
-          .maybeSingle()
-        const { data: pv } = await supabase
-          .from('precios_venta')
-          .select('precio_venta')
-          .eq('articulo_id', articuloId)
-          .eq('vigente', true)
-          .maybeSingle()
-        return { precio_venta: pv?.precio_venta || 0, nombre: art?.nombre || '', unidad: art?.unidad || '' }
-      }
-
-      // 3b) Servicios (mano de obra / transporte)
-      let precioManoObraMetro = cfg.precio_mano_obra_por_metro || 0
-      let precioTransporteMetro = cfg.precio_transporte_por_metro || 0
-      if (cfg.mano_obra_id) precioManoObraMetro = (await fetchArticuloVigente(cfg.mano_obra_id)).precio_venta || 0
-      if (cfg.transporte_id) precioTransporteMetro = (await fetchArticuloVigente(cfg.transporte_id)).precio_venta || 0
-
-      // 4) Postes (usar precio vigente si hay IDs)
-      const precioPoste = async (idCol: any, fallback: number) => {
-        if (!idCol) return fallback || 0
-        const a = await fetchArticuloVigente(idCol)
-        return a.precio_venta || fallback || 0
-      }
-      const nuevoPrecioEsquinero = await precioPoste(cfg.poste_esquinero_id, cfg.precio_poste_esquinero)
-      const nuevoPrecioRefuerzo = await precioPoste(cfg.poste_refuerzo_id, cfg.precio_poste_refuerzo)
-      const nuevoPrecioIntermedio = await precioPoste(cfg.poste_intermedio_id, cfg.precio_poste_intermedio)
-      const nuevoPrecioPuntal = await precioPoste(cfg.poste_puntal_id, cfg.precio_puntal)
-
-      const subtotalPostes =
-        (cfg.cantidad_postes_esquineros * nuevoPrecioEsquinero) +
-        (cfg.cantidad_postes_refuerzos * nuevoPrecioRefuerzo) +
-        (cfg.cantidad_postes_intermedios * nuevoPrecioIntermedio) +
-        (cfg.cantidad_puntales * nuevoPrecioPuntal)
-
-      // Púa (precio por metro desde artículo si existe)
-      let precioPuaMetro = cfg.precio_pua_por_metro || 0
-      if (cfg.pua_id) precioPuaMetro = (await fetchArticuloVigente(cfg.pua_id)).precio_venta || precioPuaMetro
-      const costoPua = 180 * (cfg.hilos_pua || 0) * (precioPuaMetro || 0)
-
-      // Accesorios unitarios
-      const precioUnitGanchos = cfg.ganchos_id ? (await fetchArticuloVigente(cfg.ganchos_id)).precio_venta : cfg.precio_unitario_ganchos
-      const precioUnitPlanch = cfg.planchuelas_id ? (await fetchArticuloVigente(cfg.planchuelas_id)).precio_venta : cfg.precio_unitario_planchuelas
-      const precioUnitTorn = cfg.torniquetes_id ? (await fetchArticuloVigente(cfg.torniquetes_id)).precio_venta : cfg.precio_unitario_torniquetes
-      const precioUnitEsp = cfg.esparragos_id ? (await fetchArticuloVigente(cfg.esparragos_id)).precio_venta : cfg.precio_unitario_esparragos
-
-      // Alambre A/R (deducir precio por metro si el artículo es por rollo)
-      let precioMetroAlambreAR = cfg.precio_metro_alambre_ar || 0
-      if (cfg.alambre_ar_id) {
-        const ar = await fetchArticuloVigente(cfg.alambre_ar_id)
-        const unidad = (ar.unidad || '').toLowerCase()
-        const nombre = (ar.nombre || '').toLowerCase()
-        if (unidad.includes('metro') || unidad === 'm') {
-          precioMetroAlambreAR = ar.precio_venta || precioMetroAlambreAR
-        } else {
-          const match = nombre.match(/(\d+)\s*m/) || nombre.match(/(\d+)\s*metros/)
-          const metros = match ? parseInt(match[1]) : 500
-          precioMetroAlambreAR = (ar.precio_venta || 0) / (metros || 500)
-        }
-      }
-
-      // Clavos y alambre negro (por kg)
-      const precioKgClavos = cfg.clavos_id ? (await fetchArticuloVigente(cfg.clavos_id)).precio_venta : cfg.precio_kg_clavos
-      const precioKgAlambreNegro = cfg.alambre_negro_id ? (await fetchArticuloVigente(cfg.alambre_negro_id)).precio_venta : cfg.precio_kg_alambre_negro
-
-      const subtotalAccesorios =
-        (cfg.cantidad_ganchos * (precioUnitGanchos || 0)) +
-        (cfg.cantidad_planchuelas * (precioUnitPlanch || 0)) +
-        (cfg.cantidad_torniquetes * (precioUnitTorn || 0)) +
-        (cfg.cantidad_esparragos * (precioUnitEsp || 0)) +
-        (cfg.metros_alambre_ar * (precioMetroAlambreAR || 0)) +
-        (cfg.kg_clavos * (precioKgClavos || 0)) +
-        (cfg.kg_alambre_negro * (precioKgAlambreNegro || 0))
-      const costoManoObra = 180 * (precioManoObraMetro || 0)
-      const costoTransporte = 180 * (precioTransporteMetro || 0)
-
-      // Cordón dinámico
-      let costoCordon = cfg.cordon_precio_total || 0
-      const precioArena = cfg.cordon_arena_id ? (await fetchArticuloVigente(cfg.cordon_arena_id)).precio_venta : 0
-      const precioRipio = cfg.cordon_ripio_id ? (await fetchArticuloVigente(cfg.cordon_ripio_id)).precio_venta : 0
-      const precioCemento = cfg.cordon_cemento_id ? (await fetchArticuloVigente(cfg.cordon_cemento_id)).precio_venta : 0
-      const arenaM3 = cfg.cordon_arena_m3 || 0
-      const ripioM3 = cfg.cordon_ripio_m3 || 0
-      const bolsasCem = cfg.cordon_cemento_bolsas || 0
-      if (cfg.cordon_tipo && (cfg.cordon_arena_id || cfg.cordon_ripio_id || cfg.cordon_cemento_id)) {
-        costoCordon = (arenaM3 * (precioArena || 0)) + (ripioM3 * (precioRipio || 0)) + (bolsasCem * (precioCemento || 0))
-      }
-
-      const total180 = (costoTejido || 0) + (subtotalPostes || 0) + (costoCordon || 0) + (costoPua || 0) + (subtotalAccesorios || 0) + (costoManoObra || 0) + (costoTransporte || 0)
-      const precioMetro = total180 / 180
-      const precioMetroMenor50 = precioMetro * 1.5
-
-      // 5) Actualizar configuración
-      const { error: errUpd } = await supabase
-        .from('configuraciones_cercado')
-        .update({
-          precio_mano_obra_por_metro: precioManoObraMetro,
-          precio_transporte_por_metro: precioTransporteMetro,
-          precio_poste_esquinero: nuevoPrecioEsquinero,
-          precio_poste_refuerzo: nuevoPrecioRefuerzo,
-          precio_poste_intermedio: nuevoPrecioIntermedio,
-          precio_puntal: nuevoPrecioPuntal,
-          precio_pua_por_metro: precioPuaMetro,
-          precio_metro_alambre_ar: precioMetroAlambreAR,
-          precio_kg_clavos: precioKgClavos,
-          precio_kg_alambre_negro: precioKgAlambreNegro,
-          precio_unitario_ganchos: precioUnitGanchos,
-          precio_unitario_planchuelas: precioUnitPlanch,
-          precio_unitario_torniquetes: precioUnitTorn,
-          precio_unitario_esparragos: precioUnitEsp,
-          cordon_precio_total: costoCordon,
-          precio_base_180m: total180,
-          precio_por_metro_lineal: precioMetro,
-          precio_por_metro_menor_50m: precioMetroMenor50,
-          actualizado_en: new Date().toISOString(),
-        })
-        .eq('id', cfg.id)
-      if (errUpd) throw errUpd
-
+      
+      await recalcularPreciosCercado(params.id as string)
+      
       toast({
         title: 'Recalculado',
         description: 'Se actualizaron los precios con valores vigentes.',
@@ -304,6 +161,93 @@ export default function VerConfiguracionCercadoPage() {
         </Card>
       </div>
 
+      {/* Información de Actualización */}
+      {configuracion && (() => {
+        const desactualizado = esPrecioDesactualizado(configuracion.actualizado_en)
+        const dias = diasDesdeActualizacion(configuracion.actualizado_en)
+        const fechaCreacion = configuracion.creado_en ? new Date(configuracion.creado_en).toLocaleDateString('es-AR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'N/A'
+        const fechaActualizacion = configuracion.actualizado_en ? new Date(configuracion.actualizado_en).toLocaleDateString('es-AR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }) : 'N/A'
+        
+        return (
+          <Card className={desactualizado ? 'border-destructive/50 bg-destructive/5' : 'border-green-200 bg-green-50/50'}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  {desactualizado ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <span>Precios Desactualizados</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <span>Precios Actualizados</span>
+                    </>
+                  )}
+                </CardTitle>
+                {desactualizado && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={recalcularPrecios}
+                    disabled={recalculando}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
+                    Recalcular Precios
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Fecha de creación:</span>
+                    <span className="font-medium">{fechaCreacion}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Última actualización:</span>
+                    <span className="font-medium">{fechaActualizacion}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {desactualizado ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-destructive font-medium">
+                        {dias !== null ? `Precios desactualizados hace ${dias} ${dias === 1 ? 'día' : 'días'}` : 'Precios sin actualizar'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-green-700 font-medium">
+                        {dias !== null ? `Precios actualizados hace ${dias} ${dias === 1 ? 'día' : 'días'}` : 'Precios al día'}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {desactualizado 
+                      ? 'Los precios de esta configuración tienen más de 30 días. Se recomienda recalcular para usar valores vigentes.'
+                      : 'Los precios están actualizados con los valores vigentes de los artículos.'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
       {/* Especificaciones Técnicas */}
       <Card>
         <CardHeader>
@@ -406,14 +350,6 @@ export default function VerConfiguracionCercadoPage() {
                       {configuracion.activo ? 'Activa' : 'Inactiva'}
                     </Badge>
                   </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Creado:</dt>
-                  <dd>{new Date(configuracion.creado_en).toLocaleDateString()}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Actualizado:</dt>
-                  <dd>{new Date(configuracion.actualizado_en).toLocaleDateString()}</dd>
                 </div>
               </dl>
             </div>

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import { Plus, Edit, Eye, RefreshCw, Calculator, Filter } from 'lucide-react'
+import { Plus, Edit, Eye, RefreshCw, Calculator, Filter, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -12,11 +12,14 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { recalcularPreciosCercado, esPrecioDesactualizado, diasDesdeActualizacion } from '@/lib/cercado-service'
 
 export default function ConfiguracionesCercadoPage() {
   const [configuraciones, setConfiguraciones] = useState<any[]>([])
-  const [configuracionesFiltradas, setConfiguracionesFiltradas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [recalculandoIds, setRecalculandoIds] = useState<Set<string>>(new Set())
+  const [dialogDesactualizadasAbierto, setDialogDesactualizadasAbierto] = useState(false)
   const { toast } = useToast()
 
   // Estados de filtros
@@ -28,15 +31,7 @@ export default function ConfiguracionesCercadoPage() {
   const [filtroCalibre, setFiltroCalibre] = useState('todos')
   const [filtroRombo, setFiltroRombo] = useState('todos')
 
-  useEffect(() => {
-    cargarConfiguraciones()
-  }, [])
-
-  useEffect(() => {
-    aplicarFiltros()
-  }, [configuraciones, filtroAlturaFinal, filtroTipoPoste, filtroCordon, filtroHilosPua, filtroEstado, filtroCalibre, filtroRombo])
-
-  async function cargarConfiguraciones() {
+  const cargarConfiguraciones = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -66,9 +61,13 @@ export default function ConfiguracionesCercadoPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  function aplicarFiltros() {
+  useEffect(() => {
+    cargarConfiguraciones()
+  }, [cargarConfiguraciones])
+
+  const configuracionesFiltradas = useMemo(() => {
     let resultado = [...configuraciones]
 
     // Filtro por altura final del cerco
@@ -115,10 +114,10 @@ export default function ConfiguracionesCercadoPage() {
       resultado = resultado.filter((c: any) => c.tamano_rombo === romboBuscado)
     }
 
-    setConfiguracionesFiltradas(resultado)
-  }
+    return resultado
+  }, [configuraciones, filtroAlturaFinal, filtroTipoPoste, filtroCordon, filtroHilosPua, filtroEstado, filtroCalibre, filtroRombo])
 
-  function limpiarFiltros() {
+  const limpiarFiltros = useCallback(() => {
     setFiltroAlturaFinal('todos')
     setFiltroTipoPoste('todos')
     setFiltroCordon('todos')
@@ -126,31 +125,69 @@ export default function ConfiguracionesCercadoPage() {
     setFiltroEstado('todos')
     setFiltroCalibre('todos')
     setFiltroRombo('todos')
-  }
+  }, [])
 
-  // Obtener valores únicos para los filtros
-  const alturasUnicas = Array.from(new Set(
+  const handleRecalcularPrecios = useCallback(async (configuracionId: string) => {
+    try {
+      setRecalculandoIds(prev => new Set(prev).add(configuracionId))
+      
+      await recalcularPreciosCercado(configuracionId)
+      
+      toast({
+        title: 'Precios recalculados',
+        description: 'Se actualizaron los precios con valores vigentes.',
+      })
+      
+      // Recargar la lista para reflejar los cambios
+      await cargarConfiguraciones()
+    } catch (error: any) {
+      console.error('Error al recalcular:', error)
+      toast({
+        title: 'Error al recalcular',
+        description: error.message || 'No fue posible actualizar los precios.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRecalculandoIds(prev => {
+        const nuevo = new Set(prev)
+        nuevo.delete(configuracionId)
+        return nuevo
+      })
+    }
+  }, [cargarConfiguraciones, toast])
+
+  // Calcular estadísticas de configuraciones desactualizadas (memoizado)
+  const configuracionesDesactualizadas = useMemo(() => 
+    configuraciones.filter((c: any) => esPrecioDesactualizado(c.actualizado_en)),
+    [configuraciones]
+  )
+  
+  const totalDesactualizadas = useMemo(() => configuracionesDesactualizadas.length, [configuracionesDesactualizadas])
+  const totalActualizadas = useMemo(() => configuraciones.length - totalDesactualizadas, [configuraciones.length, totalDesactualizadas])
+
+  // Obtener valores únicos para los filtros (memoizado)
+  const alturasUnicas = useMemo(() => Array.from(new Set(
     configuraciones
       .map((c: any) => c.altura_final_cerco ?? c.altura)
       .filter((alt: any) => alt != null)
       .sort((a: number, b: number) => b - a)
-  ))
+  )), [configuraciones])
 
-  const calibresUnicos = Array.from(new Set(
+  const calibresUnicos = useMemo(() => Array.from(new Set(
     configuraciones
       .map((c: any) => c.calibre)
       .filter((cal: any) => cal != null)
       .sort((a: number, b: number) => a - b)
-  ))
+  )), [configuraciones])
 
-  const rombosUnicos = Array.from(new Set(
+  const rombosUnicos = useMemo(() => Array.from(new Set(
     configuraciones
       .map((c: any) => c.tamano_rombo)
       .filter((rom: any) => rom != null)
       .sort((a: number, b: number) => b - a)
-  ))
+  )), [configuraciones])
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       accessorKey: 'nombre',
       header: ({ column }: any) => <SortableHeader column={column} title="Nombre" />,
@@ -235,6 +272,72 @@ export default function ConfiguracionesCercadoPage() {
       ),
     },
     {
+      id: 'actualizacion',
+      header: 'Actualización',
+      cell: ({ row }: any) => {
+        const desactualizado = esPrecioDesactualizado(row.original.actualizado_en)
+        const dias = diasDesdeActualizacion(row.original.actualizado_en)
+        const recalculando = recalculandoIds.has(row.original.id)
+        
+        if (desactualizado) {
+          return (
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="destructive" className="cursor-help">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {dias !== null ? `${dias} días` : 'Sin actualizar'}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Precios desactualizados (más de 30 días)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRecalcularPrecios(row.original.id)}
+                      disabled={recalculando}
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${recalculando ? 'animate-spin' : ''}`} />
+                      Recalcular
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Recalcular precios con valores vigentes</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )
+        }
+        
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="cursor-help">
+                  Actualizado
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {dias !== null 
+                    ? `Actualizado hace ${dias} ${dias === 1 ? 'día' : 'días'}`
+                    : 'Precios actualizados'}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      },
+    },
+    {
       id: 'acciones',
       header: 'Acciones',
       cell: ({ row }: any) => (
@@ -271,7 +374,7 @@ export default function ConfiguracionesCercadoPage() {
         </div>
       ),
     },
-  ]
+  ], [recalculandoIds, handleRecalcularPrecios])
 
   return (
     <div className="space-y-6">
@@ -335,122 +438,162 @@ export default function ConfiguracionesCercadoPage() {
             </div>
           ) : (
             <>
-              {/* Filtros */}
-              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1 grid gap-3 md:grid-cols-4 lg:grid-cols-7">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Altura Final</label>
-                    <Select value={filtroAlturaFinal} onValueChange={setFiltroAlturaFinal}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todas</SelectItem>
-                        {alturasUnicas.map((altura: any) => (
-                          <SelectItem key={altura} value={altura.toString()}>
-                            {altura}m
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Resumen de actualizaciones */}
+              <div className="grid gap-3 md:grid-cols-2">
+                <Card className="border-green-200 bg-green-50/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Actualizadas
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-2xl font-bold text-green-700">
+                            {totalActualizadas}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {configuraciones.length > 0 
+                              ? `${Math.round((totalActualizadas / configuraciones.length) * 100)}%`
+                              : '0%'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-green-200 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="h-5 w-5 text-green-700" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tipo Poste</label>
-                    <Select value={filtroTipoPoste} onValueChange={setFiltroTipoPoste}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="Olimp">Olimp</SelectItem>
-                        <SelectItem value="Punta Diamante">Punta Diamante</SelectItem>
-                        <SelectItem value="Eucalipto">Eucalipto</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <Card className={`${totalDesactualizadas > 0 ? 'border-destructive/50 bg-destructive/10' : 'border-green-200 bg-green-50/50'}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Desactualizadas
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <p className={`text-2xl font-bold ${totalDesactualizadas > 0 ? 'text-destructive' : 'text-green-700'}`}>
+                            {totalDesactualizadas}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {configuraciones.length > 0 
+                              ? `${Math.round((totalDesactualizadas / configuraciones.length) * 100)}%`
+                              : '0%'}
+                          </p>
+                        </div>
+                        {totalDesactualizadas > 0 && (
+                          <button
+                            onClick={() => setDialogDesactualizadasAbierto(true)}
+                            className="text-xs text-destructive hover:underline mt-1"
+                          >
+                            Ver detalles →
+                          </button>
+                        )}
+                      </div>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${totalDesactualizadas > 0 ? 'bg-destructive/20' : 'bg-green-200'}`}>
+                        <AlertCircle className={`h-5 w-5 ${totalDesactualizadas > 0 ? 'text-destructive' : 'text-green-700'}`} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Cordón</label>
-                    <Select value={filtroCordon} onValueChange={setFiltroCordon}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="10cm">10cm</SelectItem>
-                        <SelectItem value="15cm">15cm</SelectItem>
-                        <SelectItem value="20cm">20cm</SelectItem>
-                        <SelectItem value="Sin cordón">Sin cordón</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Filtros compactos */}
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 grid gap-2 md:grid-cols-4 lg:grid-cols-7">
+                  <Select value={filtroAlturaFinal} onValueChange={setFiltroAlturaFinal}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Altura Final" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas las alturas</SelectItem>
+                      {alturasUnicas.map((altura: any) => (
+                        <SelectItem key={altura} value={altura.toString()}>
+                          {altura}m
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Hilos Púa</label>
-                    <Select value={filtroHilosPua} onValueChange={setFiltroHilosPua}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="0">0 hilos</SelectItem>
-                        <SelectItem value="1">1 hilo</SelectItem>
-                        <SelectItem value="2">2 hilos</SelectItem>
-                        <SelectItem value="3">3 hilos</SelectItem>
-                        <SelectItem value="4">4 hilos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={filtroTipoPoste} onValueChange={setFiltroTipoPoste}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Tipo Poste" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los tipos</SelectItem>
+                      <SelectItem value="Olimp">Olimp</SelectItem>
+                      <SelectItem value="Punta Diamante">Punta Diamante</SelectItem>
+                      <SelectItem value="Eucalipto">Eucalipto</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Calibre</label>
-                    <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        {calibresUnicos.map((calibre: any) => (
-                          <SelectItem key={calibre} value={calibre.toString()}>
-                            Cal. {calibre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={filtroCordon} onValueChange={setFiltroCordon}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Cordón" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los cordones</SelectItem>
+                      <SelectItem value="10cm">10cm</SelectItem>
+                      <SelectItem value="15cm">15cm</SelectItem>
+                      <SelectItem value="20cm">20cm</SelectItem>
+                      <SelectItem value="Sin cordón">Sin cordón</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Rombo</label>
-                    <Select value={filtroRombo} onValueChange={setFiltroRombo}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        {rombosUnicos.map((rombo: any) => (
-                          <SelectItem key={rombo} value={rombo.toString()}>
-                            {rombo}"
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={filtroHilosPua} onValueChange={setFiltroHilosPua}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Hilos Púa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los hilos</SelectItem>
+                      <SelectItem value="0">0 hilos</SelectItem>
+                      <SelectItem value="1">1 hilo</SelectItem>
+                      <SelectItem value="2">2 hilos</SelectItem>
+                      <SelectItem value="3">3 hilos</SelectItem>
+                      <SelectItem value="4">4 hilos</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Estado</label>
-                    <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos</SelectItem>
-                        <SelectItem value="activos">Activos</SelectItem>
-                        <SelectItem value="inactivos">Inactivos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={filtroCalibre} onValueChange={setFiltroCalibre}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Calibre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los calibres</SelectItem>
+                      {calibresUnicos.map((calibre: any) => (
+                        <SelectItem key={calibre} value={calibre.toString()}>
+                          Cal. {calibre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filtroRombo} onValueChange={setFiltroRombo}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Rombo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los rombos</SelectItem>
+                      {rombosUnicos.map((rombo: any) => (
+                        <SelectItem key={rombo} value={rombo.toString()}>
+                          {rombo}"
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los estados</SelectItem>
+                      <SelectItem value="activos">Activos</SelectItem>
+                      <SelectItem value="inactivos">Inactivos</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -471,6 +614,112 @@ export default function ConfiguracionesCercadoPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog: Configuraciones Desactualizadas */}
+      <Dialog open={dialogDesactualizadasAbierto} onOpenChange={setDialogDesactualizadasAbierto}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Configuraciones Desactualizadas
+            </DialogTitle>
+            <DialogDescription>
+              {totalDesactualizadas} {totalDesactualizadas === 1 ? 'configuración' : 'configuraciones'} con precios de más de 30 días
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-4">
+            {configuracionesDesactualizadas.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <p className="text-muted-foreground">No hay configuraciones desactualizadas</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {configuracionesDesactualizadas.map((config: any) => {
+                  const dias = diasDesdeActualizacion(config.actualizado_en)
+                  const fechaActualizacion = config.actualizado_en 
+                    ? new Date(config.actualizado_en).toLocaleDateString('es-AR', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })
+                    : 'N/A'
+                  const recalculando = recalculandoIds.has(config.id)
+                  
+                  return (
+                    <Card key={config.id} className="border-destructive/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-2 mb-2">
+                              <h4 className="font-semibold text-sm">{config.nombre}</h4>
+                              <Badge variant="destructive" className="shrink-0">
+                                {dias !== null ? `${dias} días` : 'Sin actualizar'}
+                              </Badge>
+                            </div>
+                            {config.descripcion && (
+                              <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
+                                {config.descripcion}
+                              </p>
+                            )}
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Altura: </span>
+                                <span className="font-medium">
+                                  {config.altura_final_cerco ? `${config.altura_final_cerco}m` : `${config.altura}m`}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Precio/m: </span>
+                                <span className="font-medium text-green-600">
+                                  ${config.precio_por_metro_lineal?.toLocaleString() || 'N/A'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Tejido: </span>
+                                <span className="font-medium">
+                                  {config.tejido_codigo} (Cal.{config.calibre}, Rombo {config.tamano_rombo}")
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Última actualización: </span>
+                                <span className="font-medium">{fechaActualizacion}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRecalcularPrecios(config.id)}
+                              disabled={recalculando}
+                              className="w-full"
+                            >
+                              <RefreshCw className={`h-3 w-3 mr-2 ${recalculando ? 'animate-spin' : ''}`} />
+                              Recalcular
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="w-full"
+                            >
+                              <Link href={`/dashboard/cercado/${config.id}`}>
+                                <Eye className="h-3 w-3 mr-2" />
+                                Ver
+                              </Link>
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
