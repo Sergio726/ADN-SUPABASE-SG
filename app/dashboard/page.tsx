@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { Package, Building2, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler } from 'lucide-react'
+import { Package, Mail, AlertTriangle, Plus, ArrowRight, Calculator, Ruler, CheckSquare } from 'lucide-react'
 import { EntregasPendientesExpandido } from '@/components/EntregasPendientesExpandido'
 
 // Forzar renderizado dinámico porque usa cookies
@@ -11,18 +11,30 @@ export const dynamic = 'force-dynamic'
 
 async function getStats() {
   const supabase = createServerClient()
+  
+  // Obtener el usuario actual
+  const { data: { user } } = await supabase.auth.getUser()
+  
   const [
     { count: totalArticulos },
-    { count: totalProveedores },
     { count: totalLeads },
     { data: todosArticulos },
+    { data: tareas },
   ] = await Promise.all([
     supabase.from('articulos').select('*', { count: 'exact', head: true }),
-    supabase.from('proveedores').select('*', { count: 'exact', head: true }),
     supabase.from('leads').select('*', { count: 'exact', head: true }),
     supabase
       .from('articulos')
       .select('id, nombre, stock_actual, stock_minimo'),
+    // Obtener tareas del usuario actual desde la vista
+    user
+      ? supabase
+          .from('v_tareas_crm_completas')
+          .select('estado, estado_vencimiento')
+          .eq('asignado_a', user.id)
+          .in('estado', ['pendiente', 'en_progreso'])
+          .limit(1000)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   // Filtrar artículos con stock bajo (stock_actual <= stock_minimo)
@@ -30,11 +42,16 @@ async function getStats() {
     ?.filter(art => art.stock_actual <= art.stock_minimo)
     .slice(0, 5) || []
 
+  // Calcular estadísticas de tareas del usuario actual
+  const tareasPendientes = tareas?.filter(t => t.estado === 'pendiente').length || 0
+  const tareasVencidas = tareas?.filter(t => t.estado_vencimiento === 'vencida').length || 0
+
   return {
     totalArticulos: totalArticulos || 0,
-    totalProveedores: totalProveedores || 0,
     totalLeads: totalLeads || 0,
     articulosBajoStock,
+    tareasPendientes,
+    tareasVencidas,
   }
 }
 
@@ -89,7 +106,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -101,23 +118,6 @@ export default async function DashboardPage() {
             <div className="text-2xl font-bold">{stats.totalArticulos}</div>
             <Button variant="link" asChild className="px-0 mt-2">
               <Link href="/dashboard/articulos" className="flex items-center text-xs text-muted-foreground hover:text-primary">
-                Ver todos <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Proveedores
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProveedores}</div>
-            <Button variant="link" asChild className="px-0 mt-2">
-              <Link href="/dashboard/proveedores" className="flex items-center text-xs text-muted-foreground hover:text-primary">
                 Ver todos <ArrowRight className="ml-1 h-3 w-3" />
               </Link>
             </Button>
@@ -153,6 +153,28 @@ export default async function DashboardPage() {
             <p className="text-xs text-muted-foreground mt-2">
               Artículos por debajo del stock mínimo
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Tareas Pendientes
+            </CardTitle>
+            <CheckSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.tareasPendientes}</div>
+            <Button variant="link" asChild className="px-0 mt-2">
+              <Link href="/dashboard/tareas" className="flex items-center text-xs text-muted-foreground hover:text-primary">
+                Ver todas <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+            {stats.tareasVencidas > 0 && (
+              <p className="text-xs text-destructive mt-1">
+                {stats.tareasVencidas} vencidas
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
