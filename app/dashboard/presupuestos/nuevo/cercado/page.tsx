@@ -987,7 +987,7 @@ export default function NuevoPresupuestoCercadoPage() {
                               )}
                             </div>
                           ) : (
-                            <div className="p-1.5">
+                            <div className="p-1">
                               {configuracionesFiltradas.map((config) => (
                                 <div
                                   key={config.id}
@@ -995,7 +995,7 @@ export default function NuevoPresupuestoCercadoPage() {
                                     handleConfiguracionSeleccionada(config.id)
                                     setSelectorAbierto(false)
                                   }}
-                                  className={`relative flex cursor-pointer select-none items-center rounded-md px-2.5 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
+                                  className={`relative flex cursor-pointer select-none items-center rounded-md px-2 py-1 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
                                     formData.cercado_config_id === config.id ? 'bg-accent border border-primary/20' : ''
                                   }`}
                                 >
@@ -1007,7 +1007,7 @@ export default function NuevoPresupuestoCercadoPage() {
                                           {obtenerAltura(config)}m
                                         </Badge>
                                       </div>
-                                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                         <span className="text-[11px] text-muted-foreground">{config.tejido_codigo}</span>
                                         <span className="text-[10px] text-muted-foreground">•</span>
                                         <span className="text-[11px] text-muted-foreground">{config.tipo_poste}</span>

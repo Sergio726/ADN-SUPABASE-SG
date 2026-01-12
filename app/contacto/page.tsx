@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import HorariosAtencion from '@/components/HorariosAtencion'
 import { useToast } from '@/hooks/use-toast'
 
 export default function ContactoPage() {
@@ -302,20 +303,16 @@ export default function ContactoPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-brand-red rounded-full p-3 flex-shrink-0">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                    <div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-brand-red rounded-full p-3 flex-shrink-0">
+                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 text-lg">Horarios de Atención</h3>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Horarios</h3>
-                        <p className="text-gray-700">
-                          <strong>Lunes a Viernes:</strong> 10:00 - 14:00<br/>
-                          <strong>Sábados:</strong> 10:00 - 13:00<br/>
-                          <strong>Domingos:</strong> Cerrado
-                        </p>
-                      </div>
+                      <HorariosAtencion tipoAtencion="presencial" mostrarEstado={false} />
                     </div>
                   </div>
                 </div>

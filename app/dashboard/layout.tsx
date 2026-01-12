@@ -26,6 +26,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   CheckSquare,
+  Clock,
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -123,6 +124,7 @@ export default function DashboardLayout({
       setOpen: setAdministracionAbierto,
       links: [
         { name: 'Configuraciones', href: '/dashboard/configuraciones', icon: Settings },
+        { name: 'Horarios de Atención', href: '/dashboard/configuracion/horarios', icon: Clock },
         { name: 'Visitas Web', href: '/dashboard/visitas', icon: BarChart3 },
       ],
     },

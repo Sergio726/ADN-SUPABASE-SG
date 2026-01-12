@@ -1,3 +1,7 @@
+'use client'
+
+import HorariosAtencion from './HorariosAtencion'
+
 export default function Footer() {
   return (
     <footer className="bg-brand-black text-white py-12 mt-20">
@@ -62,11 +66,7 @@ export default function Footer() {
           
           <div>
             <h4 className="text-lg font-semibold mb-4 text-brand-red">Horarios</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li>Lunes a Viernes<br/><span className="text-white">10:00 - 14:00</span></li>
-              <li>Sábados<br/><span className="text-white">10:00 - 13:00</span></li>
-              <li>Domingos<br/><span className="text-white">Cerrado</span></li>
-            </ul>
+            <HorariosAtencion tipoAtencion="presencial" compacto={true} />
           </div>
         </div>
         
