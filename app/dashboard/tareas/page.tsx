@@ -6,7 +6,7 @@ import { TareaForm } from '@/components/TareaForm'
 import { useMisTareas } from '@/hooks/use-tareas'
 import { Button } from '@/components/ui/button'
 import { Plus, RefreshCw, CheckCircle2, Clock, AlertCircle, CheckSquare } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { TareaCRM, CrearTareaData, ActualizarTareaData } from '@/lib/tareas-service'
 import { useTareas } from '@/hooks/use-tareas'
 import {
@@ -77,6 +77,21 @@ export default function MisTareasPage() {
     }
   }
 
+  // Debug: ver qué datos llegan
+  useEffect(() => {
+    if (tareas.length > 0) {
+      console.log('=== DEBUG TAREAS ===')
+      console.log('Total tareas:', tareas.length)
+      console.log('Tareas:', tareas.map(t => ({ 
+        id: t.id?.slice(0, 8), 
+        estado: t.estado, 
+        estado_vencimiento: t.estado_vencimiento,
+        titulo: t.titulo?.slice(0, 30),
+        asignado_a: t.asignado_a?.slice(0, 8)
+      })))
+    }
+  }, [tareas])
+  
   const tareasPendientes = tareas.filter(t => t.estado === 'pendiente')
   const tareasEnProgreso = tareas.filter(t => t.estado === 'en_progreso')
   const tareasCompletadas = tareas.filter(t => t.estado === 'completada')
@@ -289,6 +304,21 @@ export default function MisTareasPage() {
               <Plus className="h-4 w-4 mr-2" />
               Crear primera tarea
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug: Tareas sin categorizar */}
+      {!loading && tareas.length > 0 && tareasPendientes.length === 0 && tareasEnProgreso.length === 0 && tareasCompletadas.length === 0 && (
+        <Card className="border-orange-500">
+          <CardContent className="py-6">
+            <p className="text-sm font-medium text-orange-600 mb-2">⚠️ Debug: {tareas.length} tareas encontradas pero ninguna coincide con los filtros</p>
+            <p className="text-xs text-muted-foreground mb-2">Estados encontrados: {[...new Set(tareas.map(t => t.estado || 'undefined'))].join(', ')}</p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              {tareas.slice(0, 3).map(t => (
+                <div key={t.id}>• {t.titulo} - estado: "{t.estado}" - venc: "{t.estado_vencimiento}"</div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
