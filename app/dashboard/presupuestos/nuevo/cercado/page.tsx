@@ -156,7 +156,7 @@ export default function NuevoPresupuestoCercadoPage() {
     
     // Otros
     validez_dias: '15',
-    observaciones: '',
+    observaciones: 'Se solicita el 50% del monto para iniciar la obra',
     condiciones_comerciales: 'Pago: Contado o transferencia\nIncluye materiales y mano de obra',
   })
 
@@ -973,8 +973,8 @@ export default function NuevoPresupuestoCercadoPage() {
                           </div>
                         </div>
 
-                        {/* Lista de esquemas compacta */}
-                        <div className="overflow-y-auto max-h-[calc(70vh-120px)]">
+                        {/* Lista de esquemas compacta - máximo 5 visibles */}
+                        <div className="overflow-y-auto max-h-[280px]">
                           {configuracionesFiltradas.length === 0 ? (
                             <div className="p-6 text-center text-sm text-muted-foreground">
                               {filtrosActivos || busquedaTexto ? (
