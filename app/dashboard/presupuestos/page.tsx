@@ -319,6 +319,54 @@ export default function PresupuestosPage() {
         clienteInfo = cliente
       }
 
+      // Cargar configuración de cercado si es tipo cercado
+      let configuracionCercado: any = null
+      let descripcionesPostes: any = {}
+      
+      if (presupuesto.tipo === 'cercado' && presupuesto.cercado_config_id) {
+        const { data: configData } = await supabase
+          .from('v_configuraciones_cercado_completas')
+          .select('*')
+          .eq('id', presupuesto.cercado_config_id)
+          .single()
+        
+        if (configData) {
+          configuracionCercado = configData
+          
+          // Cargar descripciones de los postes
+          const idsPostes = [
+            configData.poste_esquinero_id,
+            configData.poste_refuerzo_id,
+            configData.poste_intermedio_id,
+            configData.poste_puntal_id,
+          ].filter(Boolean)
+
+          if (idsPostes.length > 0) {
+            const { data: articulosPostes } = await supabase
+              .from('articulos')
+              .select('id, nombre, descripcion')
+              .in('id', idsPostes)
+
+            if (articulosPostes) {
+              articulosPostes.forEach((art: any) => {
+                if (configData.poste_esquinero_id === art.id) {
+                  descripcionesPostes.esquinero = art
+                }
+                if (configData.poste_refuerzo_id === art.id) {
+                  descripcionesPostes.refuerzo = art
+                }
+                if (configData.poste_intermedio_id === art.id) {
+                  descripcionesPostes.intermedio = art
+                }
+                if (configData.poste_puntal_id === art.id) {
+                  descripcionesPostes.puntal = art
+                }
+              })
+            }
+          }
+        }
+      }
+
       const presupuestoParaPdf = {
         ...presupuesto,
         cliente_nombre:
@@ -346,6 +394,30 @@ export default function PresupuestosPage() {
           clienteInfo?.numero_documento ||
           '',
         vendedor_nombre: vendedorNombre,
+        // Agregar configuración de cercado si existe
+        ...(presupuesto.tipo === 'cercado' && configuracionCercado && {
+          configuracion_cercado: {
+            nombre: configuracionCercado.nombre,
+            descripcion: configuracionCercado.descripcion,
+            altura: configuracionCercado.altura,
+            altura_final_cerco: configuracionCercado.altura_final_cerco,
+            precio_por_metro_lineal: configuracionCercado.precio_por_metro_lineal,
+            tejido_codigo: configuracionCercado.tejido_codigo,
+            calibre: configuracionCercado.calibre,
+            tamano_rombo: configuracionCercado.tamano_rombo,
+            tipo_poste: configuracionCercado.tipo_poste,
+            cordon_tipo: configuracionCercado.cordon_tipo,
+            hilos_pua: configuracionCercado.hilos_pua,
+            cantidad_ganchos: configuracionCercado.cantidad_ganchos,
+            cantidad_planchuelas: configuracionCercado.cantidad_planchuelas,
+            cantidad_torniquetes: configuracionCercado.cantidad_torniquetes,
+            cantidad_esparragos: configuracionCercado.cantidad_esparragos,
+            metros_alambre_ar: configuracionCercado.metros_alambre_ar,
+            kg_clavos: configuracionCercado.kg_clavos,
+            kg_alambre_negro: configuracionCercado.kg_alambre_negro,
+            descripciones_postes: descripcionesPostes,
+          }
+        })
       }
 
       const itemsParaPdf =
