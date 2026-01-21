@@ -711,7 +711,7 @@ export default function VerPresupuestoPage() {
     }
   }
 
-  function descargarPDF() {
+  async function descargarPDF() {
     try {
       const presupuestoPDF = { 
         ...presupuesto, 
@@ -741,7 +741,7 @@ export default function VerPresupuestoPage() {
         })
       }
       
-      generarPDFPresupuesto(presupuestoPDF, items)
+      await generarPDFPresupuesto(presupuestoPDF, items)
       toast({
         title: "¡PDF Generado!",
         description: "El presupuesto se ha descargado correctamente",

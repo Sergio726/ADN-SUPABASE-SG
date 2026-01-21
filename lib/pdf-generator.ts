@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import QRCode from 'qrcode'
 
 interface ConfiguracionCercado {
   nombre?: string
@@ -68,7 +69,7 @@ interface PresupuestoItem {
   precio_total: number
 }
 
-export function generarPDFPresupuesto(
+export async function generarPDFPresupuesto(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
@@ -742,39 +743,54 @@ export function generarPDFPresupuesto(
     doc.text(`Página ${i} de ${totalPages}`, pageWidth - margin, footerY + 8, { align: 'right' })
   }
   
-  // Nota: Para agregar un código QR real, necesitarías instalar una librería como 'qrcode'
-  // Por ahora, agregamos un placeholder visual en la primera página
+  // ===== CÓDIGO QR CON INFORMACIÓN DE CONTACTO =====
   doc.setPage(1)
-  const qrSize = 25
-  const qrX = pageWidth - margin - qrSize
-  const qrY = pageHeight - 45
+  const qrSize = 28
+  const qrX = pageWidth - margin - qrSize - 3
+  const qrY = pageHeight - 50
   
-  // Marco del QR
-  doc.setFillColor(...colores.blanco)
-  doc.setDrawColor(...colores.grisBorde)
-  doc.setLineWidth(0.5)
-  roundedRect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 8, 2, 'FD')
-  
-  // Placeholder visual del QR (patrón de cuadrados)
-  doc.setFillColor(...colores.grisOscuro)
-  const cellSize = qrSize / 7
-  // Patrón simple de QR visual
-  for (let row = 0; row < 7; row++) {
-    for (let col = 0; col < 7; col++) {
-      // Esquinas y patrón central
-      const isCorner = (row < 3 && col < 3) || (row < 3 && col > 3) || (row > 3 && col < 3)
-      const isPattern = (row + col) % 2 === 0
-      if (isCorner || isPattern) {
-        doc.rect(qrX + col * cellSize, qrY + row * cellSize, cellSize * 0.9, cellSize * 0.9, 'F')
+  // Datos de contacto en formato vCard
+  const vCardData = `BEGIN:VCARD
+VERSION:3.0
+FN:Alambres del Norte SRL
+TEL:+543877730393
+EMAIL:info@alambresdelnortesrl.com.ar
+URL:https://www.alambresdelnortesrl.com.ar
+NOTE:Presupuesto ${presupuesto.numero}
+END:VCARD`
+
+  try {
+    // Generar QR como Data URL
+    const qrDataUrl = await QRCode.toDataURL(vCardData, {
+      width: 200,
+      margin: 1,
+      color: {
+        dark: '#374151',  // Gris oscuro
+        light: '#ffffff'   // Blanco
       }
-    }
+    })
+    
+    // Marco del QR con borde sutil
+    doc.setFillColor(...colores.blanco)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.5)
+    roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 2, 'FD')
+    
+    // Línea de acento roja superior
+    doc.setFillColor(...colores.rojo)
+    doc.rect(qrX - 3, qrY - 3, qrSize + 6, 2, 'F')
+    
+    // Insertar el QR real
+    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+    
+    // Texto debajo del QR
+    doc.setFontSize(6)
+    doc.setTextColor(...colores.gris)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Escanear contacto', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' })
+  } catch (error) {
+    console.warn('No se pudo generar el código QR:', error)
   }
-  
-  // Texto debajo del QR
-  doc.setFontSize(6)
-  doc.setTextColor(...colores.gris)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Escanear', qrX + qrSize / 2, qrY + qrSize + 4, { align: 'center' })
 
   // Descargar
   const filename = `${presupuesto.numero.replace(/\//g, '-')}_${presupuesto.cliente_nombre.replace(
@@ -784,19 +800,19 @@ export function generarPDFPresupuesto(
   doc.save(filename)
 }
 
-export function generarPDFPresupuestoArticulos(
+export async function generarPDFPresupuestoArticulos(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
-  generarPDFPresupuesto(presupuesto, items)
+  await generarPDFPresupuesto(presupuesto, items)
 }
 
-export function generarPDFPresupuestoCercado(
+export async function generarPDFPresupuestoCercado(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
   // Mismo template, solo cambia el contenido
-  generarPDFPresupuesto(presupuesto, items)
+  await generarPDFPresupuesto(presupuesto, items)
 }
 
 /**

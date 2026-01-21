@@ -429,7 +429,7 @@ export default function PresupuestosPage() {
           precio_total: Number(item.precio_total) || 0,
         })) || []
 
-      generarPDFPresupuesto(presupuestoParaPdf, itemsParaPdf)
+      await generarPDFPresupuesto(presupuestoParaPdf, itemsParaPdf)
       toast({
         title: 'PDF generado',
         description: `Se descargó el presupuesto ${presupuesto.numero}`,
