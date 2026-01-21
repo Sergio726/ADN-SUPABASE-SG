@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { RefreshCw, Globe, Monitor, Smartphone, Tablet, Calendar, BarChart3, ChevronDown, ChevronUp, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import { RefreshCw, Globe, Monitor, Smartphone, Tablet, Calendar, BarChart3, ChevronDown, ChevronUp, ChevronsDownUp, ChevronsUpDown, Share2, Target, MousePointerClick, Phone, Mail, MessageSquare, FileDown } from 'lucide-react'
 import { DataTable } from '@/components/ui/data-table'
 import { SortableHeader } from '@/components/ui/sortable-header'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -42,12 +42,36 @@ interface DispositivoNavegador {
   porcentaje: number
 }
 
+interface FuenteTrafico {
+  fuente: string
+  total_visitas: number
+  visitas_unicas: number
+  porcentaje: number
+}
+
+interface EventoConversion {
+  tipo_evento: string
+  total_eventos: number
+  sesiones_unicas: number
+  porcentaje_conversion: number
+}
+
+interface ConversionPorFuente {
+  fuente: string
+  total_visitas: number
+  total_conversiones: number
+  tasa_conversion: number
+}
+
 export default function VisitasPage() {
   const [loading, setLoading] = useState(true)
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null)
   const [visitasPorDia, setVisitasPorDia] = useState<VisitaPorDia[]>([])
   const [paginasMasVisitadas, setPaginasMasVisitadas] = useState<PaginaMasVisitada[]>([])
   const [dispositivosNavegadores, setDispositivosNavegadores] = useState<DispositivoNavegador[]>([])
+  const [fuentesTrafico, setFuentesTrafico] = useState<FuenteTrafico[]>([])
+  const [eventosConversion, setEventosConversion] = useState<EventoConversion[]>([])
+  const [conversionesPorFuente, setConversionesPorFuente] = useState<ConversionPorFuente[]>([])
   const [rangoDias, setRangoDias] = useState('30')
   const { toast } = useToast()
   
@@ -55,6 +79,8 @@ export default function VisitasPage() {
   const [dispositivosAbierto, setDispositivosAbierto] = useState(true)
   const [visitasPorDiaAbierto, setVisitasPorDiaAbierto] = useState(true)
   const [paginasAbierto, setPaginasAbierto] = useState(true)
+  const [fuentesAbierto, setFuentesAbierto] = useState(true)
+  const [conversionesAbierto, setConversionesAbierto] = useState(true)
 
   useEffect(() => {
     cargarDatos()
@@ -107,6 +133,39 @@ export default function VisitasPage() {
 
       if (dispositivosError) throw dispositivosError
       setDispositivosNavegadores(dispositivos || [])
+
+      // Cargar fuentes de tráfico
+      const { data: fuentes, error: fuentesError } = await supabase
+        .rpc('obtener_estadisticas_por_fuente', {
+          fecha_desde: fechaDesde.toISOString(),
+          fecha_hasta: fechaHasta.toISOString(),
+        })
+
+      if (!fuentesError) {
+        setFuentesTrafico(fuentes || [])
+      }
+
+      // Cargar eventos de conversión
+      const { data: conversiones, error: conversionesError } = await supabase
+        .rpc('obtener_estadisticas_conversiones', {
+          fecha_desde: fechaDesde.toISOString(),
+          fecha_hasta: fechaHasta.toISOString(),
+        })
+
+      if (!conversionesError) {
+        setEventosConversion(conversiones || [])
+      }
+
+      // Cargar conversiones por fuente
+      const { data: convPorFuente, error: convFuenteError } = await supabase
+        .rpc('obtener_conversiones_por_fuente', {
+          fecha_desde: fechaDesde.toISOString(),
+          fecha_hasta: fechaHasta.toISOString(),
+        })
+
+      if (!convFuenteError) {
+        setConversionesPorFuente(convPorFuente || [])
+      }
 
     } catch (error: any) {
       console.error('Error al cargar datos:', error)
@@ -188,16 +247,58 @@ export default function VisitasPage() {
     setDispositivosAbierto(true)
     setVisitasPorDiaAbierto(true)
     setPaginasAbierto(true)
+    setFuentesAbierto(true)
+    setConversionesAbierto(true)
   }
   
   const colapsarTodo = () => {
     setDispositivosAbierto(false)
     setVisitasPorDiaAbierto(false)
     setPaginasAbierto(false)
+    setFuentesAbierto(false)
+    setConversionesAbierto(false)
   }
   
-  const todasExpandidas = dispositivosAbierto && visitasPorDiaAbierto && paginasAbierto
-  const todasColapsadas = !dispositivosAbierto && !visitasPorDiaAbierto && !paginasAbierto
+  const todasExpandidas = dispositivosAbierto && visitasPorDiaAbierto && paginasAbierto && fuentesAbierto && conversionesAbierto
+  const todasColapsadas = !dispositivosAbierto && !visitasPorDiaAbierto && !paginasAbierto && !fuentesAbierto && !conversionesAbierto
+
+  // Función para obtener ícono de tipo de evento
+  const getIconoEvento = (tipo: string) => {
+    switch (tipo) {
+      case 'click_whatsapp': return <MessageSquare className="h-4 w-4 text-green-600" />
+      case 'click_telefono': return <Phone className="h-4 w-4 text-blue-600" />
+      case 'envio_formulario': return <Mail className="h-4 w-4 text-purple-600" />
+      case 'descarga_catalogo': return <FileDown className="h-4 w-4 text-orange-600" />
+      case 'click_email': return <Mail className="h-4 w-4 text-red-600" />
+      default: return <MousePointerClick className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  // Función para obtener nombre legible de evento
+  const getNombreEvento = (tipo: string) => {
+    switch (tipo) {
+      case 'click_whatsapp': return 'Click en WhatsApp'
+      case 'click_telefono': return 'Click en Teléfono'
+      case 'envio_formulario': return 'Envío de Formulario'
+      case 'descarga_catalogo': return 'Descarga de Catálogo'
+      case 'click_email': return 'Click en Email'
+      default: return tipo
+    }
+  }
+
+  // Función para obtener color de fuente
+  const getColorFuente = (fuente: string) => {
+    switch (fuente.toLowerCase()) {
+      case 'google': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'facebook': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      case 'instagram': return 'bg-pink-100 text-pink-800 border-pink-200'
+      case 'whatsapp': return 'bg-green-100 text-green-800 border-green-200'
+      case 'directo': return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'email': return 'bg-red-100 text-red-800 border-red-200'
+      case 'twitter': return 'bg-sky-100 text-sky-800 border-sky-200'
+      default: return 'bg-slate-100 text-slate-800 border-slate-200'
+    }
+  }
 
   const columns = [
     {
@@ -491,6 +592,168 @@ export default function VisitasPage() {
                     searchKey="pathname"
                     searchPlaceholder="Buscar página..."
                   />
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Fuentes de Tráfico y Conversiones */}
+      <Collapsible open={fuentesAbierto} onOpenChange={setFuentesAbierto}>
+        <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-2">
+          {/* Fuentes de Tráfico */}
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="h-5 w-5" />
+                    Fuentes de Tráfico
+                  </div>
+                  {fuentesAbierto ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CardTitle>
+                <CardDescription>De dónde vienen tus visitantes</CardDescription>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="space-y-3">
+                  {fuentesTrafico.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay datos de fuentes de tráfico
+                    </p>
+                  ) : (
+                    fuentesTrafico.map((fuente, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={getColorFuente(fuente.fuente)}>
+                            {fuente.fuente.charAt(0).toUpperCase() + fuente.fuente.slice(1)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">
+                            {fuente.visitas_unicas.toLocaleString()} únicas
+                          </span>
+                          <Badge variant="secondary">{fuente.porcentaje}%</Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+
+          {/* Conversiones por Fuente */}
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Conversión por Fuente
+                  </div>
+                  {fuentesAbierto ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CardTitle>
+                <CardDescription>Tasa de conversión por origen</CardDescription>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="space-y-3">
+                  {conversionesPorFuente.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay datos de conversiones
+                    </p>
+                  ) : (
+                    conversionesPorFuente.filter(c => c.total_conversiones > 0).map((conv, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={getColorFuente(conv.fuente)}>
+                            {conv.fuente.charAt(0).toUpperCase() + conv.fuente.slice(1)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">
+                            {conv.total_conversiones} de {conv.total_visitas}
+                          </span>
+                          <Badge variant={conv.tasa_conversion > 5 ? "default" : "outline"} 
+                                 className={conv.tasa_conversion > 5 ? "bg-green-600" : ""}>
+                            {conv.tasa_conversion}%
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {conversionesPorFuente.filter(c => c.total_conversiones > 0).length === 0 && conversionesPorFuente.length > 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Aún no hay conversiones registradas
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </div>
+      </Collapsible>
+
+      {/* Eventos de Conversión */}
+      <Collapsible open={conversionesAbierto} onOpenChange={setConversionesAbierto}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MousePointerClick className="h-5 w-5" />
+                  Eventos de Conversión
+                </div>
+                {conversionesAbierto ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CardTitle>
+              <CardDescription>Clicks en WhatsApp, teléfono, formularios y más</CardDescription>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              {eventosConversion.length === 0 ? (
+                <div className="text-center py-8">
+                  <MousePointerClick className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    No hay eventos de conversión registrados
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Los eventos se registran cuando los visitantes hacen click en WhatsApp, teléfono o envían formularios
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {eventosConversion.map((evento, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      {getIconoEvento(evento.tipo_evento)}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{getNombreEvento(evento.tipo_evento)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {evento.total_eventos} eventos • {evento.sesiones_unicas} sesiones
+                        </p>
+                      </div>
+                      <Badge variant={evento.porcentaje_conversion > 2 ? "default" : "outline"}
+                             className={evento.porcentaje_conversion > 2 ? "bg-green-600" : ""}>
+                        {evento.porcentaje_conversion}%
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

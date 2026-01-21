@@ -76,6 +76,92 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
   - Comparativas entre períodos
   - Análisis de tendencias y proyecciones
 
+### Segmentación Avanzada de Leads/Visitas Web
+- **Fecha:** 2025-01-21
+- **Prioridad:** [Media]
+- **Estado:** [Parcial] ✅ UTM params y eventos de conversión implementados (2025-01-21)
+- **Descripción:**
+  - Sistema avanzado de segmentación de visitantes web para identificar leads calientes y analizar comportamiento.
+- **Funcionalidades implementadas:**
+  - ✅ Captura de UTM parameters (utm_source, utm_medium, utm_campaign, utm_content, utm_term)
+  - ✅ Categorización automática de referrer (Google, Facebook, Instagram, WhatsApp, directo, etc.)
+  - ✅ Eventos de conversión (clicks en WhatsApp, teléfono, formularios, descargas)
+  - ✅ Dashboard con fuentes de tráfico y tasas de conversión
+  - ✅ Funciones SQL para análisis por fuente y campaña
+- **Funcionalidades pendientes:**
+  - **Geolocalización:**
+    - Integrar servicio de GeoIP (ipinfo.io, MaxMind)
+    - Capturar país, ciudad/región
+    - Filtrar visitas por ubicación geográfica
+    - Mapa de calor geográfico
+  - **Métricas de Engagement:**
+    - Tasa de rebote (bounce rate)
+    - Páginas por sesión
+    - Profundidad de scroll
+    - Tiempo promedio real por sesión
+  - **Identificación de Leads Calientes:**
+    - Score de "interés" basado en comportamiento
+    - Alertas para visitantes con múltiples visitas a productos
+    - Identificar sesiones con alto tiempo de permanencia
+    - Dashboard de "leads calientes" del día
+  - **Segmentación por comportamiento:**
+    - Usuarios nuevos vs. recurrentes (mejorar lógica actual)
+    - Frecuencia de visita (1 vez, 2-5 veces, 5+ veces)
+    - Customer journey (ruta de páginas visitadas)
+    - Segmentos predefinidos (visitantes frecuentes, rebotes, converters)
+  - **Análisis Temporal:**
+    - Heatmap de visitas por hora del día
+    - Comparación entre días de la semana
+    - Tendencias mes a mes
+    - Comparar períodos (este mes vs. anterior)
+  - **Filtros Avanzados en Dashboard:**
+    - Filtro por fuente de tráfico
+    - Filtro por campaña UTM
+    - Filtro por dispositivo + fuente combinados
+    - Filtro por página específica
+    - Guardar filtros favoritos
+  - **Exportación Mejorada:**
+    - Exportar con filtros aplicados
+    - Incluir todos los campos (referrer, UTMs, eventos)
+    - Formato Excel además de CSV
+    - Datos crudos para herramientas externas (Google Analytics, etc.)
+- **Implementación técnica:**
+  - Tablas: `visitas_web` (actualizada con campos UTM), `eventos_conversion`
+  - Funciones SQL: `categorizar_referrer`, `obtener_estadisticas_por_fuente`, `obtener_estadisticas_conversiones`, `obtener_conversiones_por_fuente`
+  - Frontend: Dashboard actualizado con secciones de fuentes y conversiones
+  - Tracker: `lib/visitas-tracker.ts` con captura de UTM y tracking de eventos
+  - API: `/api/eventos` para registrar conversiones
+- **Funciones de tracking disponibles:**
+  ```typescript
+  // Importar desde lib/visitas-tracker.ts
+  import { 
+    trackClickWhatsApp, 
+    trackClickTelefono, 
+    trackEnvioFormulario, 
+    trackDescargaCatalogo,
+    trackClickEmail 
+  } from '@/lib/visitas-tracker'
+  
+  // Ejemplos de uso:
+  trackClickWhatsApp('3874123456', 'Consulta por producto')
+  trackClickTelefono('0800-123-4567')
+  trackEnvioFormulario('contacto', { nombre: 'Juan', email: 'juan@email.com' })
+  trackDescargaCatalogo('catalogo-2025.pdf')
+  trackClickEmail('ventas@empresa.com')
+  ```
+- **Beneficios esperados:**
+  - Identificar qué canales traen más leads de calidad
+  - Medir ROI de campañas publicitarias
+  - Optimizar inversión en marketing digital
+  - Detectar leads calientes para seguimiento prioritario
+  - Análisis de comportamiento de visitantes
+- **Próximos pasos:**
+  1. Implementar geolocalización con servicio GeoIP
+  2. Agregar métricas de engagement (bounce rate, páginas/sesión)
+  3. Crear sistema de scoring de leads
+  4. Implementar filtros avanzados en dashboard
+  5. Agregar análisis temporal (heatmaps por hora/día)
+
 ### Exportación de Datos y Listas
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
