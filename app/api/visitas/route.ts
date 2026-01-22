@@ -60,7 +60,20 @@ function parseUserAgent(userAgent: string): {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, pathname, referrer, sessionId, duration } = body
+    const { 
+      url, 
+      pathname, 
+      referrer, 
+      sessionId, 
+      duration,
+      // Nuevos campos UTM
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_content,
+      utm_term,
+      fuente_categorizada,
+    } = body
     
     // Validaciones básicas
     if (!url || !pathname) {
@@ -138,6 +151,26 @@ export async function POST(request: NextRequest) {
     }
     if (sistemaOperativo && sistemaOperativo !== 'unknown') {
       visitaData.sistema_operativo = String(sistemaOperativo).substring(0, 50)
+    }
+    
+    // Campos UTM
+    if (utm_source) {
+      visitaData.utm_source = String(utm_source).substring(0, 100)
+    }
+    if (utm_medium) {
+      visitaData.utm_medium = String(utm_medium).substring(0, 100)
+    }
+    if (utm_campaign) {
+      visitaData.utm_campaign = String(utm_campaign).substring(0, 200)
+    }
+    if (utm_content) {
+      visitaData.utm_content = String(utm_content).substring(0, 200)
+    }
+    if (utm_term) {
+      visitaData.utm_term = String(utm_term).substring(0, 200)
+    }
+    if (fuente_categorizada) {
+      visitaData.fuente_categorizada = String(fuente_categorizada).substring(0, 50)
     }
     
     const { data, error } = await supabase

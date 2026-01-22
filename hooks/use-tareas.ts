@@ -148,7 +148,7 @@ export function useTareas(options: UseTareasOptions = {}) {
 }
 
 /**
- * Hook para tareas pendientes del usuario actual
+ * Hook para tareas del usuario actual (incluye todas las tareas asignadas)
  */
 export function useMisTareas() {
   const { toast } = useToast()
@@ -165,7 +165,12 @@ export function useMisTareas() {
         return
       }
 
-      const data = await tareasService.obtenerTareasPendientesUsuario(user.id)
+      // Usar obtenerTareas con filtro de asignado_a para obtener TODOS los campos
+      // Incluir completadas para mostrar el historial
+      const data = await tareasService.obtenerTareas({
+        asignado_a: user.id,
+        incluir_completadas: true,
+      })
       setTareas(data)
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Error desconocido')

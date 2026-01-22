@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import QRCode from 'qrcode'
 
 interface ConfiguracionCercado {
   nombre?: string
@@ -68,464 +69,728 @@ interface PresupuestoItem {
   precio_total: number
 }
 
-export function generarPDFPresupuesto(
+export async function generarPDFPresupuesto(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  let yPos = 20
+  const margin = 15
+  const contentWidth = pageWidth - (margin * 2)
+  let yPos = 15
+
+  // Paleta de colores - Rojo como acento principal, fondos claros
+  const colores = {
+    // Rojo de marca (acento principal)
+    rojo: [220, 38, 38] as [number, number, number],
+    rojoOscuro: [185, 28, 28] as [number, number, number],
+    rojoClaro: [254, 226, 226] as [number, number, number],
+    rojoMuyClaro: [254, 242, 242] as [number, number, number],
+    // Neutros
+    grisOscuro: [55, 65, 81] as [number, number, number],
+    gris: [107, 114, 128] as [number, number, number],
+    grisClaro: [249, 250, 251] as [number, number, number],
+    grisBorde: [229, 231, 235] as [number, number, number],
+    blanco: [255, 255, 255] as [number, number, number],
+    // Acentos suaves (más claros para no competir con el rojo)
+    verdeExito: [34, 197, 94] as [number, number, number],
+    verdeMuyClaro: [240, 253, 244] as [number, number, number],
+    azulInfo: [59, 130, 246] as [number, number, number],
+    azulMuyClaro: [239, 246, 255] as [number, number, number],
+  }
 
   // Helper simple para evitar que algo quede muy abajo
   const ensureSpace = (needed: number = 40) => {
-    if (yPos + needed > pageHeight - 30) {
+    if (yPos + needed > pageHeight - 35) {
       doc.addPage()
       yPos = 20
     }
   }
 
+  // Helper para dibujar un rectángulo redondeado
+  const roundedRect = (x: number, y: number, w: number, h: number, r: number, style: 'F' | 'S' | 'FD' = 'F') => {
+    doc.roundedRect(x, y, w, h, r, r, style)
+  }
+
+  // ===== HEADER PROFESIONAL (Fondo blanco con línea roja) =====
+  // Fondo blanco del header
+  doc.setFillColor(...colores.blanco)
+  roundedRect(margin, yPos, contentWidth, 35, 0, 'F')
+  
+  // Línea roja decorativa superior
+  doc.setFillColor(...colores.rojo)
+  doc.rect(margin, yPos, contentWidth, 3, 'F')
+
+  // Logo de la empresa
   try {
     const logo = new Image()
     logo.src = '/logos/logo-color.png'
-    doc.addImage(logo, 'PNG', 15, yPos - 10, 40, 20)
-  } catch (error) {
-    console.warn('No se pudo cargar el logo para el PDF', error)
+    doc.addImage(logo, 'PNG', margin + 5, yPos + 8, 45, 22)
+  } catch {
+    doc.setFontSize(22)
+    doc.setTextColor(...colores.rojo)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ADN', margin + 8, yPos + 20)
+    doc.setFontSize(7)
+    doc.setTextColor(...colores.gris)
+    doc.text('ALAMBRES DEL NORTE SRL', margin + 8, yPos + 26)
   }
 
-  // ===== HEADER =====
-  doc.setFontSize(9)
-  doc.setTextColor(100, 100, 100)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Tu seguridad comienza con nosotros', 15, yPos + 15)
+  // Slogan debajo del logo
+  doc.setFontSize(8)
+  doc.setTextColor(...colores.gris)
+  doc.setFont('helvetica', 'italic')
+  doc.text('Tu seguridad comienza con nosotros', margin + 5, yPos + 33)
+
+  // Número de presupuesto (derecha, destacado con borde rojo)
+  const badgeWidth = 58
+  const badgeX = pageWidth - margin - badgeWidth
+  doc.setFillColor(...colores.rojoMuyClaro)
+  doc.setDrawColor(...colores.rojo)
+  doc.setLineWidth(1)
+  roundedRect(badgeX, yPos + 6, badgeWidth, 26, 3, 'FD')
   
-  // Número de presupuesto (derecha)
-  doc.setFontSize(12)
-  doc.setTextColor(0, 0, 0)
-  doc.setFont('helvetica', 'bold')
-  doc.text('PRESUPUESTO', pageWidth - 15, yPos, { align: 'right' })
+  doc.setFontSize(8)
+  doc.setTextColor(...colores.gris)
+  doc.setFont('helvetica', 'normal')
+  doc.text('PRESUPUESTO', badgeX + badgeWidth/2, yPos + 13, { align: 'center' })
   
   doc.setFontSize(14)
-  doc.setTextColor(220, 38, 38)
-  doc.text(presupuesto.numero, pageWidth - 15, yPos + 6, { align: 'right' })
+  doc.setTextColor(...colores.rojo)
+  doc.setFont('helvetica', 'bold')
+  doc.text(presupuesto.numero, badgeX + badgeWidth/2, yPos + 23, { align: 'center' })
+
+  // Fechas debajo del header
+  yPos += 40
+  doc.setFillColor(...colores.grisClaro)
+  doc.setDrawColor(...colores.grisBorde)
+  doc.setLineWidth(0.3)
+  roundedRect(margin, yPos, contentWidth, 12, 2, 'FD')
+  
+  const fechaEmision = new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR', { 
+    day: '2-digit', month: 'long', year: 'numeric' 
+  })
+  const fechaVenc = new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR', { 
+    day: '2-digit', month: 'long', year: 'numeric' 
+  })
   
   doc.setFontSize(9)
-  doc.setTextColor(100, 100, 100)
+  doc.setTextColor(...colores.grisOscuro)
   doc.setFont('helvetica', 'normal')
-  const fechaEmision = new Date(presupuesto.fecha_emision).toLocaleDateString('es-AR')
-  const fechaVenc = new Date(presupuesto.fecha_vencimiento).toLocaleDateString('es-AR')
-  doc.text(`Fecha: ${fechaEmision}`, pageWidth - 15, yPos + 12, { align: 'right' })
-  doc.text(`Vencimiento: ${fechaVenc}`, pageWidth - 15, yPos + 17, { align: 'right' })
+  doc.text(`Emisión: ${fechaEmision}`, margin + 5, yPos + 8)
+  doc.text(`Válido hasta: ${fechaVenc}`, pageWidth - margin - 5, yPos + 8, { align: 'right' })
   
-  yPos = 50
+  yPos += 18
 
-  // Línea separadora
-  doc.setDrawColor(220, 38, 38)
-  doc.setLineWidth(0.5)
-  doc.line(15, yPos, pageWidth - 15, yPos)
+  // ===== SECCIÓN CLIENTE (Fondo gris muy claro, título con acento rojo) =====
+  const clienteBoxHeight = 42
+  doc.setFillColor(...colores.grisClaro)
+  doc.setDrawColor(...colores.grisBorde)
+  doc.setLineWidth(0.3)
+  roundedRect(margin, yPos, contentWidth, clienteBoxHeight, 3, 'FD')
   
-  yPos += 10
-
-  // ===== DATOS DEL CLIENTE =====
-  doc.setFontSize(11)
-  doc.setTextColor(0, 0, 0)
+  // Título de sección con fondo rojo
+  doc.setFillColor(...colores.rojo)
+  roundedRect(margin, yPos, 70, 8, 3, 'F')
+  doc.setFontSize(9)
+  doc.setTextColor(...colores.blanco)
   doc.setFont('helvetica', 'bold')
-  doc.text('CLIENTE:', 15, yPos)
+  doc.text('DATOS DEL CLIENTE', margin + 5, yPos + 6)
   
-  yPos += 6
-  doc.setFontSize(10)
+  // Datos del cliente en 2 columnas
+  const col1X = margin + 5
+  const col2X = pageWidth / 2 + 5
+  let clienteY = yPos + 14
+  
+  doc.setFontSize(11)
+  doc.setTextColor(...colores.grisOscuro)
+  doc.setFont('helvetica', 'bold')
+  doc.text(presupuesto.cliente_nombre, col1X, clienteY)
+  
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text(presupuesto.cliente_nombre, 15, yPos)
   
   if (presupuesto.razon_social) {
-    yPos += 5
-    doc.text(`Razón social: ${presupuesto.razon_social}`, 15, yPos)
+    clienteY += 5
+    doc.text(presupuesto.razon_social, col1X, clienteY)
   }
 
   if (presupuesto.tipo_documento && presupuesto.numero_documento) {
-    yPos += 5
-    doc.text(`Documento: ${presupuesto.tipo_documento} ${presupuesto.numero_documento}`, 15, yPos)
+    clienteY += 5
+    doc.text(`${presupuesto.tipo_documento}: ${presupuesto.numero_documento}`, col1X, clienteY)
   }
-  
+
+  // Columna derecha - contacto
+  let contactoY = yPos + 14
   if (presupuesto.cliente_telefono) {
-    yPos += 5
-    doc.text(`Tel: ${presupuesto.cliente_telefono}`, 15, yPos)
+    doc.setTextColor(...colores.gris)
+    doc.text('Tel:', col2X, contactoY)
+    doc.setTextColor(...colores.grisOscuro)
+    doc.text(presupuesto.cliente_telefono, col2X + 12, contactoY)
+    contactoY += 5
   }
   
   if (presupuesto.cliente_email) {
-    yPos += 5
-    doc.text(`Email: ${presupuesto.cliente_email}`, 15, yPos)
+    doc.setTextColor(...colores.gris)
+    doc.text('Email:', col2X, contactoY)
+    doc.setTextColor(...colores.grisOscuro)
+    doc.text(presupuesto.cliente_email, col2X + 15, contactoY)
+    contactoY += 5
   }
   
   if (presupuesto.cliente_direccion) {
-    yPos += 5
-    doc.text(`Dirección: ${presupuesto.cliente_direccion}`, 15, yPos)
+    doc.setTextColor(...colores.gris)
+    doc.text('Dir:', col2X, contactoY)
+    doc.setTextColor(...colores.grisOscuro)
+    const direccionLines = doc.splitTextToSize(presupuesto.cliente_direccion, 70)
+    doc.text(direccionLines[0], col2X + 12, contactoY)
   }
 
-  if (presupuesto.vendedor_nombre) {
-    yPos += 7
-    doc.setFont('helvetica', 'bold')
-    doc.text('VENDEDOR:', 15, yPos)
-    doc.setFont('helvetica', 'normal')
-    doc.text(presupuesto.vendedor_nombre, 45, yPos)
-  }
-  
-  // Si es cercado, mostrar datos del terreno
-  if (presupuesto.tipo === 'cercado' && presupuesto.metros_lineales_total) {
-    yPos += 8
-    doc.setFont('helvetica', 'bold')
-    doc.text('TERRENO:', 15, yPos)
+  yPos += clienteBoxHeight + 5
+
+  // Vendedor y Terreno en línea horizontal
+  if (presupuesto.vendedor_nombre || (presupuesto.tipo === 'cercado' && presupuesto.metros_lineales_total)) {
+    doc.setFillColor(...colores.blanco)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.3)
+    roundedRect(margin, yPos, contentWidth, 10, 2, 'FD')
     
-    yPos += 6
-    doc.setFont('helvetica', 'normal')
-    if (presupuesto.terreno_largo && presupuesto.terreno_ancho) {
-      doc.text(`Dimensiones: ${presupuesto.terreno_largo}m × ${presupuesto.terreno_ancho}m`, 15, yPos)
-      yPos += 5
+    doc.setFontSize(9)
+    doc.setTextColor(...colores.grisOscuro)
+    
+    if (presupuesto.vendedor_nombre) {
+      doc.setFont('helvetica', 'bold')
+      doc.text('Vendedor:', margin + 5, yPos + 7)
+      doc.setFont('helvetica', 'normal')
+      doc.text(presupuesto.vendedor_nombre, margin + 28, yPos + 7)
     }
-    doc.text(`Perímetro total: ${presupuesto.metros_lineales_total} metros lineales`, 15, yPos)
-    yPos += 5
+    
+    if (presupuesto.tipo === 'cercado' && presupuesto.metros_lineales_total) {
+      doc.setFont('helvetica', 'bold')
+      doc.text('Terreno:', pageWidth / 2, yPos + 7)
+      doc.setFont('helvetica', 'normal')
+      let terrenoText = `${presupuesto.metros_lineales_total} m lineales`
+      if (presupuesto.terreno_largo && presupuesto.terreno_ancho) {
+        terrenoText = `${presupuesto.terreno_largo}m × ${presupuesto.terreno_ancho}m (${presupuesto.metros_lineales_total} m lineales)`
+      }
+      doc.text(terrenoText, pageWidth / 2 + 22, yPos + 7)
+    }
+    
+    yPos += 14
   }
 
-  // ===== DETALLE DEL CERCO PERIMETRAL (VERSIÓN COMERCIAL) =====
+  // ===== DETALLE DEL CERCO PERIMETRAL (VERSIÓN VISUAL CON CARDS) =====
   if (presupuesto.tipo === 'cercado' && presupuesto.configuracion_cercado) {
     const config = presupuesto.configuracion_cercado
 
     // Aseguramos espacio para el bloque
-    ensureSpace(70)
+    ensureSpace(80)
 
-    // Bloque de título
-    doc.setFillColor(245, 245, 245)
-    doc.rect(15, yPos, pageWidth - 30, 8, 'F')
-
+    // Título principal con fondo rojo
+    doc.setFillColor(...colores.rojo)
+    roundedRect(margin, yPos, contentWidth, 10, 2, 'F')
+    
     doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('DETALLE DEL CERCO PERIMETRAL', 20, yPos + 6)
+    doc.setTextColor(...colores.blanco)
+    doc.text('DETALLE DEL CERCO PERIMETRAL', margin + 5, yPos + 7)
+    
+    // Nombre del esquema
+    if (config.nombre) {
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.text(config.nombre, pageWidth - margin - 5, yPos + 7, { align: 'right' })
+    }
 
     yPos += 14
 
+    // ===== CARD 1: Características del Tejido (Fondo muy claro) =====
+    const cardHeight = 28
+    const cardWidth = (contentWidth - 4) / 2
+    
+    // Card izquierda - Tejido
+    doc.setFillColor(...colores.grisClaro)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.3)
+    roundedRect(margin, yPos, cardWidth, cardHeight, 2, 'FD')
+    
+    // Línea de acento roja en el título
+    doc.setFillColor(...colores.rojoClaro)
+    roundedRect(margin, yPos, cardWidth, 7, 2, 'F')
+    doc.setFontSize(8)
+    doc.setTextColor(...colores.rojoOscuro)
+    doc.setFont('helvetica', 'bold')
+    doc.text('TEJIDO ROMBOIDAL', margin + 3, yPos + 5)
+    
     doc.setFontSize(9)
+    doc.setTextColor(...colores.grisOscuro)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
+    
+    let tejidoY = yPos + 12
+    if (config.tejido_codigo) {
+      doc.setFont('helvetica', 'bold')
+      doc.text(config.tejido_codigo, margin + 3, tejidoY)
+      tejidoY += 5
+    }
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    const tejidoDetalles: string[] = []
+    if (config.calibre) tejidoDetalles.push(`Calibre ${config.calibre}`)
+    if (config.altura) tejidoDetalles.push(`${config.altura}m alto`)
+    if (config.tamano_rombo) tejidoDetalles.push(`Rombo ${config.tamano_rombo}"`)
+    doc.text(tejidoDetalles.join(' · '), margin + 3, tejidoY)
+    tejidoY += 4
+    doc.setTextColor(...colores.gris)
+    doc.text('Alambre galvanizado de alta durabilidad', margin + 3, tejidoY)
 
-    // ===== Características principales (en tono comercial) =====
+    // Card derecha - Altura y Seguridad
+    doc.setFillColor(...colores.grisClaro)
+    doc.setDrawColor(...colores.grisBorde)
+    roundedRect(margin + cardWidth + 4, yPos, cardWidth, cardHeight, 2, 'FD')
+    
+    doc.setFillColor(...colores.rojoClaro)
+    roundedRect(margin + cardWidth + 4, yPos, cardWidth, 7, 2, 'F')
+    doc.setFontSize(8)
+    doc.setTextColor(...colores.rojoOscuro)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('Características principales:', 15, yPos)
-    yPos += 5
-
+    doc.text('ALTURA Y SEGURIDAD', margin + cardWidth + 7, yPos + 5)
+    
+    doc.setFontSize(9)
+    doc.setTextColor(...colores.grisOscuro)
+    
+    let alturaY = yPos + 12
+    if (config.altura_final_cerco) {
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Altura final: ${config.altura_final_cerco}m`, margin + cardWidth + 7, alturaY)
+      alturaY += 5
+    }
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
-
-    const bulletLines: string[] = []
-
-    if (config.tejido_codigo || config.calibre || config.altura) {
-      let linea = 'Tejido romboidal de alambre galvanizado'
-      const detalles: string[] = []
-      if (config.tejido_codigo) detalles.push(config.tejido_codigo)
-      if (config.calibre) detalles.push(`Calibre ${config.calibre}`)
-      if (config.altura) detalles.push(`${config.altura} m de altura`)
-      if (detalles.length > 0) {
-        linea += ` (${detalles.join(' · ')})`
-      }
-      bulletLines.push(linea)
-    }
-
-   
-    if (config.cordon_tipo) {
-      bulletLines.push(`Cordón de hormigón armado (${config.cordon_tipo}) para mayor estabilidad`)
-    }
-
+    doc.setFontSize(8)
     if (typeof config.hilos_pua === 'number') {
-      if (config.hilos_pua > 0) {
-        bulletLines.push(`Alambre de púa de seguridad con ${config.hilos_pua} hilos`)
-      } else {
-        bulletLines.push('Opción sin alambre de púa (configurable según necesidad)')
-      }
+      const puaText = config.hilos_pua > 0 
+        ? `${config.hilos_pua} hilos de alambre de púa` 
+        : 'Sin alambre de púa'
+      doc.text(puaText, margin + cardWidth + 7, alturaY)
+      alturaY += 4
+    }
+    if (config.cordon_tipo && config.cordon_tipo !== 'Sin cordón') {
+      doc.setTextColor(...colores.gris)
+      doc.text(`Cordón: ${config.cordon_tipo}`, margin + cardWidth + 7, alturaY)
     }
 
-    if (config.altura_final_cerco && !bulletLines.find(l => l.includes('altura final'))) {
-      bulletLines.push(`Altura final estimada del cerco: ${config.altura_final_cerco} m`)
-    }
+    yPos += cardHeight + 4
 
-    doc.setTextColor(0, 0, 0)
-    bulletLines.forEach((text: string) => {
-      ensureSpace(6)
-      doc.text(`• ${text}`, 18, yPos)
-      yPos += 4
-    })
-
-    yPos += 5
-
-    // ===== Postes (detalle técnico pero claro) =====
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 0, 0)
-    doc.text('Postes incluidos:', 15, yPos)
-    yPos += 5
-
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(60, 60, 60)
-
+    // ===== CARD 2: Postes (Fondo claro con acento rojo) =====
     if (config.descripciones_postes) {
       const ds = config.descripciones_postes
-
-      const posteLines: string[] = []
-
-      if (ds.esquinero?.descripcion || ds.esquinero?.nombre) {
-        posteLines.push(`Esquineros: ${ds.esquinero.descripcion || ds.esquinero.nombre}`)
+      const tienePostes = ds.esquinero || ds.intermedio || ds.refuerzo || ds.puntal
+      
+      if (tienePostes) {
+        ensureSpace(30)
+        
+        doc.setFillColor(...colores.blanco)
+        doc.setDrawColor(...colores.grisBorde)
+        doc.setLineWidth(0.3)
+        roundedRect(margin, yPos, contentWidth, 26, 2, 'FD')
+        
+        // Borde izquierdo rojo como acento
+        doc.setFillColor(...colores.rojo)
+        doc.rect(margin, yPos, 3, 26, 'F')
+        
+        doc.setFontSize(8)
+        doc.setTextColor(...colores.rojo)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`POSTES ${config.tipo_poste ? `(${config.tipo_poste})` : ''}`, margin + 8, yPos + 6)
+        
+        doc.setFontSize(8)
+        doc.setTextColor(...colores.grisOscuro)
+        doc.setFont('helvetica', 'normal')
+        
+        // 2 columnas para los postes
+        const posteCol1X = margin + 8
+        const posteCol2X = pageWidth / 2
+        let posteY = yPos + 12
+        
+        if (ds.esquinero?.descripcion || ds.esquinero?.nombre) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Esquineros:', posteCol1X, posteY)
+          doc.setFont('helvetica', 'normal')
+          doc.text(ds.esquinero.descripcion || ds.esquinero.nombre || '', posteCol1X + 25, posteY)
+        }
+        if (ds.intermedio?.descripcion || ds.intermedio?.nombre) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Intermedios:', posteCol2X, posteY)
+          doc.setFont('helvetica', 'normal')
+          doc.text(ds.intermedio.descripcion || ds.intermedio.nombre || '', posteCol2X + 25, posteY)
+        }
+        
+        posteY += 5
+        if (ds.refuerzo?.descripcion || ds.refuerzo?.nombre) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Refuerzos:', posteCol1X, posteY)
+          doc.setFont('helvetica', 'normal')
+          doc.text(ds.refuerzo.descripcion || ds.refuerzo.nombre || '', posteCol1X + 25, posteY)
+        }
+        if (ds.puntal?.descripcion || ds.puntal?.nombre) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Puntales:', posteCol2X, posteY)
+          doc.setFont('helvetica', 'normal')
+          doc.text(ds.puntal.descripcion || ds.puntal.nombre || '', posteCol2X + 25, posteY)
+        }
+        
+        yPos += 30
       }
-      if (ds.intermedio?.descripcion || ds.intermedio?.nombre) {
-        posteLines.push(`Intermedios: ${ds.intermedio.descripcion || ds.intermedio.nombre}`)
-      }
-      if (ds.refuerzo?.descripcion || ds.refuerzo?.nombre) {
-        posteLines.push(`Refuerzos: ${ds.refuerzo.descripcion || ds.refuerzo.nombre}`)
-      }
-      if (ds.puntal?.descripcion || ds.puntal?.nombre) {
-        posteLines.push(`Puntales: ${ds.puntal.descripcion || ds.puntal.nombre}`)
-      }
-
-      posteLines.forEach((line: string) => {
-        ensureSpace(5)
-        doc.text(`• ${line}`, 18, yPos)
-        yPos += 4
-      })
     }
 
-    yPos += 5
-
-    // ===== Accesorios incluidos (2 columnas) =====
+    // ===== CARD 3: Accesorios incluidos =====
     const accesorios: string[] = []
     if (config.cantidad_ganchos && config.cantidad_ganchos > 0) accesorios.push('Ganchos tensores')
-    if (config.cantidad_planchuelas && config.cantidad_planchuelas > 0) accesorios.push('Planchuelas reforzadas')
+    if (config.cantidad_planchuelas && config.cantidad_planchuelas > 0) accesorios.push('Planchuelas')
     if (config.cantidad_torniquetes && config.cantidad_torniquetes > 0) accesorios.push('Torniquetes')
     if (config.cantidad_esparragos && config.cantidad_esparragos > 0) accesorios.push('Espárragos')
-    if (config.metros_alambre_ar && config.metros_alambre_ar > 0) accesorios.push('Alambre de alta resistencia')
+    if (config.metros_alambre_ar && config.metros_alambre_ar > 0) accesorios.push('Alambre AR')
     if (config.kg_clavos && config.kg_clavos > 0) accesorios.push('Clavos')
     if (config.kg_alambre_negro && config.kg_alambre_negro > 0) accesorios.push('Alambre negro')
 
     if (accesorios.length > 0) {
-      ensureSpace(40)
-
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 0, 0)
-      doc.text('Accesorios incluidos para la instalación completa:', 15, yPos)
-      yPos += 6
-
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(0, 0, 0)
-
-      const mitad = Math.ceil(accesorios.length / 2)
-      const col1 = accesorios.slice(0, mitad)
-      const col2 = accesorios.slice(mitad)
-
-      const x1 = 18
-      const x2 = pageWidth / 2 + 5
-
-      const maxItems = Math.max(col1.length, col2.length)
-      for (let i = 0; i < maxItems; i++) {
-        ensureSpace(5)
-        if (col1[i]) doc.text(`• ${col1[i]}`, x1, yPos)
-        if (col2[i]) doc.text(`• ${col2[i]}`, x2, yPos)
-        yPos += 4
-      }
-
-      yPos += 4
-
+      ensureSpace(18)
+      
+      doc.setFillColor(...colores.grisClaro)
+      doc.setDrawColor(...colores.grisBorde)
+      doc.setLineWidth(0.2)
+      roundedRect(margin, yPos, contentWidth, 14, 2, 'FD')
+      
       doc.setFontSize(8)
-      doc.setFont('helvetica', 'italic')
-      doc.setTextColor(90, 90, 90)
-      const nota = 'Incluimos todos los accesorios necesarios para que la instalación sea completa, segura y con una terminación prolija.'
-      const notaLines = doc.splitTextToSize(nota, pageWidth - 30)
-      notaLines.forEach((line: string) => {
-        ensureSpace(5)
-        doc.text(line, 15, yPos)
-        yPos += 4
-      })
+      doc.setTextColor(...colores.grisOscuro)
+      doc.setFont('helvetica', 'bold')
+      doc.text('ACCESORIOS INCLUIDOS:', margin + 3, yPos + 5)
+      
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(...colores.gris)
+      doc.text(accesorios.join(' • '), margin + 3, yPos + 11)
+      
+      yPos += 18
     }
 
-    // Volvemos a seteo por defecto para el resto
-    yPos += 6
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
+    // Nota final
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'italic')
+    doc.setTextColor(...colores.gris)
+    doc.text('* Instalación completa con todos los materiales necesarios para una terminación profesional.', margin, yPos)
+    
+    yPos += 8
   }
 
-  yPos += 8
+  yPos += 4
 
   // ===== TABLA DE ITEMS =====
-  ensureSpace(30)
-  doc.setFontSize(11)
-  doc.setFont('helvetica', 'bold')
-  doc.text('DETALLE:', 15, yPos)
+  ensureSpace(35)
   
-  yPos += 5
+  // Título de sección con rojo
+  doc.setFillColor(...colores.rojo)
+  roundedRect(margin, yPos, 50, 8, 2, 'F')
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...colores.blanco)
+  doc.text('DETALLE', margin + 5, yPos + 6)
+  
+  yPos += 12
 
   const tableData = items.map((item, index) => [
     (index + 1).toString(),
     item.descripcion,
-    item.cantidad.toLocaleString('es-AR'),
+    item.cantidad.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     item.unidad,
-    `$${item.precio_unitario.toLocaleString('es-AR')}`,
-    `$${item.precio_total.toLocaleString('es-AR')}`,
+    `$${item.precio_unitario.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$${item.precio_total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
   ])
 
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Descripción', 'Cant.', 'Unidad', 'P. Unit.', 'Total']],
+    head: [['#', 'Descripción', 'Cantidad', 'Unidad', 'P. Unitario', 'Total']],
     body: tableData,
-    theme: 'striped',
+    theme: 'plain',
     headStyles: {
-      fillColor: [220, 38, 38],
-      textColor: 255,
+      fillColor: colores.rojo,
+      textColor: colores.blanco,
       fontStyle: 'bold',
       fontSize: 9,
+      cellPadding: 4,
     },
     bodyStyles: {
       fontSize: 9,
+      cellPadding: 3,
+      textColor: colores.grisOscuro,
+    },
+    alternateRowStyles: {
+      fillColor: [252, 252, 252],
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: 'center' },
+      0: { cellWidth: 12, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 20, halign: 'right' },
-      3: { cellWidth: 20 },
-      4: { cellWidth: 30, halign: 'right' },
-      5: { cellWidth: 35, halign: 'right', fontStyle: 'bold' },
+      2: { cellWidth: 22, halign: 'right' },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 32, halign: 'right' },
+      5: { cellWidth: 35, halign: 'right', fontStyle: 'bold', textColor: colores.grisOscuro },
     },
-    margin: { left: 15, right: 15 },
+    margin: { left: margin, right: margin },
+    tableLineColor: colores.grisBorde,
+    tableLineWidth: 0.1,
   })
 
   // Obtener posición final de la tabla
-  yPos = (doc as any).lastAutoTable.finalY + 10
+  yPos = (doc as any).lastAutoTable.finalY + 8
 
-  // ===== TOTALES =====
-  const totalesX = pageWidth - 80
+  // ===== SECCIÓN DE TOTALES (BOX DESTACADO) =====
+  ensureSpace(55)
   
-  ensureSpace(40)
-  doc.setFontSize(10)
+  const totalesBoxWidth = 85
+  const totalesBoxX = pageWidth - margin - totalesBoxWidth
+  const totalesStartY = yPos
+  
+  // Calcular altura dinámica del box
+  let totalesHeight = 35 // Base
+  if (presupuesto.descuento > 0) totalesHeight += 8
+  const esEfectivo = presupuesto.forma_pago === 'efectivo'
+  if (!esEfectivo && presupuesto.total > 0) totalesHeight += 16
+
+  // Fondo del box de totales (blanco con borde gris)
+  doc.setFillColor(...colores.blanco)
+  doc.setDrawColor(...colores.grisBorde)
+  doc.setLineWidth(0.5)
+  roundedRect(totalesBoxX, totalesStartY, totalesBoxWidth, totalesHeight, 3, 'FD')
+  
+  let totalesY = totalesStartY + 8
+  const labelX = totalesBoxX + 5
+  const valueX = totalesBoxX + totalesBoxWidth - 5
+  
+  // Subtotal
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.setTextColor(0, 0, 0)
-  doc.text('Subtotal:', totalesX, yPos)
-  doc.text(`$${presupuesto.subtotal.toLocaleString('es-AR')}`, pageWidth - 15, yPos, {
-    align: 'right',
-  })
+  doc.setTextColor(...colores.grisOscuro)
+  doc.text('Subtotal:', labelX, totalesY)
+  doc.text(`$${presupuesto.subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, valueX, totalesY, { align: 'right' })
   
+  // Descuento
   if (presupuesto.descuento > 0) {
-    yPos += 6
-    doc.setTextColor(220, 38, 38)
-    doc.text('Descuento:', totalesX, yPos)
-    doc.text(`-$${presupuesto.descuento.toLocaleString('es-AR')}`, pageWidth - 15, yPos, {
-      align: 'right',
-    })
-    doc.setTextColor(0, 0, 0)
+    totalesY += 6
+    doc.setTextColor(...colores.rojo)
+    doc.text('Descuento:', labelX, totalesY)
+    doc.text(`-$${presupuesto.descuento.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, valueX, totalesY, { align: 'right' })
   }
   
   // Discriminación de IVA (21%) - Solo si NO es efectivo
-  const esEfectivo = presupuesto.forma_pago === 'efectivo'
   if (!esEfectivo && presupuesto.total > 0) {
-    yPos += 6
+    totalesY += 6
     const baseSinIva = presupuesto.total / 1.21
     const iva21 = baseSinIva * 0.21
-    doc.text('Base imponible (sin IVA):', totalesX, yPos)
-    doc.text(
-      `$${baseSinIva.toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
-      pageWidth - 15,
-      yPos,
-      { align: 'right' }
-    )
-    yPos += 6
-    doc.text('IVA 21%:', totalesX, yPos)
-    doc.text(
-      `$${iva21.toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
-      pageWidth - 15,
-      yPos,
-      { align: 'right' }
-    )
+    doc.setTextColor(...colores.gris)
+    doc.setFontSize(8)
+    doc.text('Neto gravado:', labelX, totalesY)
+    doc.text(`$${baseSinIva.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, valueX, totalesY, { align: 'right' })
+    totalesY += 5
+    doc.text('IVA 21%:', labelX, totalesY)
+    doc.text(`$${iva21.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, valueX, totalesY, { align: 'right' })
   }
   
-  yPos += 8
-  doc.setDrawColor(0, 0, 0)
+  // Línea separadora antes del total
+  totalesY += 5
+  doc.setDrawColor(...colores.gris)
   doc.setLineWidth(0.5)
-  doc.line(totalesX - 5, yPos - 3, pageWidth - 15, yPos - 3)
+  doc.line(labelX, totalesY, valueX, totalesY)
   
-  doc.setFontSize(12)
+  // TOTAL FINAL (destacado con fondo ROJO de marca)
+  totalesY += 3
+  const totalBoxY = totalesY
+  doc.setFillColor(...colores.rojo)
+  roundedRect(totalesBoxX + 2, totalBoxY, totalesBoxWidth - 4, 12, 2, 'F')
+  
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text('TOTAL:', totalesX, yPos + 4)
-  doc.setTextColor(34, 139, 34) // Verde
-  doc.setFontSize(14)
-  doc.text(`$${presupuesto.total.toLocaleString('es-AR')}`, pageWidth - 15, yPos + 4, {
-    align: 'right',
-  })
-  doc.setTextColor(0, 0, 0)
+  doc.setTextColor(...colores.blanco)
+  doc.text('TOTAL', labelX + 2, totalBoxY + 8)
+  doc.setFontSize(12)
+  doc.text(`$${presupuesto.total.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, valueX - 2, totalBoxY + 8, { align: 'right' })
   
-  yPos += 19
+  // Badge de forma de pago (a la izquierda del box de totales)
+  if (presupuesto.forma_pago) {
+    const formasPago: Record<string, string> = {
+      'efectivo': 'EFECTIVO',
+      'lista': 'FACTURA',
+      'tarjeta': 'TARJETA',
+      'echeq45': 'E-CHEQ 45D',
+      'echeq60': 'E-CHEQ 60D',
+      'echeq90': 'E-CHEQ 90D',
+    }
+    const formaPagoLabel = formasPago[presupuesto.forma_pago] || presupuesto.forma_pago.toUpperCase()
+    
+    doc.setFillColor(...colores.grisClaro)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.3)
+    roundedRect(margin, totalesStartY, 45, 14, 2, 'FD')
+    
+    doc.setFontSize(7)
+    doc.setTextColor(...colores.gris)
+    doc.setFont('helvetica', 'normal')
+    doc.text('FORMA DE PAGO', margin + 3, totalesStartY + 5)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...colores.rojo)
+    doc.text(formaPagoLabel, margin + 3, totalesStartY + 11)
+  }
+  
+  yPos = totalesStartY + totalesHeight + 8
 
   // ===== CONDICIONES COMERCIALES =====
-  if (presupuesto.condiciones_comerciales && yPos < pageHeight - 60) {
-    ensureSpace(40)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('CONDICIONES COMERCIALES:', 15, yPos)
+  if (presupuesto.condiciones_comerciales) {
+    ensureSpace(35)
     
-    yPos += 6
-    doc.setFontSize(9)
+    // Título con borde izquierdo rojo
+    doc.setFillColor(...colores.grisClaro)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.3)
+    roundedRect(margin, yPos, contentWidth, 6, 2, 'FD')
+    
+    // Borde izquierdo rojo como acento
+    doc.setFillColor(...colores.rojo)
+    doc.rect(margin, yPos, 2, 6, 'F')
+    
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...colores.grisOscuro)
+    doc.text('CONDICIONES COMERCIALES', margin + 6, yPos + 4)
+    
+    yPos += 10
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...colores.grisOscuro)
+    
     const condiciones = presupuesto.condiciones_comerciales.split('\n')
     condiciones.forEach((linea: string) => {
-      if (yPos < pageHeight - 30) {
-        doc.text(`• ${linea}`, 20, yPos)
-        yPos += 5
+      if (linea.trim() && yPos < pageHeight - 40) {
+        doc.setTextColor(...colores.rojo)
+        doc.text('▸', margin + 3, yPos)
+        doc.setTextColor(...colores.grisOscuro)
+        doc.text(linea.trim(), margin + 8, yPos)
+        yPos += 4
       }
     })
     
-    yPos += 5
+    yPos += 4
   }
 
   // ===== OBSERVACIONES =====
-  if (presupuesto.observaciones && yPos < pageHeight - 40) {
-    ensureSpace(40)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('OBSERVACIONES:', 15, yPos)
+  if (presupuesto.observaciones) {
+    ensureSpace(25)
     
-    yPos += 6
-    doc.setFontSize(9)
+    doc.setFillColor(...colores.rojoMuyClaro)
+    doc.setDrawColor(...colores.rojoClaro)
+    doc.setLineWidth(0.3)
+    
+    const obsLines = doc.splitTextToSize(presupuesto.observaciones, contentWidth - 10)
+    const obsBoxHeight = Math.max(16, 10 + (obsLines.length * 4))
+    
+    roundedRect(margin, yPos, contentWidth, obsBoxHeight, 2, 'FD')
+    
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...colores.rojo)
+    doc.text('OBSERVACIONES', margin + 3, yPos + 5)
+    
+    doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
-    const observaciones = doc.splitTextToSize(presupuesto.observaciones, pageWidth - 30)
-    doc.text(observaciones, 15, yPos)
-    yPos += observaciones.length * 5
+    doc.setTextColor(...colores.grisOscuro)
+    doc.text(obsLines, margin + 3, yPos + 11)
+    
+    yPos += obsBoxHeight + 4
   }
 
-  // ===== FOOTER DINÁMICO =====
-  doc.setFontSize(8)
-  doc.setTextColor(100, 100, 100)
-  doc.setFont('helvetica', 'italic')
-
-  // Si el contenido llegó muy abajo, manda el footer a una nueva página
-  if (yPos > pageHeight - 40) {
-    doc.addPage()
+  // ===== FOOTER PROFESIONAL EN TODAS LAS PÁGINAS =====
+  const totalPages = doc.getNumberOfPages()
+  
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    
+    const footerY = pageHeight - 20
+    
+    // Línea decorativa roja
+    doc.setDrawColor(...colores.rojo)
+    doc.setLineWidth(1.5)
+    doc.line(margin, footerY - 4, pageWidth - margin, footerY - 4)
+    
+    // Información de la empresa
+    doc.setFontSize(8)
+    doc.setTextColor(...colores.grisOscuro)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Alambres del Norte SRL', margin, footerY + 3)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...colores.gris)
+    doc.setFontSize(7)
+    doc.text('Tel: +54 387 773-0393 | info@alambresdelnortesrl.com.ar | www.alambresdelnortesrl.com.ar', margin, footerY + 8)
+    
+    // Validez (destacado en rojo)
+    doc.setFontSize(8)
+    doc.setTextColor(...colores.rojo)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Validez: ${presupuesto.validez_dias} días`, pageWidth - margin - 50, footerY + 3, { align: 'right' })
+    
+    // Número de página
+    doc.setTextColor(...colores.gris)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    doc.text(`Página ${i} de ${totalPages}`, pageWidth - margin, footerY + 8, { align: 'right' })
   }
   
-  const footerY = pageHeight - 20
-  doc.setDrawColor(0, 0, 0)
-  doc.setLineWidth(0.3)
-  doc.line(15, footerY - 5, pageWidth - 15, footerY - 5)
+  // ===== CÓDIGO QR CON INFORMACIÓN DE CONTACTO =====
+  doc.setPage(1)
+  const qrSize = 28
+  const qrX = pageWidth - margin - qrSize - 3
+  const qrY = pageHeight - 50
   
-  doc.text('Alambres del Norte SRL', pageWidth / 2, footerY, { align: 'center' })
-  doc.text(
-    'Tel: +54 387 77-3393 | Email: info@alambresdelnortesrl.com.ar',
-    pageWidth / 2,
-    footerY + 4,
-    { align: 'center' }
-  )
-  doc.text(`Validez: ${presupuesto.validez_dias} días`, pageWidth / 2, footerY + 8, {
-    align: 'center',
-  })
+  // Datos de contacto en formato vCard
+  const vCardData = `BEGIN:VCARD
+VERSION:3.0
+FN:Alambres del Norte SRL
+TEL:+543877730393
+EMAIL:info@alambresdelnortesrl.com.ar
+URL:https://www.alambresdelnortesrl.com.ar
+NOTE:Presupuesto ${presupuesto.numero}
+END:VCARD`
+
+  try {
+    // Generar QR como Data URL
+    const qrDataUrl = await QRCode.toDataURL(vCardData, {
+      width: 200,
+      margin: 1,
+      color: {
+        dark: '#374151',  // Gris oscuro
+        light: '#ffffff'   // Blanco
+      }
+    })
+    
+    // Marco del QR con borde sutil
+    doc.setFillColor(...colores.blanco)
+    doc.setDrawColor(...colores.grisBorde)
+    doc.setLineWidth(0.5)
+    roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 2, 'FD')
+    
+    // Línea de acento roja superior
+    doc.setFillColor(...colores.rojo)
+    doc.rect(qrX - 3, qrY - 3, qrSize + 6, 2, 'F')
+    
+    // Insertar el QR real
+    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+    
+    // Texto debajo del QR
+    doc.setFontSize(6)
+    doc.setTextColor(...colores.gris)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Escanear contacto', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' })
+  } catch (error) {
+    console.warn('No se pudo generar el código QR:', error)
+  }
 
   // Descargar
   const filename = `${presupuesto.numero.replace(/\//g, '-')}_${presupuesto.cliente_nombre.replace(
@@ -535,19 +800,19 @@ export function generarPDFPresupuesto(
   doc.save(filename)
 }
 
-export function generarPDFPresupuestoArticulos(
+export async function generarPDFPresupuestoArticulos(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
-  generarPDFPresupuesto(presupuesto, items)
+  await generarPDFPresupuesto(presupuesto, items)
 }
 
-export function generarPDFPresupuestoCercado(
+export async function generarPDFPresupuestoCercado(
   presupuesto: PresupuestoData,
   items: PresupuestoItem[]
 ) {
   // Mismo template, solo cambia el contenido
-  generarPDFPresupuesto(presupuesto, items)
+  await generarPDFPresupuesto(presupuesto, items)
 }
 
 /**
