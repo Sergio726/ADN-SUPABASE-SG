@@ -758,7 +758,7 @@ export async function generarPDFPresupuesto(
   doc.setPage(1)
   const qrSize = 28
   const qrX = pageWidth - margin - qrSize - 3
-  const qrY = pageHeight - 50
+  const qrY = pageHeight - 60
   
   // Datos de contacto en formato vCard
   const vCardData = `BEGIN:VCARD

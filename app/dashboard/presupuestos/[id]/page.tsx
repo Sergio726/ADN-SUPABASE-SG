@@ -2564,41 +2564,49 @@ export default function VerPresupuestoPage() {
               </div>
 
                 {/* Postes */}
-                <div>
+                <div className="overflow-hidden">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1 font-bold flex items-center gap-1.5">
                     <Columns className="h-3.5 w-3.5" />
                     Postes
                   </p>
                   <p className="font-bold text-foreground mb-1">{configuracionCercado.tipo_poste}</p>
-                  {(descripcionesPostes.esquinero || descripcionesPostes.intermedio) && (
-                    <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                  {(descripcionesPostes.esquinero || descripcionesPostes.intermedio || descripcionesPostes.refuerzo || descripcionesPostes.puntal) && (
+                    <div className="text-xs text-muted-foreground space-y-1.5 mt-2">
                       {descripcionesPostes.esquinero && (
-                        <p>
-                          <span className="font-bold">Esquineros:</span>{' '}
-                          {descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}
-                        </p>
+                        <div className="break-words">
+                          <span className="font-semibold text-foreground/80">Esquineros:</span>
+                          <p className="text-muted-foreground pl-2 truncate" title={descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}>
+                            {descripcionesPostes.esquinero.descripcion || descripcionesPostes.esquinero.nombre}
+                          </p>
+                        </div>
                       )}
                       {descripcionesPostes.intermedio && (
-                        <p>
-                          <span className="font-bold">Intermedios:</span>{' '}
-                          {descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}
-                        </p>
+                        <div className="break-words">
+                          <span className="font-semibold text-foreground/80">Intermedios:</span>
+                          <p className="text-muted-foreground pl-2 truncate" title={descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}>
+                            {descripcionesPostes.intermedio.descripcion || descripcionesPostes.intermedio.nombre}
+                          </p>
+                        </div>
                       )}
                       {descripcionesPostes.refuerzo && (
-                        <p>
-                          <span className="font-bold">Refuerzos:</span>{' '}
-                          {descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}
-                        </p>
+                        <div className="break-words">
+                          <span className="font-semibold text-foreground/80">Refuerzos:</span>
+                          <p className="text-muted-foreground pl-2 truncate" title={descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}>
+                            {descripcionesPostes.refuerzo.descripcion || descripcionesPostes.refuerzo.nombre}
+                          </p>
+                        </div>
                       )}
                       {descripcionesPostes.puntal && (
-                        <p>
-                          <span className="font-bold">Puntales:</span>{' '}
-                          {descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}
-                        </p>
+                        <div className="break-words">
+                          <span className="font-semibold text-foreground/80">Puntales:</span>
+                          <p className="text-muted-foreground pl-2 truncate" title={descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}>
+                            {descripcionesPostes.puntal.descripcion || descripcionesPostes.puntal.nombre}
+                          </p>
+                        </div>
                       )}
-                </div>
+                    </div>
                   )}
-              </div>
+                </div>
 
                 {/* Cordón */}
                 <div>
