@@ -387,16 +387,20 @@ export async function generarPDFPresupuesto(
       const tienePostes = ds.esquinero || ds.intermedio || ds.refuerzo || ds.puntal
       
       if (tienePostes) {
-        ensureSpace(30)
+        // Contar cuántos postes hay para calcular altura dinámica
+        const cantidadPostes = [ds.esquinero, ds.intermedio, ds.refuerzo, ds.puntal].filter(p => p?.descripcion || p?.nombre).length
+        const postesBoxHeight = 10 + (cantidadPostes * 5) // Título + líneas
+        
+        ensureSpace(postesBoxHeight + 5)
         
         doc.setFillColor(...colores.blanco)
         doc.setDrawColor(...colores.grisBorde)
         doc.setLineWidth(0.3)
-        roundedRect(margin, yPos, contentWidth, 26, 2, 'FD')
+        roundedRect(margin, yPos, contentWidth, postesBoxHeight, 2, 'FD')
         
         // Borde izquierdo rojo como acento
         doc.setFillColor(...colores.rojo)
-        doc.rect(margin, yPos, 3, 26, 'F')
+        doc.rect(margin, yPos, 3, postesBoxHeight, 'F')
         
         doc.setFontSize(8)
         doc.setTextColor(...colores.rojo)
@@ -405,41 +409,48 @@ export async function generarPDFPresupuesto(
         
         doc.setFontSize(8)
         doc.setTextColor(...colores.grisOscuro)
-        doc.setFont('helvetica', 'normal')
         
-        // 2 columnas para los postes
-        const posteCol1X = margin + 8
-        const posteCol2X = pageWidth / 2
+        // Una línea por cada tipo de poste
+        const posteX = margin + 8
+        const labelWidth = 25
         let posteY = yPos + 12
         
         if (ds.esquinero?.descripcion || ds.esquinero?.nombre) {
           doc.setFont('helvetica', 'bold')
-          doc.text('Esquineros:', posteCol1X, posteY)
+          doc.text('Esquineros:', posteX, posteY)
           doc.setFont('helvetica', 'normal')
-          doc.text(ds.esquinero.descripcion || ds.esquinero.nombre || '', posteCol1X + 25, posteY)
+          const textoEsquinero = doc.splitTextToSize(ds.esquinero.descripcion || ds.esquinero.nombre || '', contentWidth - labelWidth - 15)
+          doc.text(textoEsquinero[0], posteX + labelWidth, posteY)
+          posteY += 5
         }
+        
         if (ds.intermedio?.descripcion || ds.intermedio?.nombre) {
           doc.setFont('helvetica', 'bold')
-          doc.text('Intermedios:', posteCol2X, posteY)
+          doc.text('Intermedios:', posteX, posteY)
           doc.setFont('helvetica', 'normal')
-          doc.text(ds.intermedio.descripcion || ds.intermedio.nombre || '', posteCol2X + 25, posteY)
+          const textoIntermedio = doc.splitTextToSize(ds.intermedio.descripcion || ds.intermedio.nombre || '', contentWidth - labelWidth - 15)
+          doc.text(textoIntermedio[0], posteX + labelWidth, posteY)
+          posteY += 5
         }
         
-        posteY += 5
         if (ds.refuerzo?.descripcion || ds.refuerzo?.nombre) {
           doc.setFont('helvetica', 'bold')
-          doc.text('Refuerzos:', posteCol1X, posteY)
+          doc.text('Refuerzos:', posteX, posteY)
           doc.setFont('helvetica', 'normal')
-          doc.text(ds.refuerzo.descripcion || ds.refuerzo.nombre || '', posteCol1X + 25, posteY)
-        }
-        if (ds.puntal?.descripcion || ds.puntal?.nombre) {
-          doc.setFont('helvetica', 'bold')
-          doc.text('Puntales:', posteCol2X, posteY)
-          doc.setFont('helvetica', 'normal')
-          doc.text(ds.puntal.descripcion || ds.puntal.nombre || '', posteCol2X + 25, posteY)
+          const textoRefuerzo = doc.splitTextToSize(ds.refuerzo.descripcion || ds.refuerzo.nombre || '', contentWidth - labelWidth - 15)
+          doc.text(textoRefuerzo[0], posteX + labelWidth, posteY)
+          posteY += 5
         }
         
-        yPos += 30
+        if (ds.puntal?.descripcion || ds.puntal?.nombre) {
+          doc.setFont('helvetica', 'bold')
+          doc.text('Puntales:', posteX, posteY)
+          doc.setFont('helvetica', 'normal')
+          const textoPuntal = doc.splitTextToSize(ds.puntal.descripcion || ds.puntal.nombre || '', contentWidth - labelWidth - 15)
+          doc.text(textoPuntal[0], posteX + labelWidth, posteY)
+        }
+        
+        yPos += postesBoxHeight + 4
       }
     }
 
@@ -747,7 +758,7 @@ export async function generarPDFPresupuesto(
   doc.setPage(1)
   const qrSize = 28
   const qrX = pageWidth - margin - qrSize - 3
-  const qrY = pageHeight - 50
+  const qrY = pageHeight - 60
   
   // Datos de contacto en formato vCard
   const vCardData = `BEGIN:VCARD
