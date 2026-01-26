@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createServerClient } from '@/lib/supabaseServer'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
@@ -9,6 +9,10 @@ import Image from 'next/image'
 import { Package } from 'lucide-react'
 
 async function getArticulo(id: string) {
+  // Crear cliente de Supabase dentro de la función del servidor
+  // Las validaciones de variables de entorno están en createServerClient
+  const supabase = createServerClient()
+  
   const { data: articulo, error } = await supabase
     .from('articulos')
     .select(`
