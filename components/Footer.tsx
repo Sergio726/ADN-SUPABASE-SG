@@ -77,6 +77,22 @@ export default function Footer() {
               www.alambresdelnortesrl.com.ar
             </a>
           </p>
+          <p className="mt-4 text-sm flex items-center justify-center gap-2">
+            Creado por
+            <a
+              href="https://stlabs.ar/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity text-white"
+            >
+              <img
+                src="/logos/stlabs-logo.png"
+                alt="ST Labs"
+                className="h-5 w-auto"
+              />
+              <span>stlabs</span>
+            </a>
+          </p>
         </div>
       </div>
     </footer>
