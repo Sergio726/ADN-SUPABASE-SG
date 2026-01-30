@@ -213,7 +213,6 @@ export default function HomePage() {
       <section id="productos" className="py-16 sm:py-20 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <div className="inline-block w-16 h-1 bg-brand-red rounded-full mb-6" aria-hidden />
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
               Productos Destacados
             </h2>
@@ -267,7 +266,6 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-block w-16 h-1 bg-brand-red rounded-full mb-6" aria-hidden />
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
               Por Qué Elegirnos
             </h2>
@@ -349,7 +347,6 @@ export default function HomePage() {
       {/* Segmentación Empresas vs Particulares */}
       <section className="py-14 sm:py-16 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="inline-block w-16 h-1 bg-brand-red rounded-full mx-auto mb-8 block" aria-hidden />
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-900 mb-10 sm:mb-12 tracking-tight">
             ¿Qué tipo de proyecto tenés?
           </h2>
@@ -478,7 +475,6 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 bg-gradient-to-br from-brand-red to-brand-darkred text-white border-t-4 border-brand-darkred">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-block w-16 h-1 bg-white/50 rounded-full mb-6" aria-hidden />
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
               Nuestros Servicios
             </h2>
@@ -679,7 +675,6 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 bg-gradient-to-r from-brand-red to-brand-darkred text-white border-t-4 border-brand-darkred">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-12">
-            <div className="inline-block w-16 h-1 bg-white/50 rounded-full mb-6" aria-hidden />
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
               ¿Listo para empezar?
             </h2>
