@@ -400,7 +400,7 @@ Total: $65,445
 
 1. **Tejido Romboidal** (18 rollos para 180m)
 2. **Postes** (4 tipos: esquineros, refuerzos, intermedios, puntales)
-3. **Cordón de Hormigón** (sin cordón, 10cm, 15cm, 20cm)
+3. **Cordón de Hormigón** (sin cordón, 10cm, 15cm, 20cm, 30cm)
 4. **Alambre de Púa** (0-4 hilos)
 5. **Accesorios** (ganchos, planchuelas, torniquetes, etc.)
 6. **Mano de Obra** (por metro lineal)

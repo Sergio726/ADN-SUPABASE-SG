@@ -547,6 +547,7 @@ export default function ConfiguracionesCercadoPage() {
                       <SelectItem value="10cm">10cm</SelectItem>
                       <SelectItem value="15cm">15cm</SelectItem>
                       <SelectItem value="20cm">20cm</SelectItem>
+                      <SelectItem value="30cm">30cm</SelectItem>
                       <SelectItem value="Sin cordón">Sin cordón</SelectItem>
                     </SelectContent>
                   </Select>

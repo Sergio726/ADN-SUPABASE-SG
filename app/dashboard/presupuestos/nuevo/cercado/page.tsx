@@ -537,41 +537,41 @@ export default function NuevoPresupuestoCercadoPage() {
   }, [paso, clienteSeleccionado, formData.metros_lineales_total, configuracionSeleccionada])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" asChild>
+    <div className="space-y-6 px-2 sm:px-0 max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <Button variant="outline" asChild className="w-full sm:w-auto shrink-0">
           <Link href="/dashboard/presupuestos/nuevo/tipo">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Presupuesto de Cercado Perimetral</h1>
-          <p className="text-muted-foreground">Servicio completo de instalación</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold sm:text-3xl truncate">Presupuesto de Cercado Perimetral</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">Servicio completo de instalación</p>
         </div>
       </div>
 
       {/* Indicador de Pasos */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <div className="flex items-stretch justify-between gap-1 sm:gap-2">
             {pasos.map((p, index) => (
-              <div key={p.numero} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+              <div key={p.numero} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base shrink-0 ${
                     paso === p.numero ? 'bg-primary text-white' :
                     paso > p.numero ? 'bg-green-600 text-white' :
                     'bg-muted text-muted-foreground'
                   }`}>
-                    {paso > p.numero ? <CheckCircle className="h-6 w-6" /> : p.numero}
+                    {paso > p.numero ? <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6" /> : p.numero}
                   </div>
-                  <p className={`text-xs mt-2 font-medium ${paso === p.numero ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <p className={`text-[10px] sm:text-xs mt-1.5 sm:mt-2 font-medium text-center truncate w-full ${paso === p.numero ? 'text-primary' : 'text-muted-foreground'}`}>
                     {p.titulo}
                   </p>
-                  <p className="text-xs text-muted-foreground hidden md:block">{p.descripcion}</p>
+                  <p className="text-[10px] text-muted-foreground hidden md:block text-center">{p.descripcion}</p>
                 </div>
                 {index < pasos.length - 1 && (
-                  <div className={`h-0.5 flex-1 mx-2 ${paso > p.numero ? 'bg-green-600' : 'bg-muted'}`} />
+                  <div className={`h-0.5 flex-1 mx-0.5 sm:mx-2 shrink min-w-2 self-center ${paso > p.numero ? 'bg-green-600' : 'bg-muted'}`} />
                 )}
               </div>
             ))}
@@ -596,10 +596,10 @@ export default function NuevoPresupuestoCercadoPage() {
                     <BuscarCliente onClienteSeleccionado={handleClienteSeleccionado} />
                   ) : (
                     <div className="space-y-4">
-                      <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg">
-                        <p className="font-bold text-lg">{formData.cliente_nombre}</p>
-                        <p className="text-sm text-muted-foreground">Tel: {formData.cliente_telefono}</p>
-                        {formData.cliente_email && <p className="text-sm text-muted-foreground">Email: {formData.cliente_email}</p>}
+                      <div className="p-3 sm:p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+                        <p className="font-bold text-base sm:text-lg break-words">{formData.cliente_nombre}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-all">Tel: {formData.cliente_telefono}</p>
+                        {formData.cliente_email && <p className="text-xs sm:text-sm text-muted-foreground break-all">Email: {formData.cliente_email}</p>}
                       </div>
                       <Button
                         variant="outline"
@@ -649,12 +649,12 @@ export default function NuevoPresupuestoCercadoPage() {
                 </div>
 
                 {formData.metros_lineales_total && (
-                  <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
-                    <p className="text-sm text-blue-700 mb-1">Perímetro calculado:</p>
-                    <p className="text-3xl font-bold text-blue-900">
+                  <div className="p-3 sm:p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                    <p className="text-xs sm:text-sm text-blue-700 mb-1">Perímetro calculado:</p>
+                    <p className="text-xl sm:text-3xl font-bold text-blue-900 break-words">
                       {formData.metros_lineales_total} metros lineales
                     </p>
-                    <p className="text-xs text-blue-600 mt-2">
+                    <p className="text-[11px] sm:text-xs text-blue-600 mt-2 break-words">
                       Fórmula: 2 × (Largo + Ancho) = 2 × ({formData.terreno_largo} + {formData.terreno_ancho})
                     </p>
                   </div>
@@ -718,15 +718,15 @@ export default function NuevoPresupuestoCercadoPage() {
                       <Button
                         variant="outline"
                         role="combobox"
-                        className="w-full min-h-[4rem] py-3 h-auto justify-between text-left font-normal"
+                        className="w-full min-h-[3.5rem] sm:min-h-[4rem] py-2.5 sm:py-3 h-auto justify-between text-left font-normal text-sm sm:text-base"
                         id="esquema"
                       >
-                        <div className="flex items-center justify-between w-full pr-2">
+                        <div className="flex items-center justify-between w-full pr-2 gap-2 min-w-0">
                           {configuracionSeleccionada ? (
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="font-semibold truncate">{configuracionSeleccionada.nombre}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0 flex-col sm:flex-row sm:flex-wrap">
+                              <span className="font-semibold truncate w-full sm:w-auto text-left">{configuracionSeleccionada.nombre}</span>
                               {configuracionSeleccionada.precio_por_metro_lineal && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 shrink-0">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 shrink-0 text-xs">
                                   ${configuracionSeleccionada.precio_por_metro_lineal.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
@@ -735,18 +735,18 @@ export default function NuevoPresupuestoCercadoPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">Selecciona un esquema de cercado...</span>
+                            <span className="text-muted-foreground text-sm sm:text-base truncate">Selecciona un esquema...</span>
                           )}
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {filtrosActivos && filtrosActivosLabels.length > 0 && (
-                              <div className="flex items-center gap-1 flex-wrap">
+                              <div className="hidden sm:flex items-center gap-1 flex-wrap">
                                 {filtrosActivosLabels.slice(0, 2).map((label, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                  <Badge key={idx} variant="secondary" className="text-[10px] sm:text-xs">
                                     {label}
                                   </Badge>
                                 ))}
                                 {filtrosActivosLabels.length > 2 && (
-                                  <Badge variant="secondary" className="text-xs">
+                                  <Badge variant="secondary" className="text-[10px] sm:text-xs">
                                     +{filtrosActivosLabels.length - 2}
                                   </Badge>
                                 )}
@@ -757,13 +757,13 @@ export default function NuevoPresupuestoCercadoPage() {
                         </div>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[95vw] max-w-[900px] p-0" align="start" sideOffset={8}>
+                    <PopoverContent className="w-[calc(100vw-1rem)] max-w-[900px] p-0 sm:w-[95vw]" align="start" sideOffset={8}>
                       <div className="flex flex-col max-h-[70vh]">
                         {/* Header compacto con búsqueda y filtros en una sola línea */}
-                        <div className="p-3 border-b bg-gradient-to-r from-muted/40 to-muted/20 sticky top-0 z-10">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <div className="p-2 sm:p-3 border-b bg-gradient-to-r from-muted/40 to-muted/20 sticky top-0 z-10">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap">
                             {/* Búsqueda compacta */}
-                            <div className="relative flex-1 min-w-[200px]">
+                            <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px]">
                               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                               <Input
                                 placeholder="Buscar..."
@@ -946,7 +946,7 @@ export default function NuevoPresupuestoCercadoPage() {
                             </TooltipProvider>
 
                             {/* Botón limpiar y contador compacto */}
-                            <div className="flex items-center gap-1.5 ml-auto">
+                            <div className="flex items-center gap-1.5 ml-auto w-full sm:w-auto justify-end">
                               <span className="text-xs text-muted-foreground whitespace-nowrap">
                                 {configuracionesFiltradas.length}/{configuraciones.length}
                               </span>
@@ -973,8 +973,8 @@ export default function NuevoPresupuestoCercadoPage() {
                           </div>
                         </div>
 
-                        {/* Lista de esquemas compacta - máximo 5 visibles */}
-                        <div className="overflow-y-auto max-h-[280px]">
+                        {/* Lista de esquemas compacta - scroll en móvil */}
+                        <div className="overflow-y-auto max-h-[50vh] sm:max-h-[280px]">
                           {configuracionesFiltradas.length === 0 ? (
                             <div className="p-6 text-center text-sm text-muted-foreground">
                               {filtrosActivos || busquedaTexto ? (
@@ -1042,25 +1042,25 @@ export default function NuevoPresupuestoCercadoPage() {
                 </div>
 
                 {configuracionSeleccionada && (
-                  <div className="p-4 bg-muted/30 border-2 border-muted rounded-lg space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-foreground">{configuracionSeleccionada.nombre}</h3>
-                  </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge variant="outline" className="bg-background">
+                  <div className="p-3 sm:p-4 bg-muted/30 border-2 border-muted rounded-lg space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base sm:text-lg text-foreground break-words">{configuracionSeleccionada.nombre}</h3>
+                      </div>
+                      <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-background shrink-0">
                           {obtenerAltura(configuracionSeleccionada)}m
                         </Badge>
                         {configuracionSeleccionada.precio_por_metro_lineal && (
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             <p className="text-xs text-green-600 uppercase tracking-wide mb-1 font-bold">Precio por Metro</p>
-                            <p className="text-lg font-bold text-green-700">
+                            <p className="text-base sm:text-lg font-bold text-green-700">
                               ${formatearPrecio(configuracionSeleccionada.precio_por_metro_lineal)}
                             </p>
-                </div>
+                          </div>
                         )}
                       </div>
-                </div>
+                    </div>
 
                     <div className="grid gap-3 md:grid-cols-2 pt-3 border-t border-muted-foreground/20">
                       <div>
@@ -1217,24 +1217,24 @@ export default function NuevoPresupuestoCercadoPage() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="space-y-4">
-                          {/* Precio Base */}
-                          <div className="p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-muted-foreground/20">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Precio Base</p>
-                            <p className="text-sm font-medium text-muted-foreground mb-2">
-                              {formData.metros_lineales_total} metros × ${formatearPrecio(configuracionSeleccionada?.precio_por_metro_lineal)}/metro
-                            </p>
-                            <p className="text-2xl font-bold text-foreground">
-                              ${formData.precio_base.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </p>
-                          </div>
+                        {/* Precio Base */}
+                        <div className="p-3 sm:p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-muted-foreground/20">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Precio Base</p>
+                          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 break-words">
+                            {formData.metros_lineales_total} m × ${formatearPrecio(configuracionSeleccionada?.precio_por_metro_lineal)}/m
+                          </p>
+                          <p className="text-xl sm:text-2xl font-bold text-foreground break-all">
+                            ${formData.precio_base.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                        </div>
 
                           {/* Ajuste según forma de pago */}
-                          <div className={`p-4 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex-1">
+                          <div className={`p-3 sm:p-4 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+                              <div className="flex-1 min-w-0">
                                 <p className={`text-xs uppercase tracking-wide mb-1 ${formaPagoInfo.color}`}>
                                   Cálculo
                                 </p>
@@ -1245,8 +1245,8 @@ export default function NuevoPresupuestoCercadoPage() {
                                   {formaPago === 'efectivo' ? 'Sin IVA' : 'Incluye IVA 21%'}
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <p className={`text-2xl font-bold ${formaPagoInfo.color}`}>
+                              <div className="text-left sm:text-right shrink-0">
+                                <p className={`text-xl sm:text-2xl font-bold break-all ${formaPagoInfo.color}`}>
                                   ${formData.subtotal.toLocaleString(undefined, {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
@@ -1279,14 +1279,14 @@ export default function NuevoPresupuestoCercadoPage() {
                                 descuento: e.target.value,
                               }))
                             }}
-                            className="max-w-xs"
+                            className="w-full sm:max-w-xs"
                           />
                         </div>
 
                         {formData.descuento && parseFloat(formData.descuento) > 0 && (
-                          <div className="flex justify-between items-center p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg">
                             <span className="text-sm font-semibold text-red-700">Descuento:</span>
-                            <span className="text-xl font-bold text-red-700">                            -${formatearPrecio(parseFloat(formData.descuento))}</span>
+                            <span className="text-lg sm:text-xl font-bold text-red-700 break-all">-${formatearPrecio(parseFloat(formData.descuento))}</span>
                           </div>
                         )}
 
@@ -1298,19 +1298,19 @@ export default function NuevoPresupuestoCercadoPage() {
                         </div>
 
                         {/* Total Final */}
-                        <div className="flex justify-between items-center p-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow-sm">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow-sm">
                           <div>
-                            <p className="text-sm text-green-700 uppercase tracking-wide mb-1">Total Final</p>
-                            <p className="font-bold text-lg text-green-900">TOTAL A PAGAR</p>
+                            <p className="text-xs sm:text-sm text-green-700 uppercase tracking-wide mb-1">Total Final</p>
+                            <p className="font-bold text-base sm:text-lg text-green-900">TOTAL A PAGAR</p>
                           </div>
-                          <span className="text-4xl font-bold text-green-600">
+                          <span className="text-2xl sm:text-4xl font-bold text-green-600 break-all text-right">
                             ${formatearPrecio(formData.total)}
                           </span>
                         </div>
 
                         {/* Información adicional */}
                         <div className="pt-4 border-t space-y-3">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div className="p-2 bg-muted/20 rounded">
                               <p className="text-xs text-muted-foreground mb-1">Precio/Metro (base)</p>
                               <p className="text-sm font-semibold">
@@ -1353,26 +1353,26 @@ export default function NuevoPresupuestoCercadoPage() {
                     return (
                       <>
                         {/* Precio Base */}
-                        <div className="p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-muted-foreground/20">
+                        <div className="p-3 sm:p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-muted-foreground/20">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Precio Base</p>
-                          <p className="text-sm font-medium text-muted-foreground mb-2">
-                            {formData.metros_lineales_total} metros × ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
+                          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 break-words">
+                            {formData.metros_lineales_total} m × ${configuracionSeleccionada?.precio_por_metro_lineal?.toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
-                            })}/metro
+                            })}/m
                           </p>
-                          <p className="text-2xl font-bold text-foreground">
+                          <p className="text-xl sm:text-2xl font-bold text-foreground break-all">
                             ${formatearPrecio(formData.precio_base)}
                           </p>
                         </div>
 
                         {/* Forma de Pago Seleccionada */}
-                        <div className={`p-4 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
+                        <div className={`p-3 sm:p-4 rounded-lg border-2 ${formaPagoInfo.borderColor} ${formaPagoInfo.bgColor} transition-colors`}>
                           <p className={`text-xs uppercase tracking-wide mb-2 ${formaPagoInfo.color}`}>
                             Forma de Pago
                           </p>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex-1">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+                            <div className="flex-1 min-w-0">
                               <p className={`text-sm font-medium ${formaPagoInfo.color}`}>
                                 {formaPago === 'efectivo' ? 'Efectivo' : 
                                  formaPago === 'lista' ? 'Factura / Lista' :
@@ -1384,8 +1384,8 @@ export default function NuevoPresupuestoCercadoPage() {
                                 Precio Base × {factorFormaPago(formaPago).toFixed(2)} {formaPago === 'efectivo' ? '(sin IVA)' : '(incluye IVA 21%)'}
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className={`text-2xl font-bold ${formaPagoInfo.color}`}>
+                            <div className="text-left sm:text-right shrink-0">
+                              <p className={`text-xl sm:text-2xl font-bold break-all ${formaPagoInfo.color}`}>
                                 ${formatearPrecio(formData.subtotal)}
                               </p>
                             </div>
@@ -1394,9 +1394,9 @@ export default function NuevoPresupuestoCercadoPage() {
 
                         {/* Descuento */}
                         {formData.descuento && parseFloat(formData.descuento) > 0 && (
-                          <div className="flex justify-between items-center p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg">
                             <span className="text-sm font-semibold text-red-700">Descuento:</span>
-                            <span className="text-xl font-bold text-red-700">                            -${formatearPrecio(parseFloat(formData.descuento))}</span>
+                            <span className="text-lg sm:text-xl font-bold text-red-700 break-all">-${formatearPrecio(parseFloat(formData.descuento))}</span>
                           </div>
                         )}
 
@@ -1408,12 +1408,12 @@ export default function NuevoPresupuestoCercadoPage() {
                         </div>
 
                         {/* Total Final */}
-                        <div className="flex justify-between items-center p-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow-sm">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg shadow-sm">
                           <div>
-                            <p className="text-sm text-green-700 uppercase tracking-wide mb-1">Total Final</p>
-                            <p className="font-bold text-lg text-green-900">TOTAL A PAGAR</p>
+                            <p className="text-xs sm:text-sm text-green-700 uppercase tracking-wide mb-1">Total Final</p>
+                            <p className="font-bold text-base sm:text-lg text-green-900">TOTAL A PAGAR</p>
                           </div>
-                          <span className="text-4xl font-bold text-green-600">
+                          <span className="text-2xl sm:text-4xl font-bold text-green-600 break-all text-right">
                             ${formatearPrecio(formData.total)}
                           </span>
                         </div>
@@ -1433,17 +1433,17 @@ export default function NuevoPresupuestoCercadoPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-lg text-green-900">{configuracionSeleccionada.nombre}</h3>
+                    <div className="p-3 sm:p-4 bg-green-50 border-2 border-green-300 rounded-lg space-y-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-base sm:text-lg text-green-900 break-words">{configuracionSeleccionada.nombre}</h3>
                         </div>
-                        <Badge variant="outline" className="bg-white">
+                        <Badge variant="outline" className="bg-white shrink-0 w-fit">
                           {obtenerAltura(configuracionSeleccionada)}m
                         </Badge>
                       </div>
 
-                      <div className="grid gap-3 md:grid-cols-2 pt-3 border-t border-green-200">
+                      <div className="grid gap-3 sm:grid-cols-2 pt-3 border-t border-green-200">
                         <div>
                           <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Tejido</p>
                           <p className="font-semibold text-green-900">
@@ -1584,7 +1584,7 @@ export default function NuevoPresupuestoCercadoPage() {
                       type="number"
                       value={formData.validez_dias}
                       onChange={(e) => setFormData({ ...formData, validez_dias: e.target.value })}
-                      className="max-w-xs"
+                      className="w-full sm:max-w-xs"
                     />
                   </div>
 
@@ -1621,15 +1621,15 @@ export default function NuevoPresupuestoCercadoPage() {
                           descuento: e.target.value,
                         }))
                       }}
-                      className="max-w-xs"
+                      className="w-full sm:max-w-xs"
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              <Button onClick={handleSubmit} disabled={loading} size="lg" className="w-full">
-                <Save className="h-5 w-5 mr-2" />
-                {loading ? 'Guardando...' : 'Guardar Presupuesto'}
+              <Button onClick={handleSubmit} disabled={loading} size="lg" className="w-full min-h-12 sm:min-h-11">
+                <Save className="h-5 w-5 mr-2 shrink-0" />
+                <span className="truncate">{loading ? 'Guardando...' : 'Guardar Presupuesto'}</span>
               </Button>
             </div>
           )}
@@ -1638,23 +1638,25 @@ export default function NuevoPresupuestoCercadoPage() {
 
       {/* Navegación entre pasos */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex justify-between">
+        <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             <Button
               variant="outline"
               onClick={() => setPaso(paso - 1)}
               disabled={paso === 1}
+              className="w-full sm:w-auto min-h-11"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2 shrink-0" />
               Anterior
             </Button>
             {paso < 3 && (
               <Button
                 onClick={() => setPaso(paso + 1)}
                 disabled={!puedeAvanzar}
+                className="w-full sm:w-auto min-h-11"
               >
                 Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className="h-4 w-4 ml-2 shrink-0" />
               </Button>
             )}
           </div>

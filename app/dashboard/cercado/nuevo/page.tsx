@@ -592,8 +592,8 @@ export default function NuevaConfiguracionCercadoPage() {
   }
 
   // Calcular cantidades de materiales según tipo de cordón
+  // Proporción: 0.4 m³/cm (arena y ripio), 2.5 bolsas/cm (cemento) para 180m lineales
   function calcularCantidadesCordon(tipo: string): { arena: string, ripio: string, cemento: string } {
-    // Valores para 180m lineales
     switch (tipo) {
       case '10cm':
         return { arena: '4', ripio: '4', cemento: '25' }
@@ -601,6 +601,8 @@ export default function NuevaConfiguracionCercadoPage() {
         return { arena: '6', ripio: '6', cemento: '37.5' }
       case '20cm':
         return { arena: '8', ripio: '8', cemento: '50' }
+      case '30cm':
+        return { arena: '12', ripio: '12', cemento: '75' }
       default:
         return { arena: '0', ripio: '0', cemento: '0' }
     }
@@ -1377,6 +1379,7 @@ export default function NuevaConfiguracionCercadoPage() {
                       <SelectItem value="10cm">10 cm</SelectItem>
                       <SelectItem value="15cm">15 cm</SelectItem>
                       <SelectItem value="20cm">20 cm</SelectItem>
+                      <SelectItem value="30cm">30 cm</SelectItem>
                     </SelectContent>
                   </Select>
                 <p className="text-xs text-muted-foreground">
