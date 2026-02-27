@@ -33,6 +33,11 @@ export default function VerPresupuestoPage() {
   const [itemsAbiertos, setItemsAbiertos] = useState(true)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [editCercado, setEditCercado] = useState({
+    metros_lineales: '',
+    descuento: '0',
+    incremento: '0',
+  })
   const [articulos, setArticulos] = useState<any[]>([])
   const [tejidos, setTejidos] = useState<any[]>([])
   const [configuracionCercado, setConfiguracionCercado] = useState<any>(null)
@@ -841,6 +846,13 @@ export default function VerPresupuestoPage() {
 
   function iniciarEdicion() {
     setItemsEditables([...items])
+    if (presupuesto?.tipo === 'cercado') {
+      setEditCercado({
+        metros_lineales: presupuesto.metros_lineales_total?.toString() || '',
+        descuento: presupuesto.descuento?.toString() || '0',
+        incremento: presupuesto.incremento?.toString() || '0',
+      })
+    }
     setModoEdicion(true)
   }
 
@@ -1019,6 +1031,64 @@ export default function VerPresupuestoPage() {
       },
     ]
   }, [tejidos])
+
+  async function guardarCambiosCercado() {
+    if (!presupuesto || !configuracionCercado) return
+    setGuardando(true)
+    try {
+      const metros = parseFloat(editCercado.metros_lineales) || 0
+      const descuento = parseFloat(editCercado.descuento) || 0
+      const incremento = parseFloat(editCercado.incremento) || 0
+      const precioPorMetro = configuracionCercado.precio_por_metro_lineal || 0
+      const factor = factorFormaPago(presupuesto.forma_pago || 'lista')
+      const precioBase = precioPorMetro * metros
+      const subtotal = precioBase * factor
+      const total = Math.max(0, subtotal - descuento + incremento)
+
+      const { error: errorPres } = await supabase
+        .from('presupuestos')
+        .update({
+          metros_lineales_total: metros,
+          descuento,
+          incremento,
+          subtotal,
+          total,
+        })
+        .eq('id', presupuesto.id)
+
+      if (errorPres) throw errorPres
+
+      if (items.length > 0) {
+        const { error: errorItem } = await supabase
+          .from('presupuestos_items')
+          .update({
+            cantidad: metros,
+            precio_total: subtotal,
+          })
+          .eq('id', items[0].id)
+
+        if (errorItem) throw errorItem
+      }
+
+      await cargarPresupuesto()
+
+      toast({
+        title: '¡Cambios guardados!',
+        description: 'El presupuesto de cercado se ha actualizado correctamente.',
+      })
+
+      setModoEdicion(false)
+    } catch (error: any) {
+      console.error('Error al guardar cercado:', error)
+      toast({
+        title: 'Error al guardar cambios',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   async function guardarCambios() {
     if (!presupuesto) return
@@ -1227,6 +1297,9 @@ export default function VerPresupuestoPage() {
     lineas.push(`💵 Subtotal: $${formatearMoneda(presupuesto.subtotal)}`)
     if (presupuesto.descuento > 0) {
       lineas.push(`🎯 Descuento: -$${formatearMoneda(presupuesto.descuento)}`)
+    }
+    if (presupuesto.incremento > 0) {
+      lineas.push(`➕ Incremento: +$${formatearMoneda(presupuesto.incremento)}`)
     }
     if (presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0) {
       const baseSinIva = presupuesto.total / 1.21
@@ -1515,6 +1588,12 @@ export default function VerPresupuestoPage() {
                 <span className="font-semibold">-${presupuesto.descuento?.toLocaleString()}</span>
               </div>
             )}
+            {presupuesto.incremento > 0 && (
+              <div className="flex justify-between text-xs text-orange-600">
+                <span>Incremento:</span>
+                <span className="font-semibold">+${presupuesto.incremento?.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2 border-t">
               <span className="text-sm font-bold">TOTAL:</span>
               <span className="text-lg font-bold text-green-600">
@@ -1742,7 +1821,7 @@ export default function VerPresupuestoPage() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={guardarCambios}
+                        onClick={presupuesto?.tipo === 'cercado' ? guardarCambiosCercado : guardarCambios}
                         disabled={guardando}
                       >
                         <Save className="h-4 w-4 mr-2" />
@@ -1976,6 +2055,130 @@ export default function VerPresupuestoPage() {
                         </div>
                       </div>
                     </>
+                  ) : presupuesto.tipo === 'cercado' ? (
+                    <div className="space-y-6 p-2 sm:p-4">
+                      {/* Config info - solo lectura */}
+                      {configuracionCercado && (
+                        <div className="p-3 bg-muted/40 rounded-lg">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Configuración</p>
+                          <p className="font-semibold">{configuracionCercado.nombre}</p>
+                          {configuracionCercado.precio_por_metro_lineal && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Precio/metro: ${formatearMoneda(configuracionCercado.precio_por_metro_lineal)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Metros lineales */}
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-metros">Metros Lineales</Label>
+                        <Input
+                          id="edit-metros"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editCercado.metros_lineales}
+                          onChange={(e) => setEditCercado(prev => ({ ...prev, metros_lineales: e.target.value }))}
+                          className="w-full sm:max-w-xs"
+                          placeholder="Ej: 150"
+                        />
+                      </div>
+
+                      {/* Descuento e Incremento */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-descuento">Descuento ($)</Label>
+                          <Input
+                            id="edit-descuento"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editCercado.descuento}
+                            onChange={(e) => setEditCercado(prev => ({ ...prev, descuento: e.target.value }))}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-incremento">Incremento ($)</Label>
+                          <Input
+                            id="edit-incremento"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editCercado.incremento}
+                            onChange={(e) => setEditCercado(prev => ({ ...prev, incremento: e.target.value }))}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Preview de cálculo en tiempo real */}
+                      {editCercado.metros_lineales && parseFloat(editCercado.metros_lineales) > 0 && configuracionCercado && (() => {
+                        const metros = parseFloat(editCercado.metros_lineales) || 0
+                        const precioPorMetro = configuracionCercado.precio_por_metro_lineal || 0
+                        const factor = factorFormaPago(presupuesto.forma_pago || 'lista')
+                        const precioBase = precioPorMetro * metros
+                        const subtotalCalc = precioBase * factor
+                        const descuentoCalc = parseFloat(editCercado.descuento) || 0
+                        const incrementoCalc = parseFloat(editCercado.incremento) || 0
+                        const totalCalc = Math.max(0, subtotalCalc - descuentoCalc + incrementoCalc)
+                        return (
+                          <div className="rounded-lg border p-4 bg-muted/20 space-y-2">
+                            <p className="text-xs font-semibold uppercase text-muted-foreground">Vista previa del cálculo</p>
+                            <div className="space-y-1.5 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">{metros}m × ${formatearMoneda(precioPorMetro)}</span>
+                                <span className="font-medium">${formatearMoneda(precioBase)}</span>
+                              </div>
+                              {factor !== 1 && (
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>Factor forma de pago (×{factor.toFixed(2)})</span>
+                                  <span>${formatearMoneda(subtotalCalc)}</span>
+                                </div>
+                              )}
+                              {descuentoCalc > 0 && (
+                                <div className="flex justify-between text-red-600">
+                                  <span>Descuento</span>
+                                  <span>-${formatearMoneda(descuentoCalc)}</span>
+                                </div>
+                              )}
+                              {incrementoCalc > 0 && (
+                                <div className="flex justify-between text-orange-600">
+                                  <span>Incremento</span>
+                                  <span>+${formatearMoneda(incrementoCalc)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-green-600 border-t pt-2 mt-1">
+                                <span>TOTAL</span>
+                                <span>${formatearMoneda(totalCalc)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+
+                      {/* Botones */}
+                      <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                        <Button
+                          onClick={guardarCambiosCercado}
+                          disabled={guardando || !editCercado.metros_lineales || parseFloat(editCercado.metros_lineales) <= 0}
+                          className="w-full sm:w-auto"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {guardando ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={cancelarEdicion}
+                          disabled={guardando}
+                          className="w-full sm:w-auto"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <>
                       <div className="hidden overflow-x-auto sm:block">
@@ -2476,6 +2679,12 @@ export default function VerPresupuestoPage() {
                         <span className="font-bold">-${formatearMoneda(presupuesto.descuento)}</span>
                       </div>
                     )}
+                    {presupuesto.incremento > 0 && (
+                      <div className="flex items-center justify-between text-orange-600">
+                        <span className="font-semibold">Incremento:</span>
+                        <span className="font-bold">+${formatearMoneda(presupuesto.incremento)}</span>
+                      </div>
+                    )}
                     {presupuesto.forma_pago && presupuesto.forma_pago !== 'efectivo' && presupuesto.total > 0 && (
                       <>
                         <div className="flex items-center justify-between text-xs text-muted-foreground sm:text-sm">
@@ -2497,7 +2706,7 @@ export default function VerPresupuestoPage() {
                       <span>
                         ${formatearMoneda(
                           modoEdicion
-                            ? itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0) - (presupuesto.descuento || 0)
+                            ? itemsEditables.reduce((sum, item) => sum + (parseFloat(item.precio_total?.toString()) || 0), 0) - (presupuesto.descuento || 0) + (presupuesto.incremento || 0)
                             : presupuesto.total
                         )}
                       </span>

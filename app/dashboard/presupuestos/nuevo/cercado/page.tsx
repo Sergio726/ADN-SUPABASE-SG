@@ -152,6 +152,7 @@ export default function NuevoPresupuestoCercadoPage() {
     precio_base: 0, // Precio base antes de aplicar factor de forma de pago
     subtotal: 0,
     descuento: '0',
+    incremento: '0',
     total: 0,
     
     // Otros
@@ -412,9 +413,10 @@ export default function NuevoPresupuestoCercadoPage() {
     const factor = factorFormaPago(formaPago)
     const subtotal = precioBase * factor
 
-    // Aplicar descuento
+    // Aplicar descuento e incremento
     const descuento = parseFloat(formData.descuento) || 0
-    const total = Math.max(0, subtotal - descuento)
+    const incremento = parseFloat(formData.incremento) || 0
+    const total = Math.max(0, subtotal - descuento + incremento)
 
     setFormData(prev => ({
       ...prev,
@@ -423,7 +425,7 @@ export default function NuevoPresupuestoCercadoPage() {
       total,
     }))
     setCalculoRealizado(true)
-  }, [formaPago, configuracionSeleccionada, formData.metros_lineales_total, formData.descuento, factorFormaPago])
+  }, [formaPago, configuracionSeleccionada, formData.metros_lineales_total, formData.descuento, formData.incremento, factorFormaPago])
 
   const handleSubmit = useCallback(async () => {
     if (!userId) {
@@ -464,6 +466,7 @@ export default function NuevoPresupuestoCercadoPage() {
         forma_pago: formaPago,
         subtotal: formData.subtotal,
         descuento: parseFloat(formData.descuento),
+        incremento: parseFloat(formData.incremento),
         total: formData.total,
         observaciones: formData.observaciones || null,
         condiciones_comerciales: formData.condiciones_comerciales || null,
@@ -1265,30 +1268,58 @@ export default function NuevoPresupuestoCercadoPage() {
                           </div>
                         </div>
 
-                        {/* Descuento */}
-                        <div className="space-y-2">
-                          <Label htmlFor="descuento-paso2">Descuento ($)</Label>
-                          <Input
-                            id="descuento-paso2"
-                            type="number"
-                            step="0.01"
-                            value={formData.descuento}
-                            onChange={(e) => {
-                              setFormData(prev => ({
-                                ...prev,
-                                descuento: e.target.value,
-                              }))
-                            }}
-                            className="w-full sm:max-w-xs"
-                          />
+                        {/* Descuento e Incremento */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="descuento-paso2">Descuento ($)</Label>
+                            <Input
+                              id="descuento-paso2"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={formData.descuento}
+                              onChange={(e) => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  descuento: e.target.value,
+                                }))
+                              }}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="incremento-paso2">Incremento ($)</Label>
+                            <Input
+                              id="incremento-paso2"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={formData.incremento}
+                              onChange={(e) => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  incremento: e.target.value,
+                                }))
+                              }}
+                              className="w-full"
+                            />
+                          </div>
                         </div>
 
-                        {formData.descuento && parseFloat(formData.descuento) > 0 && (
-                          <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-                            <span className="text-sm font-semibold text-red-700">Descuento:</span>
-                            <span className="text-lg sm:text-xl font-bold text-red-700 break-all">-${formatearPrecio(parseFloat(formData.descuento))}</span>
-                          </div>
-                        )}
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          {formData.descuento && parseFloat(formData.descuento) > 0 && (
+                            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 border-2 border-red-200 rounded-lg flex-1">
+                              <span className="text-sm font-semibold text-red-700">Descuento:</span>
+                              <span className="text-lg sm:text-xl font-bold text-red-700 break-all">-${formatearPrecio(parseFloat(formData.descuento))}</span>
+                            </div>
+                          )}
+                          {formData.incremento && parseFloat(formData.incremento) > 0 && (
+                            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 border-2 border-orange-200 rounded-lg flex-1">
+                              <span className="text-sm font-semibold text-orange-700">Incremento:</span>
+                              <span className="text-lg sm:text-xl font-bold text-orange-700 break-all">+${formatearPrecio(parseFloat(formData.incremento))}</span>
+                            </div>
+                          )}
+                        </div>
 
                         {/* Separador visual */}
                         <div className="relative py-4">
@@ -1608,21 +1639,41 @@ export default function NuevoPresupuestoCercadoPage() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="descuento">Descuento ($)</Label>
-                    <Input
-                      id="descuento"
-                      type="number"
-                      step="0.01"
-                      value={formData.descuento}
-                      onChange={(e) => {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          descuento: e.target.value,
-                        }))
-                      }}
-                      className="w-full sm:max-w-xs"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="descuento">Descuento ($)</Label>
+                      <Input
+                        id="descuento"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.descuento}
+                        onChange={(e) => {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            descuento: e.target.value,
+                          }))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="incremento">Incremento ($)</Label>
+                      <Input
+                        id="incremento"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.incremento}
+                        onChange={(e) => {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            incremento: e.target.value,
+                          }))
+                        }}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
