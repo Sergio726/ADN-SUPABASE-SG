@@ -123,11 +123,10 @@ export default function HomePage() {
       <Navbar />
       
       {/* Hero Premium */}
-      <section className="relative bg-gradient-to-br from-brand-red via-brand-darkred to-red-900 text-white py-24 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-brand-red via-brand-darkred to-red-900 text-white py-20 sm:py-24 overflow-hidden">
         {/* Imagen de fondo o patrón predeterminado */}
         {portadaUrl ? (
           <>
-            {/* Imagen de fondo */}
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{
@@ -136,74 +135,71 @@ export default function HomePage() {
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: 'cover'
               }}
-            ></div>
-            {/* Overlay oscuro para mejorar legibilidad del texto */}
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-red/60 via-brand-darkred/60 to-red-900/60"></div>
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-red/60 via-brand-darkred/60 to-red-900/60" />
           </>
         ) : (
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px)'
-            }}></div>
+            }} />
           </div>
         )}
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             {/* Badge de USP */}
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-6 py-2 rounded-full mb-6 border border-white/20">
-              <svg className="w-5 h-5 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-5 py-2.5 rounded-full mb-6 border border-white/25 shadow-lg shadow-black/10 ring-1 ring-white/10 transition-all duration-300 hover:bg-white/15 hover:border-white/30">
+              <svg className="w-5 h-5 text-yellow-300 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
-              <span className="text-white font-semibold">Como no somos los únicos, decidimos ser los mejores</span>
+              <span className="text-white font-semibold text-sm sm:text-base">Como no somos los únicos, decidimos ser los mejores</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              <span className="text-transparent" style={{ textShadow: '1px 1px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff' }}>CERCADO PERIMETRAL</span><br />
-              <span className="text-transparent" style={{ textShadow: '1px 1px 0 #ffffff, -1px -1px 0 #ffffff, 1px -1px 0 #ffffff, -1px 1px 0 #ffffff' }}>LLAVE EN MANO</span>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
+              <span className="text-transparent drop-shadow-[0_1px_0_rgba(255,255,255,0.9)]" style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}>CERCADO PERIMETRAL</span><br />
+              <span className="text-transparent" style={{ textShadow: '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff' }}>LLAVE EN MANO</span>
             </h1>
-            
-            <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8 mb-4 max-w-4xl mx-auto">
-              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
-                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+
+            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-8 mb-8 max-w-4xl mx-auto">
+              <div className="flex items-center gap-2 text-base sm:text-lg md:text-xl text-white/95">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="font-medium">Fabricación propia</span>
               </div>
-              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
-                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex items-center gap-2 text-base sm:text-lg md:text-xl text-white/95">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="font-medium">Instalación profesional</span>
               </div>
-              <div className="flex items-center gap-2 text-lg md:text-xl text-white/95">
-                <svg className="w-6 h-6 text-white flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="flex items-center gap-2 text-base sm:text-lg md:text-xl text-white/95">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="font-medium">Garantía 90 días</span>
               </div>
             </div>
-            
 
             {/* CTAs principales */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <a 
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+              <a
                 href="https://wa.me/5493874773393?text=Hola! Quiero solicitar una cotización para cerco perimetral"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-green-500 text-white px-10 py-4 rounded-lg font-bold hover:bg-green-600 transition-all shadow-2xl text-lg flex items-center justify-center gap-3 hover:scale-105 transform"
+                className="inline-flex items-center justify-center gap-3 bg-green-500 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-xl shadow-green-900/30 hover:bg-green-600 hover:scale-[1.02] hover:shadow-2xl hover:shadow-green-900/40 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-600 transition-all duration-300"
               >
-                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
                 Cotizar por WhatsApp
               </a>
-              
-              <a 
+              <a
                 href="tel:+5493874773393"
-                className="border-2 border-white text-white px-10 py-4 rounded-lg font-bold hover:bg-white hover:text-brand-red transition-all text-lg flex items-center justify-center gap-3"
+                className="inline-flex items-center justify-center gap-3 border-2 border-white text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-white hover:text-brand-red focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-red transition-all duration-300"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
                 Llamar Ahora
@@ -214,13 +210,13 @@ export default function HomePage() {
       </section>
 
       {/* Productos Destacados */}
-      <section id="productos" className="py-20 bg-white">
+      <section id="productos" className="py-16 sm:py-20 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
               Productos Destacados
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
               Tejido romboidal de fabricación propia y materiales de primera calidad para tu proyecto
             </p>
           </div>
@@ -243,14 +239,15 @@ export default function HomePage() {
               
               {articulos.length > 6 && (
                 <div className="text-center">
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => setMostrarTodos(!mostrarTodos)}
-                    className="inline-block bg-brand-red text-white px-8 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
+                    className="inline-flex items-center gap-2 bg-brand-red text-white px-6 sm:px-8 py-3 rounded-xl font-semibold hover:bg-brand-darkred hover:scale-[1.02] shadow-lg shadow-brand-red/20 focus:outline-none focus:ring-2 focus:ring-brand-red focus:ring-offset-2 transition-all duration-300"
                   >
-                    {mostrarTodos 
-                      ? 'Ver Menos' 
-                      : `Ver Todo el Catálogo (${articulos.length} productos)`
-                    }
+                    {mostrarTodos ? 'Ver Menos' : `Ver Todo el Catálogo (${articulos.length} productos)`}
+                    <svg className={`w-4 h-4 shrink-0 transition-transform duration-300 ${mostrarTodos ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
                 </div>
               )}
@@ -266,20 +263,20 @@ export default function HomePage() {
       </section>
 
       {/* Por Qué Elegirnos */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+      <section className="py-16 sm:py-20 bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
               Por Qué Elegirnos
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
               Sabemos que no somos los únicos, <strong className="text-brand-red">por eso decidimos ser los mejores</strong>
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
             {/* Garantía 90 días */}
-            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
+            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-t-4 border-brand-red">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -305,7 +302,7 @@ export default function HomePage() {
             </div>
 
             {/* Entrega Rápida */}
-            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
+            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-t-4 border-brand-red">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -318,7 +315,7 @@ export default function HomePage() {
             </div>
 
             {/* Experiencia Local */}
-            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
+            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-t-4 border-brand-red">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -332,7 +329,7 @@ export default function HomePage() {
             </div>
 
             {/* Servicio Llave en Mano */}
-            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all border-t-4 border-brand-red">
+            <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-t-4 border-brand-red">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -348,15 +345,15 @@ export default function HomePage() {
       </section>
 
       {/* Segmentación Empresas vs Particulares */}
-      <section className="py-16 bg-white">
+      <section className="py-14 sm:py-16 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-900 mb-10 sm:mb-12 tracking-tight">
             ¿Qué tipo de proyecto tenés?
           </h2>
-          
-          <div className="grid md:grid-cols-2 gap-8">
+
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             {/* Para Empresas */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 p-8 rounded-2xl border-2 border-red-200 hover:border-brand-red transition-all hover:shadow-xl">
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 sm:p-8 rounded-2xl border-2 border-red-200 hover:border-brand-red hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-brand-red p-4 rounded-xl">
                   <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -404,9 +401,9 @@ export default function HomePage() {
                 </li>
               </ul>
               
-              <a 
+              <a
                 href="/contacto?tipo=empresa"
-                className="block w-full bg-brand-red text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-brand-darkred transition-colors"
+                className="block w-full bg-brand-red text-white text-center px-6 py-3 rounded-xl font-semibold hover:bg-brand-darkred focus:outline-none focus:ring-2 focus:ring-brand-red focus:ring-offset-2 transition-all duration-300"
               >
                 Solicitar Cotización Empresarial
               </a>
@@ -461,11 +458,11 @@ export default function HomePage() {
                 </li>
               </ul>
               
-              <a 
+              <a
                 href="https://wa.me/5493874773393?text=Hola! Quiero comprar tejido romboidal"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full bg-brand-darkred text-white text-center px-6 py-3 rounded-lg font-semibold hover:bg-red-900 transition-colors"
+                className="block w-full bg-brand-darkred text-white text-center px-6 py-3 rounded-xl font-semibold hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-brand-darkred focus:ring-offset-2 transition-all duration-300"
               >
                 Consultar por WhatsApp
               </a>
@@ -475,20 +472,20 @@ export default function HomePage() {
       </section>
 
       {/* Nuestros Servicios */}
-      <section className="py-20 bg-gradient-to-br from-brand-red to-brand-darkred text-white">
+      <section className="py-16 sm:py-20 bg-gradient-to-br from-brand-red to-brand-darkred text-white border-t-4 border-brand-darkred">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
               Nuestros Servicios
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className="text-lg sm:text-xl text-white/80">
               Soluciones completas para tu proyecto de cercado
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Servicio 1 */}
-            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-6 sm:p-8 rounded-xl hover:bg-white/20 hover:-translate-y-1 transition-all duration-300 border border-white/20">
               <div className="bg-white/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
@@ -507,7 +504,7 @@ export default function HomePage() {
             </div>
 
             {/* Servicio 2 */}
-            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-6 sm:p-8 rounded-xl hover:bg-white/20 hover:-translate-y-1 transition-all duration-300 border border-white/20">
               <div className="bg-white/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
@@ -526,7 +523,7 @@ export default function HomePage() {
             </div>
 
             {/* Servicio 3 */}
-            <div className="bg-white/10 backdrop-blur-sm p-8 rounded-xl hover:bg-white/20 transition-all border border-white/20">
+            <div className="bg-white/10 backdrop-blur-sm p-6 sm:p-8 rounded-xl hover:bg-white/20 hover:-translate-y-1 transition-all duration-300 border border-white/20 sm:col-span-2 lg:col-span-1">
               <div className="bg-white/20 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
@@ -550,9 +547,9 @@ export default function HomePage() {
             <p className="text-xl text-gray-300 mb-6">
               ¿No estás seguro de qué necesitás? <strong>¡Llamanos!</strong>
             </p>
-            <a 
+            <a
               href="tel:+5493874773393"
-              className="inline-flex items-center gap-3 bg-white text-gray-900 px-10 py-4 rounded-lg font-bold hover:bg-gray-100 transition-colors text-lg shadow-xl"
+              className="inline-flex items-center gap-3 bg-white text-gray-900 px-8 sm:px-10 py-4 rounded-xl font-bold hover:bg-gray-100 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-red transition-all duration-300 text-base sm:text-lg shadow-xl"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -564,9 +561,9 @@ export default function HomePage() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-16 bg-brand-red">
+      <section className="py-14 sm:py-16 bg-brand-red border-t-4 border-brand-darkred">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 border border-white/20">
             <div className="text-center mb-8">
               <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-12 h-12 text-brand-red" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -656,7 +653,7 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={newsletterLoading}
-                className="w-full bg-brand-red text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-darkred transition-colors text-lg shadow-lg mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-brand-red text-white px-8 py-4 rounded-xl font-bold hover:bg-brand-darkred focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-red transition-all duration-300 text-base sm:text-lg shadow-lg mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {newsletterLoading ? 'Suscribiendo...' : 'Suscribirme Gratis'}
               </button>
@@ -675,29 +672,29 @@ export default function HomePage() {
       </section>
 
       {/* CTA Final Múltiple */}
-      <section className="py-20 bg-gradient-to-r from-brand-red to-brand-darkred text-white">
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-brand-red to-brand-darkred text-white border-t-4 border-brand-darkred">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
               ¿Listo para empezar?
             </h2>
-            <p className="text-2xl text-white/90 mb-2">
+            <p className="text-xl sm:text-2xl text-white/90 mb-2">
               Despreocupate de todo, nosotros nos encargamos
             </p>
-            <p className="text-lg text-white/80">
+            <p className="text-base sm:text-lg text-white/80">
               Envío gratis en Salta • Garantía 90 días • Atención personalizada
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {/* WhatsApp */}
             <a
               href="https://wa.me/5493874773393?text=Hola! Quiero solicitar una cotización"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-green-500 hover:bg-green-600 p-8 rounded-xl shadow-xl transition-all hover:scale-105 transform text-center group"
+              className="bg-green-500 hover:bg-green-600 p-6 sm:p-8 rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-300 text-center group focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-red"
             >
-              <svg className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
               </svg>
               <div className="text-2xl font-bold mb-2">WhatsApp</div>
@@ -707,9 +704,9 @@ export default function HomePage() {
             {/* Teléfono */}
             <a
               href="tel:+5493874773393"
-              className="bg-white hover:bg-gray-100 text-gray-900 p-8 rounded-xl shadow-xl transition-all hover:scale-105 transform text-center group"
+              className="bg-white hover:bg-gray-100 text-gray-900 p-6 sm:p-8 rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-300 text-center group focus:outline-none focus:ring-2 focus:ring-brand-red focus:ring-offset-2"
             >
-              <svg className="w-16 h-16 mx-auto mb-4 text-brand-red group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 text-brand-red group-hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
               <div className="text-2xl font-bold mb-2 text-brand-red">(387) 477-3393</div>
@@ -719,9 +716,9 @@ export default function HomePage() {
             {/* Formulario */}
             <a
               href="/contacto"
-              className="bg-brand-darkred hover:bg-red-900 text-white p-8 rounded-xl shadow-xl transition-all hover:scale-105 transform text-center group"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:border-white/50 p-6 sm:p-8 rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-300 text-center group focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand-darkred sm:col-span-2 lg:col-span-1"
             >
-              <svg className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <div className="text-2xl font-bold mb-2">Formulario</div>

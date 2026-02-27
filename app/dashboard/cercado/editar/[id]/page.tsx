@@ -894,7 +894,7 @@ export default function EditarConfiguracionCercadoPage() {
           // Intentar extraer metros del nombre (ej: "rollo de 500m", "rollo 1000m")
           const metrosMatch = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
           if (metrosMatch) {
-            const metrosPorRollo = parseInt(metrosMatch[1])
+quita             const metrosPorRollo = parseInt(metrosMatch[1])
             precioPorMetro = metrosPorRollo > 0 ? precioUnitario / metrosPorRollo : precioUnitario / 500
           } else {
             precioPorMetro = precioUnitario / 500 // Rollos estándar de 500m
@@ -1106,6 +1106,8 @@ export default function EditarConfiguracionCercadoPage() {
         return { arena: '6', ripio: '6', cemento: '37.5' }
       case '20cm':
         return { arena: '8', ripio: '8', cemento: '50' }
+      case '30cm':
+        return { arena: '12', ripio: '12', cemento: '75' }
       default:
         return { arena: '0', ripio: '0', cemento: '0' }
     }
@@ -1884,6 +1886,7 @@ export default function EditarConfiguracionCercadoPage() {
                     <SelectItem value="10cm">10 cm</SelectItem>
                     <SelectItem value="15cm">15 cm</SelectItem>
                     <SelectItem value="20cm">20 cm</SelectItem>
+                    <SelectItem value="30cm">30 cm</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

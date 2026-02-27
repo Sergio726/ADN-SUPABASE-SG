@@ -19,7 +19,7 @@ export default function ArticuloCard({
   const stockBajo = articulo.stock_actual <= articulo.stock_minimo
   
   return (
-    <Card className="h-full hover:shadow-lg transition-shadow">
+    <Card className="h-full hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
       <CardContent className="p-6">
         <div className="flex flex-col h-full space-y-3">
           {/* Imagen del artículo - Formato Instagram */}
