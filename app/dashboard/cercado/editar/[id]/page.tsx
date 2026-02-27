@@ -894,7 +894,7 @@ export default function EditarConfiguracionCercadoPage() {
           // Intentar extraer metros del nombre (ej: "rollo de 500m", "rollo 1000m")
           const metrosMatch = nombre.match(/(\d+)\s*m/i) || nombre.match(/(\d+)\s*metros/i)
           if (metrosMatch) {
-quita             const metrosPorRollo = parseInt(metrosMatch[1])
+            const metrosPorRollo = parseInt(metrosMatch[1])
             precioPorMetro = metrosPorRollo > 0 ? precioUnitario / metrosPorRollo : precioUnitario / 500
           } else {
             precioPorMetro = precioUnitario / 500 // Rollos estándar de 500m
