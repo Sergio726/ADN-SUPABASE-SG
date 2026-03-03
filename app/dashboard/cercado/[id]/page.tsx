@@ -649,8 +649,15 @@ export default function VerConfiguracionCercadoPage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">
                     {configuracion.cordon_tipo}
-                    {configuracion.cordon_bolsas_ripio > 0 && ` (${configuracion.cordon_bolsas_ripio} ripio`}
-                    {configuracion.cordon_bolsas_cemento > 0 && `, ${configuracion.cordon_bolsas_cemento} cemento)`}
+                    {(configuracion.cordon_bolsas_ripio > 0 || configuracion.cordon_bolsas_cemento > 0) && (
+                      <>
+                        {' ('}
+                        {configuracion.cordon_bolsas_ripio > 0 && `${configuracion.cordon_bolsas_ripio} ripio`}
+                        {configuracion.cordon_bolsas_ripio > 0 && configuracion.cordon_bolsas_cemento > 0 && ', '}
+                        {configuracion.cordon_bolsas_cemento > 0 && `${configuracion.cordon_bolsas_cemento} cemento`}
+                        {')'}
+                      </>
+                    )}
                   </span>
                   <span className="font-bold text-lg">${formatPrecio(configuracion.cordon_precio_total)}</span>
                 </div>
