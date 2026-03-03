@@ -49,11 +49,11 @@ export async function recalcularPreciosCercado(configuracionId: string) {
       return { precio_venta: pv?.precio_venta || 0, nombre: art?.nombre || '', unidad: art?.unidad || '' }
     }
 
-    // 3b) Servicios (mano de obra / transporte)
+    // 3b) Servicios (mano de obra / transporte) — fallback al precio guardado si no hay precio vigente
     let precioManoObraMetro = cfg.precio_mano_obra_por_metro || 0
     let precioTransporteMetro = cfg.precio_transporte_por_metro || 0
-    if (cfg.mano_obra_id) precioManoObraMetro = (await fetchArticuloVigente(cfg.mano_obra_id)).precio_venta || 0
-    if (cfg.transporte_id) precioTransporteMetro = (await fetchArticuloVigente(cfg.transporte_id)).precio_venta || 0
+    if (cfg.mano_obra_id) precioManoObraMetro = (await fetchArticuloVigente(cfg.mano_obra_id)).precio_venta || precioManoObraMetro
+    if (cfg.transporte_id) precioTransporteMetro = (await fetchArticuloVigente(cfg.transporte_id)).precio_venta || precioTransporteMetro
 
     // 4) Postes (usar precio vigente si hay IDs)
     const precioPoste = async (idCol: any, fallback: number) => {
@@ -77,11 +77,19 @@ export async function recalcularPreciosCercado(configuracionId: string) {
     if (cfg.pua_id) precioPuaMetro = (await fetchArticuloVigente(cfg.pua_id)).precio_venta || precioPuaMetro
     const costoPua = 180 * (cfg.hilos_pua || 0) * (precioPuaMetro || 0)
 
-    // Accesorios unitarios
-    const precioUnitGanchos = cfg.ganchos_id ? (await fetchArticuloVigente(cfg.ganchos_id)).precio_venta : cfg.precio_unitario_ganchos
-    const precioUnitPlanch = cfg.planchuelas_id ? (await fetchArticuloVigente(cfg.planchuelas_id)).precio_venta : cfg.precio_unitario_planchuelas
-    const precioUnitTorn = cfg.torniquetes_id ? (await fetchArticuloVigente(cfg.torniquetes_id)).precio_venta : cfg.precio_unitario_torniquetes
-    const precioUnitEsp = cfg.esparragos_id ? (await fetchArticuloVigente(cfg.esparragos_id)).precio_venta : cfg.precio_unitario_esparragos
+    // Accesorios unitarios — fallback al precio guardado si no hay precio vigente
+    const precioUnitGanchos = cfg.ganchos_id
+      ? ((await fetchArticuloVigente(cfg.ganchos_id)).precio_venta || cfg.precio_unitario_ganchos)
+      : cfg.precio_unitario_ganchos
+    const precioUnitPlanch = cfg.planchuelas_id
+      ? ((await fetchArticuloVigente(cfg.planchuelas_id)).precio_venta || cfg.precio_unitario_planchuelas)
+      : cfg.precio_unitario_planchuelas
+    const precioUnitTorn = cfg.torniquetes_id
+      ? ((await fetchArticuloVigente(cfg.torniquetes_id)).precio_venta || cfg.precio_unitario_torniquetes)
+      : cfg.precio_unitario_torniquetes
+    const precioUnitEsp = cfg.esparragos_id
+      ? ((await fetchArticuloVigente(cfg.esparragos_id)).precio_venta || cfg.precio_unitario_esparragos)
+      : cfg.precio_unitario_esparragos
 
     // Alambre A/R (deducir precio por metro si el artículo es por rollo)
     let precioMetroAlambreAR = cfg.precio_metro_alambre_ar || 0
@@ -98,9 +106,13 @@ export async function recalcularPreciosCercado(configuracionId: string) {
       }
     }
 
-    // Clavos y alambre negro (por kg)
-    const precioKgClavos = cfg.clavos_id ? (await fetchArticuloVigente(cfg.clavos_id)).precio_venta : cfg.precio_kg_clavos
-    const precioKgAlambreNegro = cfg.alambre_negro_id ? (await fetchArticuloVigente(cfg.alambre_negro_id)).precio_venta : cfg.precio_kg_alambre_negro
+    // Clavos y alambre negro (por kg) — fallback al precio guardado si no hay precio vigente
+    const precioKgClavos = cfg.clavos_id
+      ? ((await fetchArticuloVigente(cfg.clavos_id)).precio_venta || cfg.precio_kg_clavos)
+      : cfg.precio_kg_clavos
+    const precioKgAlambreNegro = cfg.alambre_negro_id
+      ? ((await fetchArticuloVigente(cfg.alambre_negro_id)).precio_venta || cfg.precio_kg_alambre_negro)
+      : cfg.precio_kg_alambre_negro
 
     const subtotalAccesorios =
       (cfg.cantidad_ganchos * (precioUnitGanchos || 0)) +
@@ -188,6 +200,7 @@ export function diasDesdeActualizacion(actualizadoEn: string | null | undefined)
   const diffTime = ahora.getTime() - fechaActualizacion.getTime()
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
   
-  return diffDays
+  // Evitar valores negativos por diferencias mínimas de reloj entre cliente y servidor
+  return Math.max(0, diffDays)
 }
 
