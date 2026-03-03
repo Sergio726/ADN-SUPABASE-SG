@@ -225,6 +225,7 @@ export default function EditarConfiguracionCercadoPage() {
         .select(`
           id,
           nombre,
+          descripcion,
           categoria,
           unidad,
           precios_venta(id, precio_venta, vigente)
@@ -1277,6 +1278,7 @@ export default function EditarConfiguracionCercadoPage() {
       })
 
       setTimeout(() => {
+        router.refresh()
         router.push('/dashboard/cercado')
       }, 1000)
     } catch (error: any) {
@@ -1673,6 +1675,12 @@ export default function EditarConfiguracionCercadoPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(() => {
+                    const poste = postes.find(p => String(p.id) === formData.poste_esquinero_id)
+                    return poste?.descripcion ? (
+                      <p className="text-xs text-muted-foreground">{poste.descripcion}</p>
+                    ) : null
+                  })()}
                   <p className="text-xs text-muted-foreground">
                     Precio: ${formatearPrecio(formData.precio_poste_esquinero, false)}
                   </p>
@@ -1722,6 +1730,12 @@ export default function EditarConfiguracionCercadoPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(() => {
+                    const poste = postes.find(p => String(p.id) === formData.poste_refuerzo_id)
+                    return poste?.descripcion ? (
+                      <p className="text-xs text-muted-foreground">{poste.descripcion}</p>
+                    ) : null
+                  })()}
                   <p className="text-xs text-muted-foreground">
                     Precio: ${formatearPrecio(formData.precio_poste_refuerzo, false)}
                   </p>
@@ -1771,6 +1785,12 @@ export default function EditarConfiguracionCercadoPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(() => {
+                    const poste = postes.find(p => String(p.id) === formData.poste_intermedio_id)
+                    return poste?.descripcion ? (
+                      <p className="text-xs text-muted-foreground">{poste.descripcion}</p>
+                    ) : null
+                  })()}
                   <p className="text-xs text-muted-foreground">
                     Precio: ${formatearPrecio(formData.precio_poste_intermedio, false)}
                   </p>
@@ -1820,6 +1840,12 @@ export default function EditarConfiguracionCercadoPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {(() => {
+                    const poste = postes.find(p => String(p.id) === formData.poste_puntal_id)
+                    return poste?.descripcion ? (
+                      <p className="text-xs text-muted-foreground">{poste.descripcion}</p>
+                    ) : null
+                  })()}
                   <p className="text-xs text-muted-foreground">
                     Precio: ${formatearPrecio(formData.precio_puntal, false)}
                   </p>
