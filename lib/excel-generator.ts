@@ -210,3 +210,42 @@ export function exportarStockAExcel(
   
   return nombreCompleto
 }
+
+/**
+ * Exporta el dashboard de ventas (varias hojas) a Excel.
+ */
+export function exportarDashboardVentasAExcel(
+  hojas: {
+    kpis: Array<Record<string, string | number>>
+    vendedores: Array<Record<string, string | number>>
+    tipos: Array<Record<string, string | number>>
+    formasPago: Array<Record<string, string | number>>
+    clientes: Array<Record<string, string | number>>
+    productos: Array<Record<string, string | number>>
+  },
+  nombreArchivo: string = 'Dashboard_Ventas'
+) {
+  const wb = XLSX.utils.book_new()
+
+  const append = (rows: Array<Record<string, string | number>>, name: string) => {
+    const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: 'Sin datos' }])
+    ws['!cols'] = Object.keys(rows[0] || { Info: '' }).map((key) => ({
+      wch: Math.max(14, key.length + 2),
+    }))
+    XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31))
+  }
+
+  append(hojas.kpis, 'KPIs')
+  append(hojas.vendedores, 'Por vendedor')
+  append(hojas.tipos, 'Por tipo')
+  append(hojas.formasPago, 'Forma de pago')
+  append(hojas.clientes, 'Top clientes')
+  append(hojas.productos, 'Top productos')
+
+  const fecha = new Date()
+  const fechaStr = fecha.toISOString().split('T')[0]
+  const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-').slice(0, 5)
+  const nombreCompleto = `${nombreArchivo}_${fechaStr}_${horaStr}.xlsx`
+  XLSX.writeFile(wb, nombreCompleto)
+  return nombreCompleto
+}

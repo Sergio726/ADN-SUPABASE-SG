@@ -2,6 +2,13 @@
 
 Sistema completo de gestión empresarial y catálogo web para **Alambres del Norte SRL** desarrollado con Next.js 14, TypeScript y Supabase.
 
+## Por dónde empezar
+
+1. **`docs/HANDOFF.md`** — estado, roles y forma de trabajo.
+2. **Este README** — cómo correr el proyecto.
+3. **`docs/PENDIENTES.md`** — qué falta y de quién depende.
+4. **`DOCUMENTACION.md`** — detalle técnico (parcialmente desactualizado).
+
 ## 🎯 **¿Qué es este sistema?**
 
 Un ERP completo que incluye:
@@ -31,17 +38,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 ### **3. Configurar Base de Datos en Supabase**
-Ejecutar en **Supabase SQL Editor** en este orden:
-```sql
-1. supabase/migrations/init.sql
-2. supabase/migrations/add_articulos_images_and_visibility.sql
-3. supabase/migrations/20241015_tejidos_configuraciones.sql
-4. supabase/migrations/20241015_clientes.sql
-5. supabase/migrations/20241015_presupuestos.sql
-6. supabase/migrations/20241015_configuraciones_cercado.sql
-7. supabase/migrations/fix_actualizar_precio_tejido.sql
-8. supabase/migrations/fix_vista_cercado_completa.sql
-```
+En un proyecto **ya existente** no re-apliques el dump histórico. Las migraciones vigentes están en `supabase/migrations/`; las viejas en `supabase/migrations/archived/`.
+
+Si levantás un entorno nuevo desde cero, revisá `docs/HANDOFF.md` y el orden real de archivos en esas carpetas (el listado largo que había acá quedó desfasado).
 
 ### **4. Crear Bucket de Storage**
 En **Supabase Storage**, crear bucket `articulos-images` con:
@@ -85,10 +84,14 @@ ADN-SUPABASE/
 │       ├── tejidos/            # CRUD tejidos romboidales
 │       ├── cercado/            # CRUD configuraciones cercado
 │       ├── clientes/           # CRUD clientes
+│       ├── tareas/             # Tareas CRM
+│       ├── visitas/            # Analytics web
+│       ├── configuracion/horarios/
 │       └── presupuestos/       # Sistema de presupuestos
 │           ├── nuevo/tipo/     # Selector de tipo
 │           ├── nuevo/articulos/# Presupuesto de artículos
-│           ├── nuevo/cercado/  # Wizard de cercado (5 pasos)
+│           ├── nuevo/cercado/  # Wizard de cercado
+│           ├── nuevo/general/  # Presupuesto general
 │           └── [id]/           # Ver/editar presupuesto
 ├── components/
 │   ├── ui/                     # shadcn/ui components
@@ -271,12 +274,11 @@ WHERE email = 'tu-email@ejemplo.com';
 
 ## 📖 **Documentación Completa**
 
-Ver **DOCUMENTACION.md** para:
-- Flujos de uso detallados
-- Ejemplos de cada módulo
-- Estructura de base de datos completa
-- Guías de desarrollo
-- Troubleshooting
+Empezá por **`docs/HANDOFF.md`**. Después:
+
+- **`docs/PENDIENTES.md`** — checklist vivo (fuente de verdad de tareas)
+- **`DOCUMENTACION.md`** — flujos, BD, cálculos, troubleshooting (puede estar desfasada vs. el código)
+- **`app/files/IDEAS_MEJORA.md`** — roadmap / ideas, no es el checklist operativo
 
 ---
 
@@ -294,12 +296,12 @@ npm run build   # Verificar build local
 
 ## 📝 **Estado Actual**
 
-✅ **100% Funcional y Completo**
-- 5 módulos principales
-- 25+ páginas
-- 19,000+ líneas de código
-- 50+ commits
-- Sistema listo para producción
+✅ **Núcleo en uso / listo para operar** (no es “100% cerrado”: hay backlog).
+- Catálogo, tejidos, cercado, clientes, presupuestos (artículos / cercado / general)
+- Tareas CRM, horarios, visitas web + UTM
+- PDF / remitos, incremento en presupuestos
+
+Detalle y huecos: **`docs/HANDOFF.md`** + **`docs/PENDIENTES.md`**.
 
 ---
 
@@ -307,7 +309,7 @@ npm run build   # Verificar build local
 
 Para consultas sobre el proyecto:
 - Email: info@alambresdelnorte.com
-- WhatsApp: +54 9 XXX XXX-XXXX
+- WhatsApp: +54 387 477-3393 (canónico en `lib/logos.ts`)
 
 ---
 

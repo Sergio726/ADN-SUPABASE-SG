@@ -27,6 +27,7 @@ import {
   ChevronsUpDown,
   CheckSquare,
   Clock,
+  TrendingUp,
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -101,6 +102,7 @@ export default function DashboardLayout({
       open: ventasAbierto,
       setOpen: setVentasAbierto,
       links: [
+        { name: 'Ventas', href: '/dashboard/ventas', icon: TrendingUp },
         { name: 'Presupuestos', href: '/dashboard/presupuestos', icon: FileText },
         { name: 'Clientes', href: '/dashboard/clientes', icon: Users },
         { name: 'Tareas', href: '/dashboard/tareas', icon: CheckSquare },
