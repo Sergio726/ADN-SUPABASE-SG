@@ -1,5 +1,7 @@
 # 📚 DOCUMENTACIÓN TÉCNICA - Alambres del Norte SRL
 
+> **Entrada del repo:** [`docs/HANDOFF.md`](docs/HANDOFF.md) (estado y forma de trabajo) → [`docs/PENDIENTES.md`](docs/PENDIENTES.md) (tareas activas). Este archivo es detalle técnico; algunas secciones (módulos, tablas, stats) pueden estar desfasadas respecto al código.
+
 ## 📋 **ÍNDICE**
 
 1. [Introducción](#introducción)

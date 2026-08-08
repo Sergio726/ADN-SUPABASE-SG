@@ -761,62 +761,67 @@ export default function PresupuestosPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {/* Card 1: Tasa de Conversión */}
-        <Card className="border-2 border-green-200 bg-green-50/50 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <CardDescription className="text-sm font-medium text-green-700 uppercase tracking-wide">
-                Tasa de Conversión
-              </CardDescription>
-              <TrendingUp className="h-5 w-5 text-green-600" />
-            </div>
-            <CardTitle className="text-4xl font-bold text-green-600 mb-2">
-              {estadisticasMesActual.porcentajeConversion.toFixed(1)}%
-            </CardTitle>
-            <div className="flex items-center gap-2 text-xs text-green-700 bg-white/60 px-2 py-1 rounded-md w-fit">
-              <CheckCircle2 className="h-3 w-3" />
-              <span className="font-medium">
-                {estadisticasMesActual.aprobadosDelMes} de {estadisticasMesActual.totalDelMes} del mes
-              </span>
-            </div>
-          </CardHeader>
-        </Card>
+        <Link href="/dashboard/ventas" className="block">
+          <Card className="border-2 border-green-200 bg-green-50/50 hover:shadow-md transition-shadow h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <CardDescription className="text-sm font-medium text-green-700 uppercase tracking-wide">
+                  Tasa de Conversión
+                </CardDescription>
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+              <CardTitle className="text-4xl font-bold text-green-600 mb-2">
+                {estadisticasMesActual.porcentajeConversion.toFixed(1)}%
+              </CardTitle>
+              <div className="flex items-center gap-2 text-xs text-green-700 bg-white/60 px-2 py-1 rounded-md w-fit">
+                <CheckCircle2 className="h-3 w-3" />
+                <span className="font-medium">
+                  {estadisticasMesActual.aprobadosDelMes} de {estadisticasMesActual.totalDelMes} del mes
+                </span>
+              </div>
+              <p className="text-[11px] text-green-800/80 pt-2">Ver dashboard de ventas →</p>
+            </CardHeader>
+          </Card>
+        </Link>
 
         {/* Card 3: Aprobados */}
-        <Card className="border-2 border-green-200 bg-green-50/50 hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <CardDescription className="text-sm font-medium text-green-700 uppercase tracking-wide">
-                  Aprobados
-                </CardDescription>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-green-600 cursor-help hover:text-green-700" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm">Presupuestos aprobados de este mes</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+        <Link href="/dashboard/ventas" className="block">
+          <Card className="border-2 border-green-200 bg-green-50/50 hover:shadow-md transition-shadow h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <CardDescription className="text-sm font-medium text-green-700 uppercase tracking-wide">
+                    Aprobados
+                  </CardDescription>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-green-600 cursor-help hover:text-green-700" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm">Presupuestos aprobados de este mes · click para dashboard</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="space-y-2">
-              <CardTitle className="text-3xl font-bold text-green-600">
-                ${montoAprobadosMesActual.toLocaleString('es-AR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-            </CardTitle>
-              <div>
-                <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white font-semibold">
-                  {estadisticasMesActual.aprobadosDelMes} aprobados
-                </Badge>
+              <div className="space-y-2">
+                <CardTitle className="text-3xl font-bold text-green-600">
+                  ${montoAprobadosMesActual.toLocaleString('es-AR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+              </CardTitle>
+                <div>
+                  <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white font-semibold">
+                    {estadisticasMesActual.aprobadosDelMes} aprobados
+                  </Badge>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-        </Card>
+            </CardHeader>
+          </Card>
+        </Link>
 
         {/* Card 4: Enviados */}
         <Card className="border-2 border-blue-200 bg-blue-50/50 hover:shadow-md transition-shadow">

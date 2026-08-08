@@ -2,6 +2,8 @@
 
 Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por categorías y prioridad.
 
+> **Tareas activas:** la fuente de verdad es [`docs/PENDIENTES.md`](../../docs/PENDIENTES.md). Relevo: [`docs/HANDOFF.md`](../../docs/HANDOFF.md). Este roadmap no reemplaza el checklist: si una idea se pone en marcha, copiala a Pendientes.
+
 ## Cómo usar este archivo
 - **Fecha:** anota la fecha en que surgió la idea.
 - **Categoría:** agrupa ideas relacionadas (Analytics, CRM, Integraciones, etc.).
@@ -15,7 +17,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Tasa de Conversión de Presupuestos
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
-- **Estado:** [En desarrollo - Parcial] ✅ Métricas básicas implementadas (2025-02-05)
+- **Estado:** [Completado - Básico] ✅ Dashboard `/dashboard/ventas` (2026-08-08). Métricas básicas en listado de presupuestos (2025-02-05).
 - **Descripción:** 
   - Visualizar el nivel de conversión entre cantidad de presupuestos enviados y cantidad de presupuestos aceptados.
   - Dashboard con métricas: tasa de conversión, presupuestos por estado, tendencias temporales.
@@ -52,7 +54,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Dashboard de Ventas y Performance
 - **Fecha:** 2025-02-01
 - **Prioridad:** [Alta]
-- **Estado:** [Pendiente]
+- **Estado:** [Completado - Básico] ✅ Misma pantalla `/dashboard/ventas` (2026-08-08). Sin margen ni ciclo de venta (no hay datos).
 - **Descripción:**
   - Dashboard ejecutivo con métricas clave de negocio.
 - **Funcionalidades:**
@@ -2198,7 +2200,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 ### Fase 1: Fundamentos (Q1 2025)
 - ✅ Sistema de presupuestos funcional
 - ✅ Generación de PDFs y remitos
-- 🔄 Dashboard de conversión de presupuestos (Parcial: métricas básicas implementadas)
+- ✅ Dashboard de conversión de presupuestos (Básico: `/dashboard/ventas`)
 - 🔄 Sistema de roles y permisos básico
 - ✅ Exportación de lista de precios (Básico: Excel y PDF implementados)
 - 🔄 Exportación de lista de stock (Parcial: Excel y PDF básicos implementados, faltan funcionalidades avanzadas)
@@ -2208,7 +2210,7 @@ Este archivo contiene ideas y mejoras futuras para el sistema, organizadas por c
 
 ### Fase 2: CRM, Analytics y Finanzas (Q2 2025)
 - 🔄 Funcionalidades CRM básicas
-- 🔄 Dashboard de ventas y performance
+- ✅ Dashboard de ventas y performance (Básico: `/dashboard/ventas`)
 - 🔄 Reportes personalizados
 - 🔄 Automatización de seguimiento
 - 🔄 Registro y control de pagos recibidos
