@@ -15,6 +15,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DefinicionTool } from './openrouter'
+import { limpiarBusqueda, palabrasDeBusqueda, filtrarPorPalabras } from './busqueda'
 
 /** Factores por forma de pago, iguales a los del wizard de cercado. */
 const FACTOR_FORMA_PAGO: Record<string, number> = {
@@ -56,21 +57,8 @@ export class AccionInvalida extends Error {}
 const money = (n: number) =>
   '$' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-const limpiar = (t: unknown) => String(t ?? '').replace(/[,()%*\\]/g, ' ').trim().slice(0, 120)
-
-const palabras = (t: unknown) =>
-  limpiar(t)
-    .split(/\s+/)
-    .filter((p) => p.length >= 2)
-    .slice(0, 6)
-
-function filtrarPorPalabras<T>(query: T, ps: string[], columnas: string[]): T {
-  let resultado: any = query
-  for (const palabra of ps) {
-    resultado = resultado.or(columnas.map((col) => `${col}.ilike.%${palabra}%`).join(','))
-  }
-  return resultado
-}
+const limpiar = limpiarBusqueda
+const palabras = palabrasDeBusqueda
 
 /** Fecha de hoy en Argentina, igual que en el wizard de presupuestos. */
 function fechaArgentina(): string {

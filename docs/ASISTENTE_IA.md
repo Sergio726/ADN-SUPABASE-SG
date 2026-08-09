@@ -149,6 +149,24 @@ Otras protecciones:
 
 ---
 
+## Auditoría del 2026-08-08
+
+Primera corrida contra OpenRouter real, con 12 casos de consulta, una conversación de 5 turnos y el camino de escritura de punta a punta. Bugs encontrados y corregidos:
+
+| # | Qué pasaba | Por qué importaba |
+|---|---|---|
+| 1 | El header `X-Title` tenía un guion largo (`—`, U+2014) | Los headers HTTP solo admiten ASCII: **fallaban todas las llamadas**. El asistente nunca habría respondido |
+| 2 | Las búsquedas no ignoraban acentos | "olímpico 2.4 estándar cordón 20" daba **cero resultados** contra "Cerco Olimpico … Estandar … Cordon". Cotizar cercos era imposible |
+| 3 | Informaba el stock como dato real | 58 de 67 artículos tienen `stock_actual = 0` porque nadie lo carga: el asistente decía "no hay stock" y un vendedor podía **rechazar una venta** por eso |
+| 4 | Inventaba configuraciones de cercado | Enumeró "Olímpico con concertina", "Olímpico de Lujo", "Olímpico para pileta"… **sin llamar a ninguna herramienta**. Ninguna existe |
+| 5 | El modelo no se enteraba de la confirmación | Tras confirmar una acción, en el turno siguiente no sabía si se había ejecutado |
+
+Los arreglos 2 y 4 son los que más cambian el uso diario: el 2 vive en `lib/ai/busqueda.ts` (patrón de ILIKE insensible a acentos) y el 4 en la primera sección del system prompt ("no existe lo que no viste").
+
+**Verificado en la corrida final:** cotización = presupuesto (mismo total en efectivo, tarjeta y lista), acumulación de contexto entre turnos, rechazo de intentos de manipulación del prompt, y —lo más importante— que un `total` inyectado en el pedido de confirmación **no llega a la base**: el servidor lo recalcula.
+
+> Dos números de la secuencia (`CERC-2026-043` y `044`) se consumieron durante la auditoría. La numeración usa `nextval`, así que no se recuperan aunque los registros se hayan borrado: el próximo presupuesto de cercado será el 045.
+
 ## Límites conocidos
 
 - **No inventa precios, pero puede equivocarse interpretando la pregunta.** Toda cotización es informativa y así lo aclara: para que quede firme hay que cargar el presupuesto en la app.

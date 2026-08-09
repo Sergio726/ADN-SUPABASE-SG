@@ -71,6 +71,8 @@ Requiere `OPENROUTER_API_KEY` en `.env.local` y en Vercel — **key de servidor,
 - [ ] **Recargo de terrenos < 50 m: definir cuál vale** — existe `precio_por_metro_menor_50m` (recargo ~50%) pero el wizard de presupuestos **no lo usa**: arma el presupuesto con el precio normal. El asistente sigue al wizard e informa aparte el precio con recargo. Hay que decidir si el recargo se aplica (y corregir el wizard) o si la columna quedó sin uso. **Decisión de negocio.**
 - [ ] **Fase 4 — Contexto y memoria** — que sepa en qué pantalla está el vendedor, historial de conversaciones en Supabase y métricas de uso/costo de tokens.
 - [ ] **Nombres duplicados en cercado** — hay dos configuraciones activas llamadas igual (“Cerco Olimpico 2.4 alto - Estandar”) con precios distintos ($49.410 vs $60.068 por metro). El asistente las muestra con precio para poder elegir, pero conviene renombrarlas o dar de baja la que no se use.
+- [x] **Auditoría de flujo completo (2026-08-08)** — 12 casos de consulta + conversación multi-turno + camino de escritura contra OpenRouter real. Cinco bugs encontrados y corregidos (header no-ASCII que rompía todas las llamadas, búsquedas que fallaban con tildes, stock informado como dato real, invención de configuraciones inexistentes, y falta de aviso al modelo tras confirmar). Detalle en [`ASISTENTE_IA.md`](ASISTENTE_IA.md).
+- [ ] **Stock desactualizado** — 58 de 67 artículos tienen `stock_actual = 0` porque no se carga en el día a día. El asistente ya no lo informa como dato real, pero si el negocio quiere usar stock, hay que cargarlo y revisar el módulo.
 
 ### Presupuestos (UX + performance)
 

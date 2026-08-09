@@ -146,6 +146,9 @@ export function AsistenteWidget() {
                 ...mensaje,
                 propuesta: undefined,
                 resultadoAccion: { estado: 'hecha', mensaje: datos.mensaje, enlace: datos.enlace },
+                // El vendedor ve la tarjeta verde; al modelo se le cuenta en
+                // texto, para que en el turno siguiente sepa que ya se ejecutó
+                contenidoParaModelo: `${mensaje.content}\n\n[Confirmado por el vendedor: ${datos.mensaje}]`,
               }
             : mensaje
         )
@@ -166,6 +169,7 @@ export function AsistenteWidget() {
               ...mensaje,
               propuesta: undefined,
               resultadoAccion: { estado: 'cancelada', mensaje: 'Cancelaste la acción. No se guardó nada.' },
+              contenidoParaModelo: `${mensaje.content}\n\n[El vendedor canceló: no se guardó nada]`,
             }
           : mensaje
       )

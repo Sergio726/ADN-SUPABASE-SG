@@ -69,9 +69,11 @@ export async function chatCompletion(opciones: {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      // OpenRouter usa estos headers para atribuir el tráfico a la app
+      // OpenRouter usa estos headers para atribuir el tráfico a la app.
+      // Ojo: solo ASCII. Un guion largo o una tilde acá rompe TODAS las
+      // llamadas ("Cannot convert argument to a ByteString").
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-      'X-Title': 'Alambres del Norte — Asistente',
+      'X-Title': 'Alambres del Norte - Asistente',
     },
     body: JSON.stringify({
       model: opciones.modelo,

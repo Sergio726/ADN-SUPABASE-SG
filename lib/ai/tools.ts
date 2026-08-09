@@ -11,6 +11,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DefinicionTool } from './openrouter'
+import { limpiarBusqueda, palabrasDeBusqueda, filtrarPorPalabras } from './busqueda'
 
 /** Reglas de precio del negocio, iguales a las que usa el resto del sistema. */
 export const MULTIPLICADORES = {
@@ -20,43 +21,6 @@ export const MULTIPLICADORES = {
   echeq45: 1.21,
   echeq60: 1.3,
   echeq90: 1.4,
-}
-
-/**
- * Limpia el texto de búsqueda antes de meterlo en un filtro de PostgREST.
- * Las comas y los paréntesis son separadores del lenguaje de filtros: si
- * llegan crudos desde lo que escribió el modelo, rompen la consulta.
- */
-function limpiarBusqueda(texto: unknown): string {
-  return String(texto ?? '')
-    .replace(/[,()%*\\]/g, ' ')
-    .trim()
-    .slice(0, 80)
-}
-
-/**
- * Parte la búsqueda en palabras. Los nombres del catálogo son largos
- * ("Poste de Hormigón con Ménsula 2,8 mt Esquinero Cuadrado"), así que buscar
- * la frase entera casi nunca encuentra nada: hay que exigir que aparezcan
- * todas las palabras, en cualquier orden.
- */
-function palabrasDeBusqueda(texto: unknown): string[] {
-  return limpiarBusqueda(texto)
-    .split(/\s+/)
-    .filter((p) => p.length >= 2)
-    .slice(0, 6)
-}
-
-/**
- * Aplica un AND de palabras sobre un OR de columnas:
- * (col1 ~ palabra1 OR col2 ~ palabra1) AND (col1 ~ palabra2 OR col2 ~ palabra2)...
- */
-function filtrarPorPalabras<T>(query: T, palabras: string[], columnas: string[]): T {
-  let resultado: any = query
-  for (const palabra of palabras) {
-    resultado = resultado.or(columnas.map((col) => `${col}.ilike.%${palabra}%`).join(','))
-  }
-  return resultado
 }
 
 function preciosPorFormaDePago(precioBase: number) {
@@ -217,12 +181,20 @@ const ejecutores: Record<string, Ejecutor> = {
       resultados: articulos.map((a) => {
         const precio = precioPorArticulo.get(a.id)
         const base = Number(precio?.precio_venta || 0)
+
+        // El stock del sistema está casi todo en cero porque no se carga en el
+        // día a día. Informar "0" como si fuera un dato real haría que el
+        // vendedor rechace una venta por algo que sí hay en depósito: por eso
+        // solo se informa cuando hay una cantidad cargada de verdad.
+        const stockCargado = a.stock_actual != null && a.stock_actual > 0
+
         return {
           nombre: a.nombre,
           categoria: a.categoria,
           unidad: a.unidad,
-          stock_actual: a.stock_actual,
-          stock_bajo: a.stock_minimo != null && a.stock_actual != null && a.stock_actual <= a.stock_minimo,
+          stock: stockCargado
+            ? { cantidad: a.stock_actual, bajo: a.stock_minimo != null && a.stock_actual <= a.stock_minimo }
+            : 'sin dato cargado: el stock hay que confirmarlo en depósito',
           precio_vigente: base || null,
           precios: base ? preciosPorFormaDePago(base) : null,
         }
