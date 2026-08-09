@@ -9,15 +9,17 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, Calculator } from 'lucide-react'
+import { ArrowLeft, Save, Calculator, Store, Factory } from 'lucide-react'
 import Link from 'next/link'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 
 export default function NuevoTejidoPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [alambres, setAlambres] = useState<any[]>([])
+  const [proveedores, setProveedores] = useState<any[]>([])
   const [precioAlambre, setPrecioAlambre] = useState(0)
   const [precioCalculado, setPrecioCalculado] = useState({ 
     costo: 0, 
@@ -39,10 +41,17 @@ export default function NuevoTejidoPage() {
     alambre_articulo_id: '',
     margen_efectivo: '45.00',
     descripcion: '',
+    // Origen: 'fabricado' (alambre + mano de obra) o 'reventa' (se compra al proveedor)
+    origen: 'fabricado',
+    proveedor_id: '',
+    precio_compra: '',
   })
+
+  const esReventa = formData.origen === 'reventa'
 
   useEffect(() => {
     cargarAlambres()
+    cargarProveedores()
   }, [])
 
   useEffect(() => {
@@ -53,7 +62,21 @@ export default function NuevoTejidoPage() {
 
   useEffect(() => {
     calcularPrecio()
-  }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.alambre_articulo_id])
+  }, [formData.peso_kg, formData.mano_obra, formData.margen_efectivo, formData.alambre_articulo_id, formData.origen, formData.precio_compra])
+
+  async function cargarProveedores() {
+    const { data, error } = await supabase
+      .from('proveedores')
+      .select('id, nombre')
+      .order('nombre')
+
+    if (error) {
+      console.error('Error al cargar proveedores:', error)
+      setProveedores([])
+    } else {
+      setProveedores(data || [])
+    }
+  }
 
   async function cargarAlambres() {
     const { data, error } = await supabase
@@ -88,7 +111,28 @@ export default function NuevoTejidoPage() {
     return codigo
   }
 
+  function calcularDerivados(costo: number) {
+    const margenEfectivo = parseFloat(formData.margen_efectivo) || 45
+    const efectivo = costo * (1 + (margenEfectivo / 100)) // Precio base (efectivo)
+    return {
+      costo,
+      efectivo,
+      lista: efectivo * 1.21, // Factura/Lista = precio_base × 1.21 (incluye IVA 21%)
+      tarjeta: efectivo * 1.3, // Tarjeta = precio_base × 1.3 (incluye IVA 21%)
+      echeq45: efectivo * 1.21, // E-cheq 45 = igual que Factura/Lista (incluye IVA 21%)
+      echeq60: efectivo * 1.3, // E-cheq 60 = igual que Tarjeta (incluye IVA 21%)
+      echeq90: efectivo * 1.4, // E-cheq 90 = precio_base × 1.4 (incluye IVA 21%)
+    }
+  }
+
   async function calcularPrecio() {
+    // Reventa: el costo es lo que se le paga al proveedor, sin alambre ni mano de obra
+    if (formData.origen === 'reventa') {
+      setPrecioAlambre(0)
+      setPrecioCalculado(calcularDerivados(parseFloat(formData.precio_compra) || 0))
+      return
+    }
+
     if (!formData.peso_kg || !formData.mano_obra || !formData.alambre_articulo_id) {
       setPrecioCalculado({ costo: 0, efectivo: 0, lista: 0, tarjeta: 0, echeq45: 0, echeq60: 0, echeq90: 0 })
       // Nota: Los precios lista, tarjeta y echeq se calculan desde precio_base (efectivo) * 1.21
@@ -107,19 +151,10 @@ export default function NuevoTejidoPage() {
       if (precios) {
         const pesoKg = parseFloat(formData.peso_kg) || 0
         const manoObra = parseFloat(formData.mano_obra) || 0
-        const margenEfectivo = parseFloat(formData.margen_efectivo) || 45
 
         setPrecioAlambre(precios.precio_costo)
 
-        const costo = (pesoKg * precios.precio_costo) + manoObra
-        const efectivo = costo * (1 + (margenEfectivo / 100)) // Precio base (efectivo)
-        const lista = efectivo * 1.21 // Factura/Lista = precio_base × 1.21 (incluye IVA 21%)
-        const tarjeta = efectivo * 1.3 // Tarjeta = precio_base × 1.3 (incluye IVA 21%)
-        const echeq45 = efectivo * 1.21 // E-cheq 45 = igual que Factura/Lista (incluye IVA 21%)
-        const echeq60 = efectivo * 1.3 // E-cheq 60 = igual que Tarjeta (incluye IVA 21%)
-        const echeq90 = efectivo * 1.4 // E-cheq 90 = precio_base × 1.4 (incluye IVA 21%)
-
-        setPrecioCalculado({ costo, efectivo, lista, tarjeta, echeq45, echeq60, echeq90 })
+        setPrecioCalculado(calcularDerivados((pesoKg * precios.precio_costo) + manoObra))
       } else {
         setPrecioAlambre(0)
       }
@@ -133,6 +168,13 @@ export default function NuevoTejidoPage() {
     setLoading(true)
 
     try {
+      if (esReventa && !formData.precio_compra) {
+        throw new Error('Ingresá el precio de compra del rollo')
+      }
+      if (esReventa && !formData.proveedor_id) {
+        throw new Error('Seleccioná el proveedor al que se le compra el rollo')
+      }
+
       const codigo = generarCodigo()
       const nombre = `Tejido Romboidal Cal.${formData.calibre} - ${formData.altura}m - Rombo ${formData.tamano_rombo}"`
 
@@ -150,11 +192,15 @@ export default function NuevoTejidoPage() {
         altura: parseFloat(formData.altura),
         tamano_rombo: parseFloat(formData.tamano_rombo),
         largo: 10.00,
-        cantidad_alambre: parseFloat(formData.peso_kg), // Renombrado de peso_kg
-        costo_mano_obra: parseFloat(formData.mano_obra), // Renombrado de mano_obra
-        horas_fabricacion: formData.horas_fabricacion ? parseFloat(formData.horas_fabricacion) : null,
-        alambre_articulo_id: parseInt(formData.alambre_articulo_id),
+        // En reventa no hay alambre ni mano de obra: el costo sale de precio_compra
+        cantidad_alambre: esReventa ? 0 : parseFloat(formData.peso_kg), // Renombrado de peso_kg
+        costo_mano_obra: esReventa ? 0 : parseFloat(formData.mano_obra), // Renombrado de mano_obra
+        horas_fabricacion: !esReventa && formData.horas_fabricacion ? parseFloat(formData.horas_fabricacion) : null,
+        alambre_articulo_id: esReventa ? null : parseInt(formData.alambre_articulo_id),
         margen_efectivo: parseFloat(formData.margen_efectivo),
+        origen: formData.origen,
+        proveedor_id: esReventa ? parseInt(formData.proveedor_id) : null,
+        precio_compra: esReventa ? parseFloat(formData.precio_compra) : null,
         categoria_calidad,
         activo: true,
       }
@@ -294,12 +340,77 @@ export default function NuevoTejidoPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Fabricación y Costos</CardTitle>
+                <CardTitle>{esReventa ? 'Compra y Costos' : 'Fabricación y Costos'}</CardTitle>
                 <CardDescription>
-                  Especifica los materiales y costos de fabricación
+                  {esReventa
+                    ? 'El rollo se compra hecho: el costo es el precio del proveedor'
+                    : 'Especifica los materiales y costos de fabricación'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Origen: fabricado (alambre + mano de obra) o reventa (se compra hecho) */}
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="flex items-center gap-3">
+                    {esReventa
+                      ? <Store className="h-5 w-5 text-blue-600" />
+                      : <Factory className="h-5 w-5 text-muted-foreground" />}
+                    <div className="space-y-0.5">
+                      <Label htmlFor="origen">Es reventa</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {esReventa
+                          ? 'El rollo se compra a un proveedor y se revende'
+                          : 'El rollo se fabrica con alambre galvanizado y mano de obra'}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="origen"
+                    checked={esReventa}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, origen: checked ? 'reventa' : 'fabricado' })
+                    }
+                  />
+                </div>
+
+                {esReventa && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="proveedor">Proveedor *</Label>
+                      <Select
+                        value={formData.proveedor_id}
+                        onValueChange={(value) => setFormData({ ...formData, proveedor_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar proveedor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {proveedores.map((proveedor) => (
+                            <SelectItem key={proveedor.id} value={proveedor.id.toString()}>
+                              {proveedor.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="precio_compra">Precio de Compra ($) *</Label>
+                      <Input
+                        id="precio_compra"
+                        type="number"
+                        step="0.01"
+                        value={formData.precio_compra}
+                        onChange={(e) => setFormData({ ...formData, precio_compra: e.target.value })}
+                        placeholder="58000.00"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Lo que se le paga al proveedor por el rollo
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!esReventa && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="peso_kg">Peso Alambre (kg) *</Label>
@@ -333,7 +444,9 @@ export default function NuevoTejidoPage() {
                     </p>
                   </div>
                 </div>
+                )}
 
+                {!esReventa && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="alambre">Alambre Galvanizado *</Label>
@@ -372,9 +485,10 @@ export default function NuevoTejidoPage() {
                     />
                   </div>
                 </div>
+                )}
 
                 {/* Desglose del costo de alambre */}
-                {formData.alambre_articulo_id && formData.peso_kg && precioAlambre > 0 && (
+                {!esReventa && formData.alambre_articulo_id && formData.peso_kg && precioAlambre > 0 && (
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <h4 className="font-semibold text-sm text-blue-900 mb-2">Costo en Alambre:</h4>
                     <div className="flex items-center justify-between text-sm">
@@ -435,14 +549,31 @@ export default function NuevoTejidoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Alambre:</span>
-                  <span className="font-medium">{formData.peso_kg || '0'} kg</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Mano de obra:</span>
-                  <span className="font-medium">${parseFloat(formData.mano_obra || '0').toLocaleString()}</span>
-                </div>
+                {esReventa ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Proveedor:</span>
+                      <span className="font-medium">
+                        {proveedores.find((p) => p.id.toString() === formData.proveedor_id)?.nombre || '—'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Precio de compra:</span>
+                      <span className="font-medium">${parseFloat(formData.precio_compra || '0').toLocaleString()}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Alambre:</span>
+                      <span className="font-medium">{formData.peso_kg || '0'} kg</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Mano de obra:</span>
+                      <span className="font-medium">${parseFloat(formData.mano_obra || '0').toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border-t pt-4 space-y-3">
@@ -516,7 +647,11 @@ export default function NuevoTejidoPage() {
 
               <div className="bg-muted p-3 rounded-lg text-xs text-muted-foreground">
                 <p className="font-medium mb-1">Fórmulas:</p>
-                <p>• Costo = (Alambre kg × Precio/kg) + Mano de Obra</p>
+                <p>
+                  {esReventa
+                    ? '• Costo = Precio de compra al proveedor'
+                    : '• Costo = (Alambre kg × Precio/kg) + Mano de Obra'}
+                </p>
                 <p>• Precio Base (Efectivo) = Costo × (1 + {formData.margen_efectivo}/100)</p>
                 <p>• Factura/Lista = Precio Base × 1.21 (incluye IVA 21%)</p>
                 <p>• Tarjeta = Precio Base × 1.3 (incluye IVA 21%)</p>

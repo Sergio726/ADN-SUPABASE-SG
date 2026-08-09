@@ -976,6 +976,7 @@ export function generarPDFListaTejidos(
     nombre: string | null
     categoria: string | null
     unidad: string
+    origen?: string
     precioEfectivo: number
     precioFactura: number
     precioTarjeta: number
@@ -1032,6 +1033,7 @@ export function generarPDFListaTejidos(
     item.nombre || item.codigo,
     item.categoria || 'Sin categoría',
     item.unidad,
+    item.origen || 'Fabricado',
     `$${item.precioEfectivo.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `$${item.precioFactura.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     `$${item.precioTarjeta.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -1039,7 +1041,7 @@ export function generarPDFListaTejidos(
   ])
 
   autoTable(doc, {
-    head: [['Código', 'Nombre/Descripción', 'Categoría', 'Unidad', 'Precio Efectivo', 'Precio Factura/Lista\n(con IVA 21%)', 'Precio Tarjeta\n(con IVA 21%)', 'Estado']],
+    head: [['Código', 'Nombre/Descripción', 'Categoría', 'Unidad', 'Origen', 'Precio Efectivo', 'Precio Factura/Lista\n(con IVA 21%)', 'Precio Tarjeta\n(con IVA 21%)', 'Estado']],
     body: tableData,
     startY: yPos,
     theme: 'striped',
@@ -1053,15 +1055,17 @@ export function generarPDFListaTejidos(
       fontSize: 8,
       textColor: [0, 0, 0],
     },
+    // Anchos ajustados para que las 9 columnas entren en A4 apaisado (277 mm útiles)
     columnStyles: {
       0: { cellWidth: 25, halign: 'center' }, // Código
-      1: { cellWidth: 60, halign: 'left' }, // Nombre
-      2: { cellWidth: 35, halign: 'left' }, // Categoría
-      3: { cellWidth: 20, halign: 'center' }, // Unidad
-      4: { cellWidth: 30, halign: 'right' }, // Precio Efectivo
-      5: { cellWidth: 35, halign: 'right' }, // Precio Factura
-      6: { cellWidth: 30, halign: 'right' }, // Precio Tarjeta
-      7: { cellWidth: 25, halign: 'center' }, // Estado
+      1: { cellWidth: 45, halign: 'left' }, // Nombre
+      2: { cellWidth: 30, halign: 'left' }, // Categoría
+      3: { cellWidth: 18, halign: 'center' }, // Unidad
+      4: { cellWidth: 32, halign: 'center' }, // Origen
+      5: { cellWidth: 30, halign: 'right' }, // Precio Efectivo
+      6: { cellWidth: 35, halign: 'right' }, // Precio Factura
+      7: { cellWidth: 30, halign: 'right' }, // Precio Tarjeta
+      8: { cellWidth: 22, halign: 'center' }, // Estado
     },
     styles: {
       overflow: 'linebreak',

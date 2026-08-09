@@ -87,6 +87,7 @@ export function exportarTejidosAExcel(
     nombre: string | null
     categoria: string | null
     unidad: string
+    origen?: string
     precioEfectivo: number
     precioFactura: number
     precioTarjeta: number
@@ -100,6 +101,7 @@ export function exportarTejidosAExcel(
     'Nombre/Descripción': item.nombre || item.codigo || '-',
     'Categoría': item.categoria || 'Sin categoría',
     'Unidad': item.unidad,
+    'Origen': item.origen || 'Fabricado',
     'Precio Efectivo': item.precioEfectivo,
     'Precio Factura/Lista (con IVA 21%)': item.precioFactura,
     'Precio Tarjeta (con IVA 21%)': item.precioTarjeta,
@@ -118,6 +120,7 @@ export function exportarTejidosAExcel(
     { wch: 40 }, // Nombre/Descripción
     { wch: 20 }, // Categoría
     { wch: 12 }, // Unidad
+    { wch: 24 }, // Origen
     { wch: 18 }, // Precio Efectivo
     { wch: 30 }, // Precio Factura/Lista
     { wch: 25 }, // Precio Tarjeta

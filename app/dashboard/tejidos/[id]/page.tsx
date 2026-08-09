@@ -93,10 +93,13 @@ export default function VerTejidoPage() {
     return null
   }
 
-  const calidadVariant = 
+  const calidadVariant =
     tejido.categoria_calidad === 'Económica' ? 'secondary' :
     tejido.categoria_calidad === 'Standard' ? 'default' :
     'destructive'
+
+  // Reventa: el rollo se compra hecho, no se fabrica con alambre + mano de obra
+  const esReventa = tejido.origen === 'reventa'
 
   const generarResumenWhatsapp = () => {
     const partes: string[] = []
@@ -243,7 +246,9 @@ export default function VerTejidoPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Peso</p>
-                  <p className="text-base font-semibold sm:text-lg">{tejido.cantidad_alambre || tejido.peso_kg} kg</p>
+                  <p className="text-base font-semibold sm:text-lg">
+                    {esReventa ? '—' : `${tejido.cantidad_alambre || tejido.peso_kg} kg`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -256,6 +261,17 @@ export default function VerTejidoPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Categoría de Calidad</span>
                 <Badge variant={calidadVariant}>{tejido.categoria_calidad}</Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Origen</span>
+                <Badge
+                  variant={esReventa ? 'default' : 'outline'}
+                  className={esReventa ? '' : 'border-amber-500 text-amber-700'}
+                >
+                  {esReventa
+                    ? `Reventa${tejido.proveedor_nombre ? ` — ${tejido.proveedor_nombre}` : ''}`
+                    : 'Fabricado'}
+                </Badge>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Estado</span>
@@ -278,10 +294,31 @@ export default function VerTejidoPage() {
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-lg sm:text-xl">Costos y Precios</CardTitle>
-            <CardDescription className="text-sm">Cálculo automático basado en materia prima</CardDescription>
+            <CardDescription className="text-sm">
+              {esReventa
+                ? 'El costo es el precio de compra al proveedor'
+                : 'Cálculo automático basado en materia prima'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Datos de compra (reventa) */}
+            {esReventa && (
+              <div className="p-4 bg-muted rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Proveedor:</span>
+                  <span className="font-medium text-sm">{tejido.proveedor_nombre || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">Precio de compra:</span>
+                  <span className="font-semibold text-orange-600">
+                    ${Number(tejido.precio_compra || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Información de Materia Prima */}
+            {!esReventa && (
             <div className="p-4 bg-muted rounded-lg space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Alambre Galvanizado:</span>
@@ -306,6 +343,7 @@ export default function VerTejidoPage() {
                 <span className="font-semibold">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
+            )}
 
             {/* Precio de Costo */}
             <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
@@ -319,14 +357,23 @@ export default function VerTejidoPage() {
                 </span>
               </div>
               <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-orange-300">
-                <p className="flex justify-between">
-                  <span>Alambre ({tejido.cantidad_alambre || tejido.peso_kg} kg × ${tejido.alambre_precio_kg?.toLocaleString()}):</span>
-                  <span className="font-medium">${((tejido.cantidad_alambre || tejido.peso_kg || 0) * (tejido.alambre_precio_kg || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span>Mano de obra:</span>
-                  <span className="font-medium">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </p>
+                {esReventa ? (
+                  <p className="flex justify-between">
+                    <span>Compra a {tejido.proveedor_nombre || 'proveedor'}:</span>
+                    <span className="font-medium">${Number(tejido.precio_compra || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="flex justify-between">
+                      <span>Alambre ({tejido.cantidad_alambre || tejido.peso_kg} kg × ${tejido.alambre_precio_kg?.toLocaleString()}):</span>
+                      <span className="font-medium">${((tejido.cantidad_alambre || tejido.peso_kg || 0) * (tejido.alambre_precio_kg || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Mano de obra:</span>
+                      <span className="font-medium">${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -407,7 +454,15 @@ export default function VerTejidoPage() {
               <p className="font-semibold mb-2">Fórmulas de Cálculo:</p>
               <div className="space-y-1">
                 <p className="text-muted-foreground">
-                  <span className="font-medium">Costo:</span> ({tejido.cantidad_alambre || tejido.peso_kg || 0} kg × ${tejido.alambre_precio_kg?.toLocaleString()}) + ${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString()} = ${tejido.precio_costo?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
+                  {esReventa ? (
+                    <>
+                      <span className="font-medium">Costo:</span> precio de compra a {tejido.proveedor_nombre || 'proveedor'} = ${tejido.precio_costo?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium">Costo:</span> ({tejido.cantidad_alambre || tejido.peso_kg || 0} kg × ${tejido.alambre_precio_kg?.toLocaleString()}) + ${(tejido.costo_mano_obra || tejido.mano_obra)?.toLocaleString()} = ${tejido.precio_costo?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/A'}
+                    </>
+                  )}
                 </p>
                 {tejido.precio_venta && (
                   <p className="text-muted-foreground">

@@ -17,9 +17,9 @@ Roadmap / ideas (no checklist operativo): [`../app/files/IDEAS_MEJORA.md`](../ap
 - [ ] **Rotar keys de Supabase** — las keys viejas (anon + service role) estuvieron en git (`env.local.example`, `CONFIG.txt`). Aunque ya no están en el working tree, **siguen en el historial**. Rotar en el panel (Settings → API), actualizar `.env.local` y Vercel.
 - [ ] **Confirmar si hay que importar postes** — hay plantilla + script (`app/files/INSTRUCCIONES_POSTES.md`, `scripts/importar-postes-excel.js`). Si el catálogo de postes ya está cargado en prod, tildar y no rehacer.
 - [ ] **Google OAuth (si lo quieren usar)** — login hoy es Supabase Auth; OAuth es opcional y se configura en Google Cloud + Supabase Providers.
-- [ ] **Confirmar lista Marcelo Rojas** — los $ de la lista manuscrita ¿son **costo de compra** o **precio de venta al público**? Define márgenes. Detalle: [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENTA_MARCELO_ROJAS.md).
-- [ ] **Qué hacer con tejidos fabricados que Marcelo no vende** — cal.12, altura 1.00 m, etc.: ¿desactivar o dejar por si vuelve la fábrica?
-- [ ] **Alta de proveedor Marcelo Rojas** — si no existe en `proveedores`, cargarlo (dato de negocio / quien administra el ERP).
+- [x] **Confirmar lista Marcelo Rojas** — los $ de la lista manuscrita ¿son **costo de compra** o **precio de venta al público**? Define márgenes. Detalle: [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENTA_MARCELO_ROJAS.md). → **Costo de compra** (2026-08-08).
+- [x] **Qué hacer con tejidos fabricados que Marcelo no vende** — cal.12, altura 1.00 m, etc.: ¿desactivar o dejar por si vuelve la fábrica? → **Quedan activos**, con badge “Fabricado” de aviso.
+- [x] **Alta de proveedor Marcelo Rojas** — si no existe en `proveedores`, cargarlo (dato de negocio / quien administra el ERP). No existía: lo crea la migración `20260808_tejidos_reventa.sql`.
 
 ---
 
@@ -45,16 +45,20 @@ Prioridad alta / trabajo activo. Lo demás del roadmap no se copia acá hasta qu
 Contexto y lista de precios: [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENTA_MARCELO_ROJAS.md).  
 **Opción elegida (diseño):** flag `origen` fabricado|reventa en `tejidos_configuraciones`; **no** pasar los rollos a artículos sueltos (el cercado usa `tejido_config_id`).
 
-- [ ] **Schema + trigger** — `origen` / `es_reventa`, `proveedor_id`, `precio_compra`; relajar `alambre_articulo_id` NOT NULL en reventa. Si reventa: `precio_costo` = compra; **saltar** `trigger_actualizar_precio_tejido_completo` y el recálculo desde `precios_venta` (hoy hardcode `articulo_id IN (7, 8)`). Si fabricado: comportamiento actual. Confirmar schema live en Supabase (migraciones de tejidos están en `archived/`).
-- [ ] **UI tejidos** (listado / nuevo / editar / detalle) — toggle reventa; cargar precio Marcelo; ocultar o bloquear kg, mano de obra y alambre; badge “Reventa”.
-- [ ] **Cargar las 16 SKUs cal.14 × 10 m** — rombo 3.5/3/2.5/2 × altura 2.00/1.80/1.50/1.20 con la lista de Marcelo (match contra configs existentes por calibre+altura+rombo+largo; no duplicar).
-- [ ] **Márgenes de venta** — según la confirmación de negocio: o bien venta = costo × márgenes actuales (efectivo/lista/tarjeta/echeq), o bien la lista Marcelo **es** el `precio_venta`.
-- [ ] **Cercado** — no cambiar fórmula de metros; sí recálculo de configs que apunten a esos tejidos (`lib/cercado-service.ts`, alta/edición cercado, wizard presupuesto) para que usen el nuevo `precio_venta`.
-- [ ] **Presupuestos artículos** — ítems `tejido_config_id` / `v_tejidos_con_precios` tienen que mostrar el precio de reventa (no el de fábrica).
-- [ ] **Export PDF/Excel de tejidos** — indicar origen reventa y no mostrar desglose de alambre+MO en esos SKUs.
-- [ ] **Vista `v_tejidos_con_precios`** — incluir origen / precio_compra si hace falta para combos de cercado y presupuestos.
+**Confirmado por negocio (2026-08-08):** la lista de Marcelo es **costo de compra** → venta = compra × (1 + `margen_efectivo`/100), 45% hoy.
+Los tejidos que Marcelo no vende (cal.12 y altura 1.00 m) quedan **activos** como fabricados, con badge de aviso.
+Código y migración listos en `supabase/migrations/20260808_tejidos_reventa.sql`: **falta aplicarla en el SQL Editor de Supabase.**
+
+- [x] **Schema + trigger** — `origen` / `es_reventa`, `proveedor_id`, `precio_compra`; relajar `alambre_articulo_id` NOT NULL en reventa. Si reventa: `precio_costo` = compra; **saltar** `trigger_actualizar_precio_tejido_completo` y el recálculo desde `precios_venta` (hoy hardcode `articulo_id IN (7, 8)`). Si fabricado: comportamiento actual. Confirmar schema live en Supabase (migraciones de tejidos están en `archived/`).
+- [x] **UI tejidos** (listado / nuevo / editar / detalle) — toggle reventa; cargar precio Marcelo; ocultar o bloquear kg, mano de obra y alambre; badge “Reventa”.
+- [x] **Cargar las 16 SKUs cal.14 × 10 m** — rombo 3.5/3/2.5/2 × altura 2.00/1.80/1.50/1.20 con la lista de Marcelo (match contra configs existentes por calibre+altura+rombo+largo; no duplicar). Van por `UPDATE` en la migración: las 16 ya existían.
+- [x] **Márgenes de venta** — según la confirmación de negocio: o bien venta = costo × márgenes actuales (efectivo/lista/tarjeta/echeq), o bien la lista Marcelo **es** el `precio_venta`. → Es costo de compra; se le aplica el margen vigente.
+- [ ] **Cercado** — no cambiar fórmula de metros; sí recálculo de configs que apunten a esos tejidos (`lib/cercado-service.ts`, alta/edición cercado, wizard presupuesto) para que usen el nuevo `precio_venta`. **17 de 18 configs usan tejidos cal.14: recalcular después de aplicar la migración.**
+- [x] **Presupuestos artículos** — ítems `tejido_config_id` / `v_tejidos_con_precios` tienen que mostrar el precio de reventa (no el de fábrica). Sin cambios de código: leen `precio_venta`, que ahora trae el valor de reventa.
+- [x] **Export PDF/Excel de tejidos** — indicar origen reventa y no mostrar desglose de alambre+MO en esos SKUs.
+- [x] **Vista `v_tejidos_con_precios`** — incluir origen / precio_compra si hace falta para combos de cercado y presupuestos.
 - [ ] **Copy pública** — `app/page.tsx` y `StructuredData.tsx` dicen que fabrican rollos; alinear con reventa si el negocio lo confirma.
-- [ ] **No reusar `importar-tejidos.js`** — está desfasado (nombres `peso_kg` / `mano_obra`). Cargar las 16 SKUs por UI/migración ad-hoc.
+- [x] **No reusar `importar-tejidos.js`** — está desfasado (nombres `peso_kg` / `mano_obra`). Cargar las 16 SKUs por UI/migración ad-hoc.
 
 ### Presupuestos (UX + performance)
 
