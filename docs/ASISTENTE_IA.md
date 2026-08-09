@@ -85,7 +85,7 @@ El vendedor está en la obra o en el mostrador: escribir es incómodo. Ahora pue
 
 > **Por qué hay conversión de audio:** Chrome graba en **webm/opus** y Safari en mp4, pero OpenRouter acepta wav, mp3, ogg, flac, m4a y aac — **webm no está en la lista**. Así que `lib/ai/grabacion.ts` decodifica lo grabado con `AudioContext` y lo reescribe como **WAV PCM16 mono a 16 kHz**. Además de ser compatible, pesa mucho menos: ~31 KB por segundo.
 
-- La grabación se corta sola a los **90 segundos** (~2,8 MB), por debajo del tope de 3 MB por adjunto.
+- La grabación se corta sola a los **60 segundos** (~2,4 MB en base64). El tope no lo marca el adjunto en sí sino el tamaño total del request: Vercel corta alrededor de 4,5 MB, y el vendedor puede mandar una foto en el mismo mensaje.
 - Se muestra un contador mientras se graba y el micrófono se libera al cerrar el widget.
 
 **Imágenes.** Se redimensionan a 1600 px de lado mayor y se pasan a JPEG (calidad 0,82) antes de subirlas: una foto de celular pesa varios MB y en esa resolución no aporta nada.
@@ -164,6 +164,8 @@ Primera corrida contra OpenRouter real, con 12 casos de consulta, una conversaci
 Los arreglos 2 y 4 son los que más cambian el uso diario: el 2 vive en `lib/ai/busqueda.ts` (patrón de ILIKE insensible a acentos) y el 4 en la primera sección del system prompt ("no existe lo que no viste").
 
 **Verificado en la corrida final:** cotización = presupuesto (mismo total en efectivo, tarjeta y lista), acumulación de contexto entre turnos, rechazo de intentos de manipulación del prompt, y —lo más importante— que un `total` inyectado en el pedido de confirmación **no llega a la base**: el servidor lo recalcula.
+
+**Voz e imagen contra OpenRouter:** los payloads `input_audio` (WAV base64) e `image_url` (data URI) se aceptan y el modelo responde sobre ellos. De esa prueba salió un ajuste: 90 s de audio son **3,66 MB** en base64, demasiado cerca del límite de request de Vercel (~4,5 MB) si además se manda una foto. El tope de grabación bajó a **60 s** (~2,4 MB).
 
 > Dos números de la secuencia (`CERC-2026-043` y `044`) se consumieron durante la auditoría. La numeración usa `nextval`, así que no se recuperan aunque los registros se hayan borrado: el próximo presupuesto de cercado será el 045.
 

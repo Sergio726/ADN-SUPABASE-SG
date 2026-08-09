@@ -47,11 +47,13 @@ interface MensajeChat {
 }
 
 /**
- * Tope de grabación. A 16 kHz mono, un segundo pesa ~31 KB, así que 90 s
- * quedan holgadamente por debajo del límite de 3 MB del endpoint. Se corta
- * solo para que nadie hable dos minutos y después le rebote el mensaje.
+ * Tope de grabación. A 16 kHz mono, un segundo pesa ~31 KB, que en base64
+ * quedan ~41 KB: 60 s son ~2,4 MB. Se eligió ese número para que el pedido
+ * entre cómodo debajo del límite de tamaño de request de Vercel (~4,5 MB)
+ * aunque el vendedor mande además una foto en el mismo mensaje. Se corta solo
+ * para que nadie hable de más y después le rebote el mensaje.
  */
-const MAX_SEGUNDOS_GRABACION = 90
+const MAX_SEGUNDOS_GRABACION = 60
 
 const SUGERENCIAS = [
   '¿Cuánto sale el rollo de tejido cal.14 de 1,80 con rombo 2,5?',
