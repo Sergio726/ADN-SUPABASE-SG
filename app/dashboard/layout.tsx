@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { IsoLogo } from '@/components/Logo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { AsistenteWidget } from '@/components/AsistenteWidget'
 
 export default function DashboardLayout({
   children,
@@ -323,6 +324,9 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      {/* Asistente de ventas: disponible en todas las pantallas del dashboard */}
+      <AsistenteWidget />
     </div>
   )
 }

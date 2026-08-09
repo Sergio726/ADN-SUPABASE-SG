@@ -156,6 +156,48 @@ export default function ConfiguracionesCercadoPage() {
     }
   }, [cargarConfiguraciones, toast])
 
+  // Recalcula todas las configuraciones activas, una por una.
+  // Útil cuando cambia el precio de un tejido y arrastra a muchos cercos a la vez.
+  const handleRecalcularTodas = useCallback(async () => {
+    const ids = configuraciones.map((c: any) => c.id)
+    if (ids.length === 0) return
+
+    if (!confirm(`Se van a recalcular los precios de ${ids.length} configuraciones con los valores vigentes. ¿Continuar?`)) {
+      return
+    }
+
+    setRecalculandoIds(new Set(ids))
+
+    let ok = 0
+    const fallidas: string[] = []
+
+    for (const id of ids) {
+      try {
+        await recalcularPreciosCercado(id)
+        ok++
+      } catch (error: any) {
+        console.error(`Error al recalcular la configuración ${id}:`, error)
+        fallidas.push(id)
+      } finally {
+        setRecalculandoIds(prev => {
+          const nuevo = new Set(prev)
+          nuevo.delete(id)
+          return nuevo
+        })
+      }
+    }
+
+    toast({
+      title: fallidas.length ? 'Recálculo parcial' : 'Precios recalculados',
+      description: fallidas.length
+        ? `${ok} de ${ids.length} actualizadas. ${fallidas.length} fallaron (ver consola).`
+        : `Se actualizaron ${ok} configuraciones.`,
+      variant: fallidas.length ? 'destructive' : undefined,
+    })
+
+    await cargarConfiguraciones()
+  }, [configuraciones, cargarConfiguraciones, toast])
+
   // Calcular estadísticas de configuraciones desactualizadas (memoizado)
   const configuracionesDesactualizadas = useMemo(() => 
     configuraciones.filter((c: any) => esPrecioDesactualizado(c.actualizado_en)),
@@ -393,6 +435,16 @@ export default function ConfiguracionesCercadoPage() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleRecalcularTodas}
+            disabled={loading || recalculandoIds.size > 0 || configuraciones.length === 0}
+          >
+            <Calculator className={`h-4 w-4 mr-2 ${recalculandoIds.size > 0 ? 'animate-pulse' : ''}`} />
+            {recalculandoIds.size > 0
+              ? `Recalculando (${recalculandoIds.size} restantes)`
+              : 'Recalcular todas'}
           </Button>
           <Button asChild>
             <Link href="/dashboard/cercado/nuevo">
