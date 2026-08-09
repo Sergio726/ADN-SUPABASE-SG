@@ -337,25 +337,39 @@ const ejecutores: Record<string, Ejecutor> = {
     }
 
     const config = data[0]
-    // Regla del negocio: terrenos de menos de 50 m llevan recargo (precio por metro distinto)
-    const terrenoChico = metros < 50
-    const precioMetroBase = Number(
-      terrenoChico ? config.precio_por_metro_menor_50m : config.precio_por_metro_lineal
-    ) || 0
+
+    // Se usa el mismo precio por metro que el wizard de presupuestos, para que
+    // la cotización coincida con el presupuesto que se genere después.
+    const precioMetroBase = Number(config.precio_por_metro_lineal) || 0
 
     const totalEfectivo = precioMetroBase * metros
     const precios = preciosPorFormaDePago(totalEfectivo)
     const clave = (forma_pago as keyof typeof precios) || 'efectivo'
 
+    // Ojo: existe un precio por metro con recargo para terrenos chicos, pero el
+    // wizard de presupuestos no lo aplica. Se informa aparte en vez de mezclarlo,
+    // para no cotizar distinto de lo que después queda guardado.
+    const terrenoChico = metros < 50
+    const precioMetroConRecargo = Number(config.precio_por_metro_menor_50m) || 0
+
     return {
       configuracion: config.nombre,
       altura_cerco_m: config.altura_final_cerco ?? config.altura,
       metros_lineales: metros,
-      recargo_terreno_menor_50m: terrenoChico,
       precio_por_metro: Math.round(precioMetroBase * 100) / 100,
       total_por_forma_de_pago: precios,
       total_solicitado: { forma_pago: clave, total: precios[clave] ?? precios.efectivo },
       precios_actualizados_el: config.actualizado_en?.slice(0, 10),
+      ...(terrenoChico && precioMetroConRecargo
+        ? {
+            aviso_terreno_menor_50m: {
+              mensaje:
+                'El terreno tiene menos de 50 m. El sistema guarda un precio por metro con recargo, pero el presupuesto se arma con el precio normal. Confirmá con administración cuál corresponde.',
+              precio_por_metro_con_recargo: Math.round(precioMetroConRecargo * 100) / 100,
+              total_efectivo_con_recargo: Math.round(precioMetroConRecargo * metros * 100) / 100,
+            },
+          }
+        : {}),
       aclaracion:
         'Cálculo informativo basado en los precios vigentes de la configuración. No genera ningún presupuesto guardado.',
     }

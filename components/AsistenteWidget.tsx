@@ -10,11 +10,24 @@
  * partes (texto + audio + imágenes), que es el formato que espera OpenRouter.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Send, X, Loader2, Trash2, AlertCircle, Mic, Square, ImagePlus, Paperclip } from 'lucide-react'
+import {
+  Bot, Send, X, Loader2, Trash2, AlertCircle, Mic, Square, ImagePlus, Paperclip,
+  ShieldCheck, TriangleAlert, Check, ExternalLink,
+} from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RespuestaAsistente } from '@/components/RespuestaAsistente'
 import { GrabadorDeVoz, prepararImagen } from '@/lib/ai/grabacion'
+
+/** Acción propuesta por el asistente, a la espera de que el vendedor confirme. */
+interface PropuestaAccion {
+  accion: string
+  titulo: string
+  detalle: Array<{ campo: string; valor: string }>
+  advertencias?: string[]
+  datos: Record<string, any>
+}
 
 type PartePendiente =
   | { tipo: 'audio'; base64: string; duracionSegundos: number }
@@ -27,6 +40,10 @@ interface MensajeChat {
   /** Contenido real que se manda al modelo (con adjuntos), si difiere del texto */
   contenidoParaModelo?: any
   adjuntos?: PartePendiente[]
+  /** Acción pendiente de confirmación, si el asistente propuso una */
+  propuesta?: PropuestaAccion
+  /** Cómo terminó la propuesta, una vez resuelta */
+  resultadoAccion?: { estado: 'hecha' | 'cancelada'; mensaje: string; enlace?: string }
 }
 
 /**
@@ -54,6 +71,9 @@ export function AsistenteWidget() {
   const [grabando, setGrabando] = useState(false)
   const [procesandoAudio, setProcesandoAudio] = useState(false)
   const [segundosGrabando, setSegundosGrabando] = useState(0)
+
+  // Fase 3: hay una acción de escritura en curso
+  const [ejecutandoAccion, setEjecutandoAccion] = useState(false)
 
   const finDelHilo = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -99,6 +119,58 @@ export function AsistenteWidget() {
     return () => clearInterval(intervalo)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grabando])
+
+  // ---- Fase 3: confirmar acciones que escriben ----
+
+  async function confirmarAccion(indiceMensaje: number) {
+    const propuesta = mensajes[indiceMensaje]?.propuesta
+    if (!propuesta || ejecutandoAccion) return
+
+    setEjecutandoAccion(true)
+    setError(null)
+
+    try {
+      const respuesta = await fetch('/api/asistente/ejecutar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: propuesta.accion, datos: propuesta.datos }),
+      })
+
+      const datos = await respuesta.json()
+      if (!respuesta.ok) throw new Error(datos?.error || 'No se pudo completar la acción.')
+
+      setMensajes((previos) =>
+        previos.map((mensaje, i) =>
+          i === indiceMensaje
+            ? {
+                ...mensaje,
+                propuesta: undefined,
+                resultadoAccion: { estado: 'hecha', mensaje: datos.mensaje, enlace: datos.enlace },
+              }
+            : mensaje
+        )
+      )
+    } catch (e: any) {
+      console.error('Error al ejecutar la acción:', e)
+      setError(e?.message || 'No se pudo completar la acción.')
+    } finally {
+      setEjecutandoAccion(false)
+    }
+  }
+
+  function cancelarAccion(indiceMensaje: number) {
+    setMensajes((previos) =>
+      previos.map((mensaje, i) =>
+        i === indiceMensaje
+          ? {
+              ...mensaje,
+              propuesta: undefined,
+              resultadoAccion: { estado: 'cancelada', mensaje: 'Cancelaste la acción. No se guardó nada.' },
+            }
+          : mensaje
+      )
+    )
+  }
 
   // ---- Fase 2: voz ----
 
@@ -239,7 +311,16 @@ export function AsistenteWidget() {
         throw new Error(datos?.error || 'No se pudo consultar al asistente.')
       }
 
-      setMensajes([...nuevos, { role: 'assistant', content: datos.respuesta || '(sin respuesta)' }])
+      setMensajes([
+        ...nuevos,
+        {
+          role: 'assistant',
+          content:
+            datos.respuesta ||
+            (datos.propuesta ? 'Revisá los datos y confirmá si está bien:' : '(sin respuesta)'),
+          propuesta: datos.propuesta,
+        },
+      ])
     } catch (e: any) {
       console.error('Error del asistente:', e)
       setError(e?.message || 'No se pudo consultar al asistente.')
@@ -300,8 +381,8 @@ export function AsistenteWidget() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Preguntame por precios, tejidos, cercos, clientes o presupuestos. Podés escribir, dictar
-              con el micrófono o mandarme una foto. Busco los datos del sistema, pero todavía no puedo
-              cargar ni modificar nada.
+              con el micrófono o mandarme una foto. También puedo dejarte un presupuesto en borrador,
+              cargar un cliente o anotarte una tarea: siempre te lo muestro antes para que confirmes.
             </p>
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -327,8 +408,92 @@ export function AsistenteWidget() {
                 {mensaje.content}
               </div>
             ) : (
-              <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2">
-                <RespuestaAsistente texto={mensaje.content} />
+              <div className="space-y-2">
+                <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-2">
+                  <RespuestaAsistente texto={mensaje.content} />
+                </div>
+
+                {/* Acción propuesta: nada se guarda hasta que el vendedor confirme */}
+                {mensaje.propuesta && (
+                  <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold">{mensaje.propuesta.titulo}</p>
+                    </div>
+
+                    <dl className="mb-3 space-y-1 text-xs">
+                      {mensaje.propuesta.detalle.map((fila) => (
+                        <div key={fila.campo} className="flex justify-between gap-3">
+                          <dt className="text-muted-foreground">{fila.campo}</dt>
+                          <dd className="text-right font-medium">{fila.valor}</dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    {mensaje.propuesta.advertencias?.map((advertencia) => (
+                      <div
+                        key={advertencia}
+                        className="mb-2 flex items-start gap-2 rounded-lg bg-amber-100 px-2 py-1.5 text-[11px] text-amber-900"
+                      >
+                        <TriangleAlert className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>{advertencia}</span>
+                      </div>
+                    ))}
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => confirmarAccion(idx)}
+                        disabled={ejecutandoAccion}
+                      >
+                        {ejecutandoAccion ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="mr-1 h-4 w-4" />
+                            Confirmar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => cancelarAccion(idx)}
+                        disabled={ejecutandoAccion}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Resultado de una acción ya resuelta */}
+                {mensaje.resultadoAccion && (
+                  <div
+                    className={`rounded-xl border px-3 py-2 text-xs ${
+                      mensaje.resultadoAccion.estado === 'hecha'
+                        ? 'border-green-300 bg-green-50 text-green-900'
+                        : 'border-border bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    <p className="flex items-start gap-2">
+                      {mensaje.resultadoAccion.estado === 'hecha' && (
+                        <Check className="mt-0.5 h-3 w-3 shrink-0" />
+                      )}
+                      <span>{mensaje.resultadoAccion.mensaje}</span>
+                    </p>
+                    {mensaje.resultadoAccion.enlace && (
+                      <Link
+                        href={mensaje.resultadoAccion.enlace}
+                        onClick={() => setAbierto(false)}
+                        className="mt-1.5 inline-flex items-center gap-1 font-medium underline"
+                      >
+                        Abrirlo <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

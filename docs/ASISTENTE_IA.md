@@ -2,7 +2,7 @@
 
 Asistente interno del dashboard: consulta precios, cotiza cercos y busca clientes y presupuestos usando los datos que ya están en la app. Motor: **OpenRouter**.
 
-> **Estado:** Fases 1 y 2 implementadas (consultas por texto, voz e imagen). Fases 3 y 4 pendientes.
+> **Estado:** Fases 1, 2 y 3 implementadas (consultas por texto, voz e imagen; y acciones con confirmación). Fase 4 pendiente.
 
 ---
 
@@ -12,11 +12,15 @@ Asistente interno del dashboard: consulta precios, cotiza cercos y busca cliente
 lib/ai/
   models.ts      → qué modelo se usa según la modalidad (texto / audio / imagen)
   openrouter.ts  → cliente HTTP contra OpenRouter (API compatible con OpenAI)
-  tools.ts       → herramientas que el modelo puede ejecutar sobre los datos
+  tools.ts       → herramientas de CONSULTA (solo lectura)
+  acciones.ts    → acciones que ESCRIBEN, con el flujo proponer → confirmar → ejecutar
+  adjuntos.ts    → validación de audio e imágenes que llegan del navegador
+  grabacion.ts   → captura de voz y preparación de imágenes (corre en el browser)
   prompt.ts      → instrucciones del asistente y reglas del negocio
-app/api/asistente/route.ts   → endpoint: corre el loop de tool calling
-components/AsistenteWidget.tsx   → widget flotante del dashboard
-components/RespuestaAsistente.tsx → render de markdown liviano (tablas incluidas)
+app/api/asistente/route.ts          → loop de tool calling; propone acciones, no las ejecuta
+app/api/asistente/ejecutar/route.ts → único endpoint que escribe, tras la confirmación
+components/AsistenteWidget.tsx      → widget flotante del dashboard
+components/RespuestaAsistente.tsx   → render de markdown liviano (tablas incluidas)
 ```
 
 **El flujo de una consulta:**
@@ -98,13 +102,44 @@ El vendedor está en la obra o en el mostrador: escribir es incómodo. Ahora pue
 
 **Reglas de negocio para fotos** (en el system prompt): si la foto es una lista de precios de un proveedor, esos precios **no son los del sistema** y no se mezclan ni se usan para cotizar; si es una foto de un terreno, sirve para estimar pero los metros se piden, no se deducen.
 
-## Fase 3 — Acciones
+## Fase 3 — Acciones (implementada)
 
-Que además de responder, haga.
+Además de responder, el asistente puede **proponer** tres cosas:
 
-- Crear presupuestos en estado **borrador** a partir de la conversación, para que el vendedor revise y confirme. Nunca directo a "enviado".
-- Alta rápida de clientes y de tareas de seguimiento.
-- Cada herramienta que escriba tiene que devolver un resumen de lo que va a hacer y **pedir confirmación explícita** en la UI antes de ejecutarse.
+| Acción | Qué hace |
+|---|---|
+| `crear_presupuesto_cercado` | Presupuesto de cercado en estado **borrador**, con su ítem |
+| `crear_cliente` | Alta de cliente |
+| `crear_tarea` | Tarea de seguimiento en el CRM |
+
+### Nada se guarda sin confirmación
+
+El modelo **no puede escribir**. Cuando pide una acción, el endpoint no la ejecuta: arma una propuesta y corta el loop.
+
+```
+modelo pide la acción
+    ↓
+prepararAccion()  → resuelve nombres a ids, calcula el total, junta advertencias
+    ↓
+tarjeta en el widget  → el vendedor ve los datos y decide
+    ↓  (solo si confirma)
+POST /api/asistente/ejecutar → ejecutarAccion() escribe
+```
+
+**La regla que sostiene todo esto: los importes nunca vienen del cliente.** En el paso de ejecución se vuelve a leer el precio de la base y se recalcula el total, así que aunque alguien manipule el pedido de confirmación, lo que queda guardado es lo que corresponde. Del cliente solo viajan referencias: ids, metros y textos.
+
+Otras protecciones:
+
+- Los presupuestos quedan **siempre en borrador**, nunca en "enviado".
+- Si el cliente o la configuración son ambiguos, la acción se rechaza y el modelo tiene que repreguntar. Nunca elige por su cuenta.
+- La propuesta avisa si los precios de la configuración están desactualizados o si ya existe un cliente con nombre parecido.
+- El endpoint de ejecución usa la sesión del vendedor: siguen valiendo las políticas RLS.
+
+### El total se calcula igual que el wizard
+
+`precio_por_metro_lineal × metros × factor de forma de pago` (efectivo 1,0 · lista 1,21 · tarjeta 1,30 · e-cheq 90 1,40).
+
+> ⚠️ **Inconsistencia detectada en el sistema, no resuelta acá.** Existe una columna `precio_por_metro_menor_50m` (recargo ~50% para terrenos chicos) que el wizard de presupuestos **no usa**: arma el presupuesto con el precio normal. Para que la cotización del asistente no diga una cosa y el presupuesto guarde otra, ambos siguen el comportamiento del wizard, y cuando el terreno tiene menos de 50 m el asistente **informa aparte** cuál sería el precio con recargo. Definir cuál corresponde es una decisión de negocio.
 
 ## Fase 4 — Contexto y memoria
 

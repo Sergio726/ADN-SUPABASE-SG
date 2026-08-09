@@ -15,6 +15,12 @@ import { DEFINICIONES_TOOLS, ejecutarTool } from '@/lib/ai/tools'
 import { SYSTEM_PROMPT, contextoDeSesion } from '@/lib/ai/prompt'
 import { detectarModalidad, modeloPara } from '@/lib/ai/models'
 import { prepararHistorial, AdjuntoInvalido } from '@/lib/ai/adjuntos'
+import {
+  DEFINICIONES_ACCIONES,
+  prepararAccion,
+  esAccion,
+  AccionInvalida,
+} from '@/lib/ai/acciones'
 
 // Tope de vueltas del loop: evita que un modelo en bucle dispare consultas sin fin
 const MAX_ITERACIONES = 5
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
       const respuesta = await chatCompletion({
         modelo,
         mensajes,
-        tools: DEFINICIONES_TOOLS,
+        tools: [...DEFINICIONES_TOOLS, ...DEFINICIONES_ACCIONES],
       })
 
       const mensaje = respuesta.mensaje
@@ -85,6 +91,35 @@ export async function POST(request: NextRequest) {
         }
 
         herramientasUsadas.push(call.function.name)
+
+        // Las acciones que escriben NO se ejecutan acá: se arma una propuesta,
+        // se corta el loop y se le muestra al vendedor para que confirme.
+        if (esAccion(call.function.name)) {
+          try {
+            const propuesta = await prepararAccion(supabase, call.function.name, argumentos)
+            return NextResponse.json({
+              respuesta:
+                typeof mensaje.content === 'string' && mensaje.content ? mensaje.content : '',
+              propuesta,
+              herramientas_usadas: herramientasUsadas,
+              modelo,
+            })
+          } catch (error: any) {
+            // Si la propuesta no se puede armar (cliente ambiguo, config sin
+            // precio), se le devuelve el motivo al modelo para que repregunte
+            if (error instanceof AccionInvalida) {
+              mensajes.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                name: call.function.name,
+                content: JSON.stringify({ error: error.message }),
+              })
+              continue
+            }
+            throw error
+          }
+        }
+
         const resultado = await ejecutarTool(supabase, call.function.name, argumentos)
 
         mensajes.push({
