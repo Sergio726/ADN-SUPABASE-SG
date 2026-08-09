@@ -13,6 +13,7 @@ Documento de relevo. Si acabás de entrar al repo, empezá acá.
 3. [`../DOCUMENTACION.md`](../DOCUMENTACION.md) — arquitectura, tablas y cálculos (parcialmente vieja: no lista todos los módulos actuales)
 4. [`PENDIENTES.md`](PENDIENTES.md) — qué falta y de quién depende
 5. [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENTA_MARCELO_ROJAS.md) — si vas a tocar tejidos/cercado (reventa vs fábrica)
+5b. [`ASISTENTE_IA.md`](ASISTENTE_IA.md) — si vas a tocar el asistente de ventas (OpenRouter, herramientas, fases)
 6. [`../app/files/IDEAS_MEJORA.md`](../app/files/IDEAS_MEJORA.md) — roadmap largo / ideas; **no** es la fuente de verdad de tareas activas
 
 ---
@@ -83,6 +84,7 @@ Env local: copiar `env.local.example` → `.env.local`. Variables:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (solo servidor; nunca al cliente)
 - `NEXT_PUBLIC_SITE_URL`
+- `OPENROUTER_API_KEY` (asistente de IA; solo servidor, sin `NEXT_PUBLIC_`)
 
 Migraciones: las vigentes están en `supabase/migrations/`; las históricas en `supabase/migrations/archived/`. El listado del README original **está desfasado** — no lo uses como orden de apply en un proyecto ya existente.
 

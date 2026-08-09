@@ -60,6 +60,17 @@ Código y migración listos en `supabase/migrations/20260808_tejidos_reventa.sql
 - [ ] **Copy pública** — `app/page.tsx` y `StructuredData.tsx` dicen que fabrican rollos; alinear con reventa si el negocio lo confirma.
 - [x] **No reusar `importar-tejidos.js`** — está desfasado (nombres `peso_kg` / `mano_obra`). Cargar las 16 SKUs por UI/migración ad-hoc.
 
+### Asistente de IA para vendedores
+
+Arquitectura, fases y límites: [`ASISTENTE_IA.md`](ASISTENTE_IA.md). Motor: **OpenRouter** (API compatible con OpenAI).
+Requiere `OPENROUTER_API_KEY` en `.env.local` y en Vercel — **key de servidor, nunca con prefijo `NEXT_PUBLIC_`**.
+
+- [x] **Fase 1 — Consultas por texto** — widget flotante en el dashboard; 6 herramientas de solo lectura (artículos con precio vigente, tejidos, configuraciones de cercado, cotización de cerco por metros, clientes, presupuestos). Respeta RLS: consulta con la sesión del vendedor.
+- [ ] **Fase 2 — Voz e imagen** — grabar audio en el navegador y mandarlo como `input_audio` (base64); adjuntar fotos de listas de precios o del terreno. El ruteo por modalidad ya está en `lib/ai/models.ts`.
+- [ ] **Fase 3 — Acciones** — crear presupuestos en estado **borrador** desde la conversación, alta de clientes y tareas. Cada acción de escritura tiene que pedir confirmación explícita antes de ejecutarse.
+- [ ] **Fase 4 — Contexto y memoria** — que sepa en qué pantalla está el vendedor, historial de conversaciones en Supabase y métricas de uso/costo de tokens.
+- [ ] **Nombres duplicados en cercado** — hay dos configuraciones activas llamadas igual (“Cerco Olimpico 2.4 alto - Estandar”) con precios distintos ($49.410 vs $60.068 por metro). El asistente las muestra con precio para poder elegir, pero conviene renombrarlas o dar de baja la que no se use.
+
 ### Presupuestos (UX + performance)
 
 - [ ] **Filtros y búsqueda** — implementado: estado, tipo, multi-filtro, buscar por número. Falta: cliente, rango de fechas/montos, forma de pago, vendedor; sync con URL.
