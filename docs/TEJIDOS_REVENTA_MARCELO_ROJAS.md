@@ -1,8 +1,11 @@
 # Tejidos romboidales — reventa (Marcelo Rojas)
 
-Contexto de negocio y diseño propuesto. **No implementado todavía.** Checklist operativo: [`PENDIENTES.md`](PENDIENTES.md).
+Contexto de negocio y diseño. **Implementado en código; falta aplicar la migración en Supabase.** Checklist operativo: [`PENDIENTES.md`](PENDIENTES.md).
 
-> **Estado:** ADN **no fabrica** rollos de tejido romboidal en este momento. Los **compra** al proveedor **Marcelo Rojas**. El sistema hoy asume fabricación: costo = `(kg alambre × precio alambre) + mano de obra`.
+> **Estado:** ADN **no fabrica** rollos de tejido romboidal en este momento. Los **compra** al proveedor **Marcelo Rojas**. El sistema asumía fabricación: costo = `(kg alambre × precio alambre) + mano de obra`.
+>
+> **Resuelto (2026-08-08):** la lista de Marcelo es **costo de compra** → `precio_venta` = compra × (1 + `margen_efectivo`/100), 45% hoy. Los tejidos que Marcelo no vende (cal.12 y altura 1.00 m) quedan **activos** como fabricados, con badge de aviso.
+> Migración: `supabase/migrations/20260808_tejidos_reventa.sql` (columna `origen`, triggers bifurcados, alta del proveedor y carga de las 16 SKUs). Verificación: `node scripts/verificar-tejidos-reventa.js`.
 
 ---
 

@@ -27,6 +27,7 @@ export default function TejidosPage() {
   const [filtroAltura, setFiltroAltura] = useState('todos')
   const [filtroRombo, setFiltroRombo] = useState('todos')
   const [filtroEstado, setFiltroEstado] = useState('todos')
+  const [filtroOrigen, setFiltroOrigen] = useState('todos')
 
   useEffect(() => {
     cargarTejidos()
@@ -34,7 +35,7 @@ export default function TejidosPage() {
 
   useEffect(() => {
     aplicarFiltros()
-  }, [tejidos, filtroCalibre, filtroAltura, filtroRombo, filtroEstado])
+  }, [tejidos, filtroCalibre, filtroAltura, filtroRombo, filtroEstado, filtroOrigen])
 
   function aplicarFiltros() {
     let resultado = [...tejidos]
@@ -55,6 +56,10 @@ export default function TejidosPage() {
       resultado = resultado.filter((t: any) => (filtroEstado === 'activos' ? t.activo : !t.activo))
     }
 
+    if (filtroOrigen !== 'todos') {
+      resultado = resultado.filter((t: any) => (t.origen || 'fabricado') === filtroOrigen)
+    }
+
     setTejidosFiltrados(resultado)
   }
 
@@ -63,6 +68,7 @@ export default function TejidosPage() {
     setFiltroAltura('todos')
     setFiltroRombo('todos')
     setFiltroEstado('todos')
+    setFiltroOrigen('todos')
   }
 
   async function cargarTejidos() {
@@ -74,7 +80,8 @@ export default function TejidosPage() {
         .select(`
           *,
           alambre:articulos!alambre_articulo_id(id, nombre),
-          articulo:articulos!articulo_id(id, nombre)
+          articulo:articulos!articulo_id(id, nombre),
+          proveedor:proveedores!proveedor_id(id, nombre)
         `)
         .eq('activo', true)
         .order('calibre')
@@ -96,6 +103,8 @@ export default function TejidosPage() {
         ...tejido,
         alambre_nombre: tejido.alambre?.nombre || null,
         articulo_nombre: tejido.articulo?.nombre || null,
+        proveedor_nombre: tejido.proveedor?.nombre || null,
+        origen: tejido.origen || 'fabricado',
         // Mantener compatibilidad con nombres antiguos
         peso_kg: tejido.cantidad_alambre, // Para compatibilidad con código que usa peso_kg
         mano_obra: tejido.costo_mano_obra, // Para compatibilidad con código que usa mano_obra
@@ -265,6 +274,9 @@ export default function TejidosPage() {
           nombre: tejido.nombre || null,
           categoria: tejido.categoria_calidad || tejido.calidad_sugerida || null,
           unidad: 'rollo', // Los tejidos se venden por rollo
+          origen: tejido.origen === 'reventa'
+            ? `Reventa${tejido.proveedor_nombre ? ` (${tejido.proveedor_nombre})` : ''}`
+            : 'Fabricado',
           precioEfectivo: preciosCalculados.efectivo,
           precioFactura: preciosCalculados.facturaLista,
           precioTarjeta: preciosCalculados.tarjeta,
@@ -298,6 +310,9 @@ export default function TejidosPage() {
           nombre: tejido.nombre || null,
           categoria: tejido.categoria_calidad || tejido.calidad_sugerida || null,
           unidad: 'rollo', // Los tejidos se venden por rollo
+          origen: tejido.origen === 'reventa'
+            ? `Reventa${tejido.proveedor_nombre ? ` (${tejido.proveedor_nombre})` : ''}`
+            : 'Fabricado',
           precioEfectivo: preciosCalculados.efectivo,
           precioFactura: preciosCalculados.facturaLista,
           precioTarjeta: preciosCalculados.tarjeta,
@@ -353,9 +368,31 @@ export default function TejidosPage() {
       ),
     },
     {
+      accessorKey: 'origen',
+      header: 'Origen',
+      cell: ({ row }: any) => {
+        const esReventa = row.original.origen === 'reventa'
+        return (
+          <Badge
+            variant={esReventa ? 'default' : 'outline'}
+            className={`text-[11px] whitespace-nowrap ${esReventa ? '' : 'border-amber-500 text-amber-700'}`}
+            title={esReventa
+              ? `Se compra a ${row.original.proveedor_nombre || 'proveedor'}`
+              : 'Se fabrica: hoy no se compra a proveedor'}
+          >
+            {esReventa ? (row.original.proveedor_nombre || 'Reventa') : 'Fabricado'}
+          </Badge>
+        )
+      },
+    },
+    {
       accessorKey: 'peso_kg',
       header: ({ column }: any) => <SortableHeader column={column} title="Peso" />,
       cell: ({ row }: any) => {
+        // En reventa no hay alambre de materia prima
+        if (row.original.origen === 'reventa') {
+          return <span className="text-muted-foreground text-xs">—</span>
+        }
         const peso = row.original.cantidad_alambre || row.original.peso_kg
         if (peso == null || peso === undefined) {
           return <span className="text-muted-foreground text-xs">—</span>
@@ -369,6 +406,10 @@ export default function TejidosPage() {
       accessorKey: 'mano_obra',
       header: ({ column }: any) => <SortableHeader column={column} title="M. Obra" />,
       cell: ({ row }: any) => {
+        // En reventa no hay mano de obra de fabricación
+        if (row.original.origen === 'reventa') {
+          return <span className="text-xs text-muted-foreground">—</span>
+        }
         const manoObra = row.original.costo_mano_obra || row.original.mano_obra
         if (manoObra == null || manoObra === undefined) {
           return <span className="text-xs text-muted-foreground">—</span>
@@ -563,7 +604,7 @@ export default function TejidosPage() {
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar listado (WhatsApp)
               </Button>
-              {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos' || filtroEstado !== 'todos') && (
+              {(filtroCalibre !== 'todos' || filtroAltura !== 'todos' || filtroRombo !== 'todos' || filtroEstado !== 'todos' || filtroOrigen !== 'todos') && (
                 <Button variant="outline" size="sm" onClick={limpiarFiltros}>
                   Limpiar Filtros
                 </Button>
@@ -636,6 +677,20 @@ export default function TejidosPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Origen</label>
+                <Select value={filtroOrigen} onValueChange={setFiltroOrigen}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="reventa">Reventa</SelectItem>
+                    <SelectItem value="fabricado">Fabricado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -652,9 +707,17 @@ export default function TejidosPage() {
                     <p className="text-[11px] uppercase font-medium text-muted-foreground">Código</p>
                     <p className="font-mono text-sm font-semibold">{tejido.codigo}</p>
                   </div>
-                  <Badge variant={tejido.categoria_calidad === 'Económica' ? 'secondary' : tejido.categoria_calidad === 'Standard' ? 'default' : 'destructive'} className="text-[11px]">
-                    {tejido.categoria_calidad || tejido.calidad_sugerida}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={tejido.origen === 'reventa' ? 'default' : 'outline'}
+                      className={`text-[11px] ${tejido.origen === 'reventa' ? '' : 'border-amber-500 text-amber-700'}`}
+                    >
+                      {tejido.origen === 'reventa' ? (tejido.proveedor_nombre || 'Reventa') : 'Fabricado'}
+                    </Badge>
+                    <Badge variant={tejido.categoria_calidad === 'Económica' ? 'secondary' : tejido.categoria_calidad === 'Standard' ? 'default' : 'destructive'} className="text-[11px]">
+                      {tejido.categoria_calidad || tejido.calidad_sugerida}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
