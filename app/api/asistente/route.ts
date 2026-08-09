@@ -14,6 +14,7 @@ import { chatCompletion, OpenRouterError, type Mensaje } from '@/lib/ai/openrout
 import { DEFINICIONES_TOOLS, ejecutarTool } from '@/lib/ai/tools'
 import { SYSTEM_PROMPT, contextoDeSesion } from '@/lib/ai/prompt'
 import { detectarModalidad, modeloPara } from '@/lib/ai/models'
+import { prepararHistorial, AdjuntoInvalido } from '@/lib/ai/adjuntos'
 
 // Tope de vueltas del loop: evita que un modelo en bucle dispare consultas sin fin
 const MAX_ITERACIONES = 5
@@ -39,12 +40,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No llegó ningún mensaje.' }, { status: 400 })
     }
 
-    // Solo se aceptan mensajes de usuario y asistente desde el cliente:
-    // el system prompt y los resultados de herramientas los pone el servidor.
-    const historial = mensajesEntrada
-      .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .slice(-MAX_MENSAJES_HISTORIAL)
-      .map((m) => ({ role: m.role, content: m.content }))
+    // Solo se aceptan mensajes de usuario y asistente desde el cliente: el
+    // system prompt y los resultados de herramientas los pone el servidor.
+    // Se validan los adjuntos y se dejan solo en el último mensaje.
+    const historial = prepararHistorial(mensajesEntrada, MAX_MENSAJES_HISTORIAL)
 
     const modelo = modeloPara(detectarModalidad(historial))
 
@@ -106,6 +105,11 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('[asistente] Error:', error)
+
+    // Adjunto mal formado o demasiado grande: es culpa del pedido, no del server
+    if (error instanceof AdjuntoInvalido) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
 
     if (error instanceof OpenRouterError) {
       return NextResponse.json(

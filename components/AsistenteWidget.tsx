@@ -3,19 +3,38 @@
 /**
  * Asistente de ventas — widget flotante del dashboard.
  *
- * Fase 1: solo texto y solo consultas de lectura. La grabación de voz y el
- * envío de imágenes se suman en la Fase 2 sobre este mismo componente.
+ * Fase 1: consultas por texto (solo lectura).
+ * Fase 2: dictado por voz y envío de fotos.
+ *
+ * El contenido de un mensaje del usuario puede ser texto suelto o una lista de
+ * partes (texto + audio + imágenes), que es el formato que espera OpenRouter.
  */
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Send, X, Loader2, Trash2, AlertCircle } from 'lucide-react'
+import { Bot, Send, X, Loader2, Trash2, AlertCircle, Mic, Square, ImagePlus, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RespuestaAsistente } from '@/components/RespuestaAsistente'
+import { GrabadorDeVoz, prepararImagen } from '@/lib/ai/grabacion'
+
+type PartePendiente =
+  | { tipo: 'audio'; base64: string; duracionSegundos: number }
+  | { tipo: 'imagen'; dataUrl: string; nombre: string }
 
 interface MensajeChat {
   role: 'user' | 'assistant'
+  /** Texto visible en el hilo */
   content: string
+  /** Contenido real que se manda al modelo (con adjuntos), si difiere del texto */
+  contenidoParaModelo?: any
+  adjuntos?: PartePendiente[]
 }
+
+/**
+ * Tope de grabación. A 16 kHz mono, un segundo pesa ~31 KB, así que 90 s
+ * quedan holgadamente por debajo del límite de 3 MB del endpoint. Se corta
+ * solo para que nadie hable dos minutos y después le rebote el mensaje.
+ */
+const MAX_SEGUNDOS_GRABACION = 90
 
 const SUGERENCIAS = [
   '¿Cuánto sale el rollo de tejido cal.14 de 1,80 con rombo 2,5?',
@@ -30,8 +49,16 @@ export function AsistenteWidget() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Fase 2: adjuntos pendientes de enviar y estado de grabación
+  const [adjuntos, setAdjuntos] = useState<PartePendiente[]>([])
+  const [grabando, setGrabando] = useState(false)
+  const [procesandoAudio, setProcesandoAudio] = useState(false)
+  const [segundosGrabando, setSegundosGrabando] = useState(0)
+
   const finDelHilo = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const archivoRef = useRef<HTMLInputElement>(null)
+  const grabador = useRef<GrabadorDeVoz | null>(null)
 
   useEffect(() => {
     if (abierto) {
@@ -43,13 +70,154 @@ export function AsistenteWidget() {
     if (abierto) inputRef.current?.focus()
   }, [abierto])
 
+  // Cortar el micrófono si el componente se desmonta con una grabación abierta
+  useEffect(() => {
+    return () => {
+      grabador.current?.cancelar()
+      grabador.current = null
+    }
+  }, [])
+
+  // Contador de la grabación, con corte automático al llegar al tope
+  useEffect(() => {
+    if (!grabando) {
+      setSegundosGrabando(0)
+      return
+    }
+
+    const intervalo = setInterval(() => {
+      setSegundosGrabando((previos) => {
+        const siguiente = previos + 1
+        if (siguiente >= MAX_SEGUNDOS_GRABACION) {
+          // El corte se dispara fuera del setState para no encadenar renders
+          setTimeout(() => detenerGrabacion(), 0)
+        }
+        return siguiente
+      })
+    }, 1000)
+
+    return () => clearInterval(intervalo)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grabando])
+
+  // ---- Fase 2: voz ----
+
+  async function detenerGrabacion() {
+    // Sin grabador activo no hay nada que cortar: evita que un corte doble
+    // (por ejemplo el automático justo cuando el vendedor aprieta el botón)
+    // termine arrancando una grabación nueva.
+    if (!grabador.current?.grabando) return
+
+    setGrabando(false)
+    setProcesandoAudio(true)
+
+    try {
+      const audio = await grabador.current.detener()
+      if (audio.duracionSegundos < 0.4) {
+        setError('La grabación fue demasiado corta.')
+      } else {
+        setAdjuntos((previos) => [
+          ...previos,
+          { tipo: 'audio', base64: audio.base64, duracionSegundos: audio.duracionSegundos },
+        ])
+      }
+    } catch (e: any) {
+      console.error('Error al procesar el audio:', e)
+      setError(e?.message || 'No se pudo procesar la grabación.')
+    } finally {
+      setProcesandoAudio(false)
+      grabador.current = null
+    }
+  }
+
+  async function alternarGrabacion() {
+    setError(null)
+
+    if (grabando) {
+      await detenerGrabacion()
+      return
+    }
+
+    try {
+      grabador.current = new GrabadorDeVoz()
+      await grabador.current.iniciar()
+      setGrabando(true)
+    } catch (e: any) {
+      console.error('Error al iniciar la grabación:', e)
+      grabador.current = null
+      setError(
+        e?.name === 'NotAllowedError'
+          ? 'Hay que dar permiso al micrófono para dictar.'
+          : e?.message || 'No se pudo acceder al micrófono.'
+      )
+    }
+  }
+
+  // ---- Fase 2: imágenes ----
+
+  async function agregarImagen(archivo: File | undefined) {
+    if (!archivo) return
+    setError(null)
+
+    try {
+      const dataUrl = await prepararImagen(archivo)
+      setAdjuntos((previos) => [...previos, { tipo: 'imagen', dataUrl, nombre: archivo.name }])
+    } catch (e: any) {
+      console.error('Error al preparar la imagen:', e)
+      setError(e?.message || 'No se pudo adjuntar la imagen.')
+    }
+  }
+
+  /** Arma el content multimodal que espera OpenRouter. */
+  function construirContenido(texto: string, partes: PartePendiente[]) {
+    if (!partes.length) return texto
+
+    const contenido: any[] = []
+    if (texto) contenido.push({ type: 'text', text: texto })
+
+    for (const parte of partes) {
+      if (parte.tipo === 'audio') {
+        contenido.push({ type: 'input_audio', input_audio: { data: parte.base64, format: 'wav' } })
+      } else {
+        contenido.push({ type: 'image_url', image_url: { url: parte.dataUrl } })
+      }
+    }
+
+    // Si solo hay adjuntos, se le dice al modelo qué hacer con ellos
+    if (!texto) {
+      contenido.unshift({
+        type: 'text',
+        text: 'Respondé lo que se pide en el audio o la imagen adjunta.',
+      })
+    }
+
+    return contenido
+  }
+
   async function enviar(texto: string) {
     const consulta = texto.trim()
-    if (!consulta || cargando) return
+    const partes = adjuntos
+    if ((!consulta && !partes.length) || cargando || grabando) return
 
-    const nuevos: MensajeChat[] = [...mensajes, { role: 'user', content: consulta }]
+    const descripcion =
+      consulta ||
+      partes
+        .map((p) => (p.tipo === 'audio' ? `🎤 Audio (${p.duracionSegundos}s)` : `🖼️ ${p.nombre}`))
+        .join(' · ')
+
+    const nuevos: MensajeChat[] = [
+      ...mensajes,
+      {
+        role: 'user',
+        content: descripcion,
+        contenidoParaModelo: construirContenido(consulta, partes),
+        adjuntos: partes,
+      },
+    ]
+
     setMensajes(nuevos)
     setEntrada('')
+    setAdjuntos([])
     setError(null)
     setCargando(true)
 
@@ -57,7 +225,12 @@ export function AsistenteWidget() {
       const respuesta = await fetch('/api/asistente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensajes: nuevos }),
+        body: JSON.stringify({
+          mensajes: nuevos.map((m) => ({
+            role: m.role,
+            content: m.contenidoParaModelo ?? m.content,
+          })),
+        }),
       })
 
       const datos = await respuesta.json()
@@ -126,8 +299,9 @@ export function AsistenteWidget() {
         {mensajes.length === 0 && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Preguntame por precios, tejidos, cercos, clientes o presupuestos. Puedo buscar los datos
-              del sistema, pero todavía no puedo cargar ni modificar nada.
+              Preguntame por precios, tejidos, cercos, clientes o presupuestos. Podés escribir, dictar
+              con el micrófono o mandarme una foto. Busco los datos del sistema, pero todavía no puedo
+              cargar ni modificar nada.
             </p>
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -185,18 +359,105 @@ export function AsistenteWidget() {
         }}
         className="border-t p-3"
       >
+        {/* Adjuntos pendientes de enviar */}
+        {adjuntos.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {adjuntos.map((adjunto, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-1.5 rounded-full border bg-muted px-2.5 py-1 text-xs"
+              >
+                <Paperclip className="h-3 w-3 text-muted-foreground" />
+                <span>
+                  {adjunto.tipo === 'audio'
+                    ? `Audio ${adjunto.duracionSegundos}s`
+                    : adjunto.nombre.slice(0, 22)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAdjuntos((previos) => previos.filter((_, i) => i !== idx))}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Quitar adjunto"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {grabando && (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+              Grabando… tocá el cuadrado para terminar.
+            </span>
+            <span className="font-mono tabular-nums">
+              {String(Math.floor(segundosGrabando / 60)).padStart(2, '0')}:
+              {String(segundosGrabando % 60).padStart(2, '0')}
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
+          <input
+            ref={archivoRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              agregarImagen(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+
+          <Button
+            type="button"
+            variant={grabando ? 'destructive' : 'outline'}
+            size="sm"
+            onClick={alternarGrabacion}
+            disabled={cargando || procesandoAudio}
+            title={grabando ? 'Terminar grabación' : 'Dictar consulta'}
+            aria-label={grabando ? 'Terminar grabación' : 'Dictar consulta'}
+          >
+            {procesandoAudio ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : grabando ? (
+              <Square className="h-4 w-4" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => archivoRef.current?.click()}
+            disabled={cargando || grabando}
+            title="Adjuntar una foto"
+            aria-label="Adjuntar una foto"
+          >
+            <ImagePlus className="h-4 w-4" />
+          </Button>
+
           <Input
             ref={inputRef}
             value={entrada}
             onChange={(e) => setEntrada(e.target.value)}
-            placeholder="Preguntá por un precio o una cotización…"
-            disabled={cargando}
+            placeholder={grabando ? 'Grabando…' : 'Preguntá, dictá o mandá una foto…'}
+            disabled={cargando || grabando}
           />
-          <Button type="submit" size="sm" disabled={cargando || !entrada.trim()}>
+
+          <Button
+            type="submit"
+            size="sm"
+            disabled={cargando || grabando || (!entrada.trim() && adjuntos.length === 0)}
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+
         <p className="mt-2 text-[11px] text-muted-foreground">
           Las cotizaciones son informativas: para dejarlas firmes hay que cargar el presupuesto.
         </p>

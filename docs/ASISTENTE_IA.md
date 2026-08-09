@@ -2,7 +2,7 @@
 
 Asistente interno del dashboard: consulta precios, cotiza cercos y busca clientes y presupuestos usando los datos que ya están en la app. Motor: **OpenRouter**.
 
-> **Estado:** Fase 1 implementada (consultas de texto). Fases 2 a 4 pendientes.
+> **Estado:** Fases 1 y 2 implementadas (consultas por texto, voz e imagen). Fases 3 y 4 pendientes.
 
 ---
 
@@ -73,13 +73,30 @@ Las reglas de precio que aplica son las mismas del resto del sistema: base = efe
 
 ---
 
-## Fase 2 — Voz e imagen
+## Fase 2 — Voz e imagen (implementada)
 
-El vendedor está en la obra o en el mostrador: escribir es incómodo.
+El vendedor está en la obra o en el mostrador: escribir es incómodo. Ahora puede dictar o mandar una foto.
 
-- Grabación de audio desde el navegador (`MediaRecorder`), envío en base64 como `input_audio`. El modelo transcribe y responde en un solo paso.
-- Envío de fotos: lista de precios de un proveedor, una medida anotada en papel, una foto del terreno.
-- El ruteo por modalidad ya está resuelto en `lib/ai/models.ts` y `detectarModalidad()`; falta la captura en el widget y aceptar `content` como array de partes en el endpoint.
+**Voz.** Se graba con `MediaRecorder` y se manda como `input_audio` en base64. El modelo transcribe y responde en el mismo paso (OpenRouter no tiene endpoint de transcripción aparte).
+
+> **Por qué hay conversión de audio:** Chrome graba en **webm/opus** y Safari en mp4, pero OpenRouter acepta wav, mp3, ogg, flac, m4a y aac — **webm no está en la lista**. Así que `lib/ai/grabacion.ts` decodifica lo grabado con `AudioContext` y lo reescribe como **WAV PCM16 mono a 16 kHz**. Además de ser compatible, pesa mucho menos: ~31 KB por segundo.
+
+- La grabación se corta sola a los **90 segundos** (~2,8 MB), por debajo del tope de 3 MB por adjunto.
+- Se muestra un contador mientras se graba y el micrófono se libera al cerrar el widget.
+
+**Imágenes.** Se redimensionan a 1600 px de lado mayor y se pasan a JPEG (calidad 0,82) antes de subirlas: una foto de celular pesa varios MB y en esa resolución no aporta nada.
+
+**Validación (`lib/ai/adjuntos.ts`).** Todo adjunto pasa por el servidor antes de llegar al modelo:
+
+| Regla | Por qué |
+|---|---|
+| Las imágenes solo pueden ser `data:` URIs | Si se aceptaran URLs, el navegador podría hacer que el servidor salga a buscar direcciones internas (SSRF) |
+| Solo formatos de audio soportados | webm o un formato raro haría fallar el pedido después de gastar el upload |
+| Máximo 3 MB por adjunto y 4 adjuntos por mensaje | Tope de tamaño del request y control de costo |
+| Los mensajes con rol `system` o `tool` que manda el cliente se descartan | El prompt y los resultados de herramientas los pone el servidor, no el browser |
+| Los adjuntos de mensajes anteriores se reemplazan por una nota de texto | Reenviar la galería entera en cada pregunta multiplicaría el costo sin aportar: el modelo ya describió el adjunto en su respuesta previa |
+
+**Reglas de negocio para fotos** (en el system prompt): si la foto es una lista de precios de un proveedor, esos precios **no son los del sistema** y no se mezclan ni se usan para cotizar; si es una foto de un terreno, sirve para estimar pero los metros se piden, no se deducen.
 
 ## Fase 3 — Acciones
 
