@@ -338,13 +338,6 @@ export default function TejidosPage() {
 
   const columns = [
     {
-      accessorKey: 'codigo',
-      header: ({ column }: any) => <SortableHeader column={column} title="Código" />,
-      cell: ({ row }: any) => (
-        <div className="font-mono font-semibold text-[11px] md:text-xs whitespace-nowrap max-w-[110px] truncate">{row.original.codigo}</div>
-      ),
-    },
-    {
       accessorKey: 'calibre',
       header: ({ column }: any) => <SortableHeader column={column} title="Calibre" />,
       cell: ({ row }: any) => (
@@ -702,12 +695,7 @@ export default function TejidosPage() {
           <div className="space-y-3 md:hidden">
             {tejidosFiltrados.map((tejido) => (
               <div key={tejido.id} className="rounded-lg border border-border/60 bg-card p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] uppercase font-medium text-muted-foreground">Código</p>
-                    <p className="font-mono text-sm font-semibold">{tejido.codigo}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2">
                     <Badge
                       variant={tejido.origen === 'reventa' ? 'default' : 'outline'}
                       className={`text-[11px] ${tejido.origen === 'reventa' ? '' : 'border-amber-500 text-amber-700'}`}
@@ -717,7 +705,6 @@ export default function TejidosPage() {
                     <Badge variant={tejido.categoria_calidad === 'Económica' ? 'secondary' : tejido.categoria_calidad === 'Standard' ? 'default' : 'destructive'} className="text-[11px]">
                       {tejido.categoria_calidad || tejido.calidad_sugerida}
                     </Badge>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
@@ -762,8 +749,8 @@ export default function TejidosPage() {
             <DataTable 
               columns={columns} 
               data={tejidosFiltrados}
-              searchKey="codigo"
-              searchPlaceholder="Buscar por código..."
+              searchKey="nombre"
+              searchPlaceholder="Buscar por nombre..."
               pageSize={15}
               tableWrapperClassName="min-w-[1024px]"
             />
