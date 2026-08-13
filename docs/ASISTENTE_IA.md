@@ -73,6 +73,10 @@ Solo lectura: el asistente **no escribe nada** en la base.
 | `buscar_clientes` | Cliente por nombre, razón social o documento |
 | `buscar_presupuestos` | Presupuestos por número, cliente o estado |
 
+**Familias comerciales de cerco** (el tejido romboidal es el material, no un tipo): olímpico · postes de eucalipto · country / punta diamante. El system prompt lo deja explícito para cuando el asistente ayuda a contestar mensajes de clientes.
+
+**Ubicación geográfica:** si no viene en el mensaje ni en la ficha del cliente, el asistente tiene que pedir provincia, localidad/ciudad y barrio (o zona). Va en el checklist de repreguntas junto con metros, familia y altura.
+
 Las reglas de precio que aplica son las mismas del resto del sistema: base = efectivo, Factura/Lista = × 1,21, Tarjeta = × 1,30, E-cheq 90 = × 1,40, y recargo de cerco para terrenos de menos de 50 m.
 
 ---

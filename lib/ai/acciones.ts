@@ -117,7 +117,12 @@ export const DEFINICIONES_ACCIONES: DefinicionTool[] = [
           telefono: { type: 'string' },
           email: { type: 'string' },
           direccion: { type: 'string' },
-          ciudad: { type: 'string' },
+          ciudad: { type: 'string', description: 'Localidad o ciudad. Pedila si no está.' },
+          provincia: { type: 'string', description: 'Provincia. Pedila si no está.' },
+          barrio: {
+            type: 'string',
+            description: 'Barrio o zona. Si no hay campo barrio en BD, se puede ir en direccion.',
+          },
           razon_social: { type: 'string', description: 'Solo si es una empresa.' },
         },
         required: ['nombre_completo'],
@@ -156,7 +161,7 @@ async function buscarClienteUnico(supabase: SupabaseClient, texto: string) {
   const { data, error } = await filtrarPorPalabras(
     supabase
       .from('clientes')
-      .select('id, nombre_completo, razon_social, tipo_documento, numero_documento, telefono, email, direccion')
+      .select('id, nombre_completo, razon_social, tipo_documento, numero_documento, telefono, email, direccion, ciudad, provincia')
       .eq('activo', true),
     ps,
     ['nombre_completo', 'razon_social', 'numero_documento']
@@ -292,6 +297,18 @@ async function prepararCliente(supabase: SupabaseClient, args: any): Promise<Pro
     advertencias.push('Se va a cargar sin número de documento.')
   }
 
+  const ciudad = limpiar(args?.ciudad) || null
+  const provincia = limpiar(args?.provincia) || null
+  const barrio = limpiar(args?.barrio) || null
+  let direccion = limpiar(args?.direccion) || null
+  // No hay columna barrio: si vino, lo dejamos en la dirección
+  if (barrio) {
+    direccion = direccion ? `${direccion} (Barrio: ${barrio})` : `Barrio: ${barrio}`
+  }
+  if (!ciudad || !provincia) {
+    advertencias.push('Falta ciudad y/o provincia: conviene pedirlas antes de confirmar el alta.')
+  }
+
   return {
     accion: 'crear_cliente',
     titulo: 'Dar de alta un cliente',
@@ -300,8 +317,9 @@ async function prepararCliente(supabase: SupabaseClient, args: any): Promise<Pro
       { campo: 'Documento', valor: numeroDocumento ? `${tipoDocumento} ${numeroDocumento}` : '—' },
       { campo: 'Teléfono', valor: limpiar(args?.telefono) || '—' },
       { campo: 'Email', valor: limpiar(args?.email) || '—' },
-      { campo: 'Dirección', valor: limpiar(args?.direccion) || '—' },
-      { campo: 'Ciudad', valor: limpiar(args?.ciudad) || '—' },
+      { campo: 'Dirección', valor: direccion || '—' },
+      { campo: 'Ciudad', valor: ciudad || '—' },
+      { campo: 'Provincia', valor: provincia || '—' },
     ],
     advertencias: advertencias.length ? advertencias : undefined,
     datos: {
@@ -310,8 +328,9 @@ async function prepararCliente(supabase: SupabaseClient, args: any): Promise<Pro
       numero_documento: numeroDocumento,
       telefono: limpiar(args?.telefono) || null,
       email: limpiar(args?.email) || null,
-      direccion: limpiar(args?.direccion) || null,
-      ciudad: limpiar(args?.ciudad) || null,
+      direccion,
+      ciudad,
+      provincia,
       razon_social: limpiar(args?.razon_social) || null,
     },
   }
@@ -493,6 +512,7 @@ export async function ejecutarAccion(
         email: datos?.email || null,
         direccion: datos?.direccion || null,
         ciudad: datos?.ciudad || null,
+        provincia: datos?.provincia || null,
         razon_social: datos?.razon_social || null,
         activo: true,
         usuario_id: usuarioId,
