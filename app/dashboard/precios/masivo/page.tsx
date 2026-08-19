@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { formatCurrency } from '@/lib/utils'
-import { aplicarAumentoCosto, aplicarAumentoCompraTejido, validarPorcentaje } from '@/lib/precios-masivos'
+import { aplicarAumentoCosto, aplicarAumentoCompraTejido, aplicarCambioMargen, validarMargenNuevo, validarPorcentaje } from '@/lib/precios-masivos'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 
 type Alcance = 'articulos' | 'postes' | 'tejidos' | 'cercados' | 'todos'
+type Modo = 'cambiar_margen' | 'aumento_costo'
 
 type Fila = {
   key: string
@@ -45,6 +46,7 @@ type Fila = {
   venta: number
   margen: number | null
   margenEfectivo?: number
+  origenTejido?: 'reventa' | 'fabricado'
   seleccionable: boolean
   detalle?: string
 }
@@ -99,6 +101,7 @@ export default function ActualizacionMasivaPreciosPage() {
   const [filtroGrupo, setFiltroGrupo] = useState('todos')
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
   const [porcentaje, setPorcentaje] = useState('')
+  const [modo, setModo] = useState<Modo>('cambiar_margen')
   const [recalcularCercados, setRecalcularCercados] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [aplicando, setAplicando] = useState(false)
@@ -185,10 +188,11 @@ export default function ActualizacionMasivaPreciosPage() {
             venta,
             margen: costo > 0 ? ((venta - costo) / costo) * 100 : Number(t.margen_efectivo) || 45,
             margenEfectivo: Number(t.margen_efectivo ?? 45),
-            seleccionable: esReventa,
+            origenTejido: esReventa ? 'reventa' : 'fabricado',
+            seleccionable: true,
             detalle: esReventa
-              ? 'Se actualiza el precio de compra; la venta conserva el margen.'
-              : 'No se toca: el costo sale del alambre + mano de obra.',
+              ? 'Reventa: el costo es la compra a Marcelo.'
+              : 'Fabricado: el costo sale del alambre. Para subir costo, actualizá el alambre. El margen sí se puede cambiar acá.',
           })
         }
       }
@@ -239,9 +243,14 @@ export default function ActualizacionMasivaPreciosPage() {
     return Array.from(new Set(filas.map((f) => f.grupo))).sort((a, b) => a.localeCompare(b, 'es'))
   }, [filas])
 
+  const puedeMarcar = (f: Fila) => {
+    if (f.tipo === 'tejido' && f.origenTejido === 'fabricado') return modo === 'cambiar_margen'
+    return f.seleccionable
+  }
+
   const gruposSeleccionables = useMemo(() => {
-    return grupos.filter((g) => filas.some((f) => f.grupo === g && f.seleccionable))
-  }, [filas, grupos])
+    return grupos.filter((g) => filas.some((f) => f.grupo === g && puedeMarcar(f)))
+  }, [filas, grupos, modo])
 
   const filasVisibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -252,10 +261,10 @@ export default function ActualizacionMasivaPreciosPage() {
     })
   }, [filas, busqueda, filtroGrupo])
 
-  const seleccionablesVisibles = filasVisibles.filter((f) => f.seleccionable)
+  const seleccionablesVisibles = filasVisibles.filter((f) => puedeMarcar(f))
 
-  const toggle = (key: string, seleccionable: boolean) => {
-    if (!seleccionable) return
+  const toggle = (key: string, marca: boolean) => {
+    if (!marca) return
     setSeleccion((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -275,14 +284,14 @@ export default function ActualizacionMasivaPreciosPage() {
   const seleccionarGrupo = (grupo: string) => {
     setSeleccion((prev) => {
       const next = new Set(prev)
-      filas.filter((f) => f.grupo === grupo && f.seleccionable).forEach((f) => next.add(f.key))
+      filas.filter((f) => f.grupo === grupo && puedeMarcar(f)).forEach((f) => next.add(f.key))
       return next
     })
   }
 
   const limpiarSeleccion = () => setSeleccion(new Set())
 
-  const seleccionadas = filas.filter((f) => seleccion.has(f.key) && f.seleccionable)
+  const seleccionadas = filas.filter((f) => seleccion.has(f.key) && puedeMarcar(f))
   const selArticulos = seleccionadas.filter((f) => f.tipo === 'articulo')
   const selTejidos = seleccionadas.filter((f) => f.tipo === 'tejido')
   const selCercados = seleccionadas.filter((f) => f.tipo === 'cercado')
@@ -290,7 +299,9 @@ export default function ActualizacionMasivaPreciosPage() {
   const soloCercado = alcance === 'cercados' || (!hayCostos && selCercados.length > 0)
 
   const pctNum = parseFloat(porcentaje.replace(',', '.'))
-  const errorPct = hayCostos ? validarPorcentaje(pctNum) : null
+  const errorPct = hayCostos
+    ? (modo === 'cambiar_margen' ? validarMargenNuevo(pctNum) : validarPorcentaje(pctNum))
+    : null
 
   const previews = useMemo(() => {
     if (!hayCostos || errorPct) return new Map<string, { costo: number; venta: number }>()
@@ -298,7 +309,10 @@ export default function ActualizacionMasivaPreciosPage() {
     for (const fila of seleccionadas) {
       if (fila.tipo === 'cercado' || fila.costo == null || fila.costo <= 0) continue
       try {
-        if (fila.tipo === 'tejido') {
+        if (modo === 'cambiar_margen') {
+          const r = aplicarCambioMargen(fila.costo, pctNum)
+          map.set(fila.key, { costo: r.nuevoCosto, venta: r.nuevaVenta })
+        } else if (fila.tipo === 'tejido') {
           const r = aplicarAumentoCompraTejido(fila.costo, pctNum, fila.margenEfectivo ?? 45)
           map.set(fila.key, { costo: r.nuevoCosto, venta: r.nuevaVenta })
         } else {
@@ -310,7 +324,7 @@ export default function ActualizacionMasivaPreciosPage() {
       }
     }
     return map
-  }, [hayCostos, errorPct, seleccionadas, pctNum])
+  }, [hayCostos, errorPct, seleccionadas, pctNum, modo])
 
   const puedeAplicar = esAdmin && seleccionadas.length > 0 && (soloCercado || !errorPct)
 
@@ -323,6 +337,7 @@ export default function ActualizacionMasivaPreciosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           porcentaje: hayCostos ? pctNum : undefined,
+          modo,
           precioIds: selArticulos.map((f) => f.precioId),
           tejidoIds: selTejidos.map((f) => f.tejidoId),
           cercadoIds: selCercados.map((f) => f.cercadoId),
@@ -404,7 +419,7 @@ export default function ActualizacionMasivaPreciosPage() {
           </Button>
           <h2 className="text-3xl font-bold tracking-tight">Actualización masiva</h2>
           <p className="text-muted-foreground mt-1">
-            Sube el costo y recalcula la venta conservando el margen de cada ítem.
+            Subí el costo o cambiá el margen. Son dos operaciones distintas: no uses un 30 si querés pasar el margen de 45% a 30%.
           </p>
         </div>
       </div>
@@ -442,7 +457,7 @@ export default function ActualizacionMasivaPreciosPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">2. Elegí ítems o una categoría</CardTitle>
               <CardDescription>
-                El porcentaje de margen que ves es el actual de cada fila. Los tejidos fabricados no se pueden marcar.
+                El margen de cada fila es el actual. En “aumentar costo”, los tejidos fabricados no se marcan.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -522,13 +537,13 @@ export default function ActualizacionMasivaPreciosPage() {
                         return (
                           <tr
                             key={fila.key}
-                            className={`border-t ${!fila.seleccionable ? 'opacity-50' : marcada ? 'bg-primary/5' : ''}`}
+                            className={`border-t ${!puedeMarcar(fila) ? 'opacity-50' : marcada ? 'bg-primary/5' : ''}`}
                           >
                             <td className="p-2">
                               <button
                                 type="button"
-                                disabled={!fila.seleccionable}
-                                onClick={() => toggle(fila.key, fila.seleccionable)}
+                                disabled={!puedeMarcar(fila)}
+                                onClick={() => toggle(fila.key, puedeMarcar(fila))}
                                 className="disabled:cursor-not-allowed"
                                 aria-label={marcada ? 'Quitar selección' : 'Seleccionar'}
                               >
@@ -594,13 +609,44 @@ export default function ActualizacionMasivaPreciosPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {hayCostos && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setModo('cambiar_margen')}
+                    className={`text-left rounded-lg border p-3 ${
+                      modo === 'cambiar_margen' ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''
+                    }`}
+                  >
+                    <div className="font-semibold">Cambiar el margen</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      El costo no se toca. Si ponés 30, la venta pasa a costo × 1,30. El margen de la lista se actualiza a 30%.
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModo('aumento_costo')}
+                    className={`text-left rounded-lg border p-3 ${
+                      modo === 'aumento_costo' ? 'border-primary bg-primary/5 ring-1 ring-primary' : ''
+                    }`}
+                  >
+                    <div className="font-semibold">Aumentar el costo</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      El proveedor subió la compra. Si ponés 30, el costo × 1,30 y el margen se mantiene (si era 45%, sigue 45%).
+                    </p>
+                  </button>
+                </div>
+              )}
+
+              {hayCostos && (
                 <div className="max-w-xs">
-                  <Label htmlFor="porcentaje">Porcentaje sobre el costo</Label>
+                  <Label htmlFor="porcentaje">
+                    {modo === 'cambiar_margen' ? 'Margen nuevo (%)' : 'Aumento sobre el costo (%)'}
+                  </Label>
                   <div className="relative">
                     <Input
                       id="porcentaje"
                       inputMode="decimal"
-                      placeholder="Ej. 8 o -5"
+                      placeholder={modo === 'cambiar_margen' ? 'Ej. 30' : 'Ej. 8 o -5'}
                       value={porcentaje}
                       onChange={(e) => setPorcentaje(e.target.value)}
                       className="pr-8"
@@ -610,9 +656,6 @@ export default function ActualizacionMasivaPreciosPage() {
                   {errorPct && porcentaje !== '' && (
                     <p className="text-sm text-red-600 mt-1">{errorPct}</p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    La venta se recalcula con el mismo margen. Las formas de pago (lista, tarjeta, e-cheq) se derivan solas.
-                  </p>
                 </div>
               )}
 
@@ -652,8 +695,10 @@ export default function ActualizacionMasivaPreciosPage() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 {hayCostos && (
                   <p>
-                    Costo × (1 + {pctNum}%) en {selArticulos.length + selTejidos.length} ítems,
-                    conservando el margen actual. Los presupuestos ya emitidos no se tocan.
+                    {modo === 'cambiar_margen'
+                      ? `El costo queda igual. El margen pasa a ${pctNum}% y la venta se recalcula (costo × ${1 + pctNum / 100}).`
+                      : `Costo × (1 + ${pctNum}%) en ${selArticulos.length + selTejidos.length} ítems, conservando el margen actual.`}
+                    {' '}Los presupuestos ya emitidos no se tocan.
                   </p>
                 )}
                 {hayCostos && recalcularCercados && (
