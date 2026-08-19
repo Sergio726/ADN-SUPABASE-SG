@@ -54,3 +54,23 @@ export function validarPorcentaje(porcentaje: number) {
   if (porcentaje < -90 || porcentaje > 500) return 'El porcentaje tiene que estar entre -90% y 500%.'
   return null
 }
+
+/** Cambia el margen y recalcula la venta. El costo no se toca. */
+export function aplicarCambioMargen(
+  costo: number,
+  margenNuevo: number
+): { nuevoCosto: number; nuevaVenta: number } {
+  if (!Number.isFinite(costo) || costo <= 0) {
+    throw new Error('El costo tiene que ser mayor a 0.')
+  }
+  const error = validarMargenNuevo(margenNuevo)
+  if (error) throw new Error(error)
+  const nuevaVenta = redondearDinero(costo * (100 + margenNuevo) / 100)
+  return { nuevoCosto: costo, nuevaVenta }
+}
+
+export function validarMargenNuevo(margen: number) {
+  if (!Number.isFinite(margen)) return 'Ingresá el margen nuevo (porcentaje).'
+  if (margen < 0 || margen > 500) return 'El margen tiene que estar entre 0% y 500%.'
+  return null
+}
