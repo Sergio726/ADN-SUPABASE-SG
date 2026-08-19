@@ -423,6 +423,11 @@ async function getTodosLosPrecios() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/precios/masivo">
+              Actualización masiva
+            </Link>
+          </Button>
           <Button asChild>
             <Link href="/dashboard/precios/nuevo">
               <PlusCircle className="mr-2 h-4 w-4" />

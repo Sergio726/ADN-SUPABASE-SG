@@ -2,7 +2,7 @@
  * Verificación posterior a la migración 20260808_tejidos_reventa.sql
  *
  * Solo lee: no modifica nada. Comprueba que
- *   - las 16 SKUs de Marcelo quedaron en origen = 'reventa' con los precios esperados
+ *   - las SKUs de Marcelo (cal.14 + cal.12) quedaron en origen = 'reventa' con los precios esperados
  *     (precio_costo = precio_compra y precio_venta = compra × (1 + margen/100)),
  *   - los tejidos fabricados conservan su lógica,
  *   - la vista v_tejidos_con_precios expone las columnas nuevas,
@@ -17,8 +17,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Lista de compra de Marcelo Rojas (calibre 14, rollo 10 m)
+// Lista de compra de Marcelo Rojas (cal.14 + cal.12, rollo 10 m)
 const LISTA_MARCELO = {
+  // Calibre 14
   'TR-1.2-3.5-14': 40000,
   'TR-1.5-3.5-14': 45000,
   'TR-1.8-3.5-14': 55000,
@@ -35,7 +36,27 @@ const LISTA_MARCELO = {
   'TR-1.5-2.0-14': 69000,
   'TR-1.8-2.0-14': 79800,
   'TR-2.0-2.0-14': 87000,
+  // Calibre 12 — rombo 3"
+  'TR-1.0-3.0-12': 50000,
+  'TR-1.2-3.0-12': 57000,
+  'TR-1.5-3.0-12': 67500,
+  'TR-1.8-3.0-12': 78000,
+  'TR-2.0-3.0-12': 85000,
+  // Calibre 12 — rombo 2.5"
+  'TR-1.0-2.5-12': 60500,
+  'TR-1.2-2.5-12': 71000,
+  'TR-1.5-2.5-12': 85000,
+  'TR-1.8-2.5-12': 99000,
+  'TR-2.0-2.5-12': 106000,
+  // Calibre 12 — rombo 2"
+  'TR-1.0-2.0-12': 71000,
+  'TR-1.2-2.0-12': 85000,
+  'TR-1.5-2.0-12': 99000,
+  'TR-1.8-2.0-12': 116500,
+  'TR-2.0-2.0-12': 127000,
 };
+
+const EXPECTED_REVENTA = Object.keys(LISTA_MARCELO).length;
 
 const money = (n) => '$' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -64,8 +85,8 @@ async function verificar() {
 
   console.log(`\n📊 Total: ${tejidos.length} | Reventa: ${reventa.length} | Fabricados: ${fabricados.length}`);
 
-  if (reventa.length !== 16) {
-    console.log(`\n⚠️  Se esperaban 16 tejidos de reventa y hay ${reventa.length}.`);
+  if (reventa.length !== EXPECTED_REVENTA) {
+    console.log(`\n⚠️  Se esperaban ${EXPECTED_REVENTA} tejidos de reventa y hay ${reventa.length}.`);
     errores++;
   }
 

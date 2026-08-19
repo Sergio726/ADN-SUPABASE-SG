@@ -4,18 +4,25 @@ Contexto de negocio y diseño. **Implementado en código; falta aplicar la migra
 
 > **Estado:** ADN **no fabrica** rollos de tejido romboidal en este momento. Los **compra** al proveedor **Marcelo Rojas**. El sistema asumía fabricación: costo = `(kg alambre × precio alambre) + mano de obra`.
 >
-> **Resuelto (2026-08-08):** la lista de Marcelo es **costo de compra** → `precio_venta` = compra × (1 + `margen_efectivo`/100), 45% hoy. Los tejidos que Marcelo no vende (cal.12 y altura 1.00 m) quedan **activos** como fabricados, con badge de aviso.
-> Migración: `supabase/migrations/20260808_tejidos_reventa.sql` (columna `origen`, triggers bifurcados, alta del proveedor y carga de las 16 SKUs). Verificación: `node scripts/verificar-tejidos-reventa.js`.
+> **Resuelto (2026-08-08):** la lista de Marcelo es **costo de compra** → `precio_venta` = compra × (1 + `margen_efectivo`/100), 45% hoy.
+> Migración: `supabase/migrations/20260808_tejidos_reventa.sql` (columna `origen`, triggers, proveedor y **16 SKUs cal.14**). Verificación: `node scripts/verificar-tejidos-reventa.js`.
+>
+> **Pendiente (2026-08-10):** nueva lista Marcelo de **15 SKUs cal.12** (rombo 3", 2.5" y 2", alturas 2.00–1.00). Migración: `supabase/migrations/20260810_tejidos_reventa_cal12.sql` — **aplicar en Supabase**.
 
 ---
 
-## Lista de precios (fuente: papel de Marcelo)
+## Listas de precios (fuente: papel de Marcelo)
 
-Transcripción de la lista manuscrita. Todos los ítems: **calibre 14**, **rollo 10 m**. Alturas 180/150/120 = cm → metros.
+**Confirmado:** los importes son **costo de compra** (lo que ADN le paga a Marcelo).  
+`precio_venta` = compra × (1 + `margen_efectivo`/100), 45% hoy.
 
-**A confirmar con el negocio:** ¿estos importes son **costo de compra** (lo que ADN le paga a Marcelo) o **precio de lista / reventa al público**?
+Alturas 180/150/120/100 = cm → metros. Todos los rollos: **largo 10 m**.
 
-| Rombo (malla) | Altura | Largo | Calibre | Precio lista Marcelo |
+### Calibre 14 — 16 SKUs (lista anterior)
+
+Rombo 3.5 / 3 / 2.5 / 2 × alturas 2.00 / 1.80 / 1.50 / 1.20. Códigos: `TR-{altura}-{rombo}-14`.
+
+| Rombo (malla) | Altura | Largo | Calibre | Costo compra Marcelo |
 |---|---|---|---|---|
 | 3 1/2" (3.5) | 2.00 m | 10 m | 14 | $ 58.000 |
 | 3 1/2" (3.5) | 1.80 m | 10 m | 14 | $ 55.000 |
@@ -34,11 +41,52 @@ Transcripción de la lista manuscrita. Todos los ítems: **calibre 14**, **rollo
 | 2" (2.0) | 1.50 m | 10 m | 14 | $ 69.000 |
 | 2" (2.0) | 1.20 m | 10 m | 14 | $ 58.500 |
 
-Lógica de la lista: malla más chica → más caro; más altura → más caro. Encaja 1:1 con el catálogo del sistema (`tamano_rombo` 2.0/2.5/3.0/3.5 × `altura` 1.20/1.50/1.80/2.00 × `calibre` 14 × `largo` 10).
+### Calibre 12 — 15 SKUs (listas 2026-08-10)
 
-Códigos actuales: `TR-{altura}-{rombo}-14` (ej. `TR-2.0-3.5-14`). Nomenclatura vieja: `RC14x3,5x2`. Match 1:1 con configs existentes; **no duplicar filas**.
+Rollos **calibre 12**, **10 m**. Tres mallas: **3"**, **2 1/2"** y **2"**. Incluye altura **1.00 m**.
 
-**No vienen en la lista de Marcelo:** calibre 12, altura 1.00 m, ni otras combinaciones fabricadas. Decidir si se **desactivan** o se dejan por si vuelve la fábrica.
+Códigos: `TR-{altura}-{rombo}-12` (ej. `TR-2.0-3.0-12`, `TR-1.0-2.0-12`).
+
+#### 3 pulgadas (rombo 3.0) × cal.12
+
+| Altura | Largo | Calibre | Costo compra Marcelo |
+|---|---|---|---|
+| 2.00 m | 10 m | 12 | $ 85.000 |
+| 1.80 m | 10 m | 12 | $ 78.000 |
+| 1.50 m | 10 m | 12 | $ 67.500 |
+| 1.20 m | 10 m | 12 | $ 57.000 |
+| 1.00 m | 10 m | 12 | $ 50.000 |
+
+#### 2 pulgadas y media (rombo 2.5) × cal.12
+
+| Altura | Largo | Calibre | Costo compra Marcelo |
+|---|---|---|---|
+| 2.00 m | 10 m | 12 | $ 106.000 |
+| 1.80 m | 10 m | 12 | $ 99.000 |
+| 1.50 m | 10 m | 12 | $ 85.000 |
+| 1.20 m | 10 m | 12 | $ 71.000 |
+| 1.00 m | 10 m | 12 | $ 60.500 |
+
+(En el papel, el 1 m × 2.5" estaba tachado ~$65.000 y corregido a **$ 60.500**.)
+
+#### 2 pulgadas (rombo 2.0) × cal.12
+
+| Altura | Largo | Calibre | Costo compra Marcelo |
+|---|---|---|---|
+| 2.00 m | 10 m | 12 | $ 127.000 |
+| 1.80 m | 10 m | 12 | $ 116.500 |
+| 1.50 m | 10 m | 12 | $ 99.000 |
+| 1.20 m | 10 m | 12 | $ 85.000 |
+| 1.00 m | 10 m | 12 | $ 71.000 |
+
+### Alcance vs catálogo
+
+| En lista Marcelo (reventa) | Todavía no en lista (pueden quedar fabricados) |
+|---|---|
+| Cal.14 × rombos 3.5/3/2.5/2 × alturas 2.00–1.20 | Cal.12 × rombo **3.5** |
+| Cal.12 × rombos 3.0 / 2.5 / 2.0 × alturas 2.00–1.00 | Cal.14 × altura 1.00 m |
+
+Lógica de ambas listas: malla más chica → más caro; más altura → más caro.
 
 ---
 
@@ -119,7 +167,7 @@ Cercado: al actualizar precios de reventa, correr recálculo de configs que usen
 
 - No cambiar fórmulas de metros de cercado ni recargo &lt;50 m.
 - No pisear presupuestos ya emitidos (ítems históricos quedan con el precio de entonces).
-- No borrar configs cal.12 sin confirmar; como máximo `activo = false`.
+- No borrar configs cal.12 rombo 3.5 (u otras fuera de lista) sin confirmar; como máximo `activo = false`.
 - No reutilizar `scripts/importar-tejidos.js` tal cual (columnas viejas).
 - No “arreglar” de yapa el CHECK de altura 2.5/3.0 ni el hardcode `articulo_id IN (7, 8)` salvo que bloquee reventa.
 - No dejar copy pública “fabricamos rollos” si el negocio ya no fabrica (legal/marketing).

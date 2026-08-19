@@ -1,13 +1,18 @@
 import { supabase } from '@/lib/supabaseClient'
 
+type ClienteSupabase = Pick<typeof supabase, 'from'>
+
 /**
  * Recalcula los precios de una configuración de cercado
  * basándose en los precios vigentes actuales de los artículos
  */
-export async function recalcularPreciosCercado(configuracionId: string) {
+export async function recalcularPreciosCercado(
+  configuracionId: string,
+  client: ClienteSupabase = supabase
+) {
   try {
     // 1) Leer configuración base (con IDs) desde la tabla
-    const { data: cfg, error: errCfg } = await supabase
+    const { data: cfg, error: errCfg } = await client
       .from('configuraciones_cercado')
       .select('*')
       .eq('id', configuracionId)
@@ -20,7 +25,7 @@ export async function recalcularPreciosCercado(configuracionId: string) {
     let precioTejido = 0
     let largoRollo = 10
     if (cfg.tejido_config_id) {
-      const { data: t, error: errT } = await supabase
+      const { data: t, error: errT } = await client
         .from('tejidos_configuraciones')
         .select('precio_venta, largo')
         .eq('id', cfg.tejido_config_id)
@@ -35,12 +40,12 @@ export async function recalcularPreciosCercado(configuracionId: string) {
     // 3) Helper para artículo con precio vigente
     const fetchArticuloVigente = async (articuloId: any) => {
       if (!articuloId) return { precio_venta: 0, nombre: '', unidad: '' }
-      const { data: art } = await supabase
+      const { data: art } = await client
         .from('articulos')
         .select('id, nombre, unidad')
         .eq('id', articuloId)
         .maybeSingle()
-      const { data: pv } = await supabase
+      const { data: pv } = await client
         .from('precios_venta')
         .select('precio_venta')
         .eq('articulo_id', articuloId)
@@ -142,7 +147,7 @@ export async function recalcularPreciosCercado(configuracionId: string) {
     const precioMetroMenor50 = precioMetro * 1.5
 
     // 5) Actualizar configuración
-    const { error: errUpd } = await supabase
+    const { error: errUpd } = await client
       .from('configuraciones_cercado')
       .update({
         precio_mano_obra_por_metro: precioManoObraMetro,

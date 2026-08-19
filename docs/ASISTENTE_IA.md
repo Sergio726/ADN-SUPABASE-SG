@@ -73,6 +73,10 @@ Solo lectura: el asistente **no escribe nada** en la base.
 | `buscar_clientes` | Cliente por nombre, razón social o documento |
 | `buscar_presupuestos` | Presupuestos por número, cliente o estado |
 
+**Familias comerciales de cerco** (el tejido romboidal es el material, no un tipo): olímpico · postes de eucalipto · country / punta diamante. El system prompt lo deja explícito para cuando el asistente ayuda a contestar mensajes de clientes.
+
+**Ubicación geográfica:** si no viene en el mensaje ni en la ficha del cliente, el asistente tiene que pedir provincia, localidad/ciudad y barrio (o zona). Va en el checklist de repreguntas junto con metros, familia y altura.
+
 Las reglas de precio que aplica son las mismas del resto del sistema: base = efectivo, Factura/Lista = × 1,21, Tarjeta = × 1,30, E-cheq 90 = × 1,40, y recargo de cerco para terrenos de menos de 50 m.
 
 ---
@@ -146,6 +150,10 @@ Otras protecciones:
 - Que el asistente sepa en qué pantalla está parado el vendedor (si está viendo un presupuesto, que pueda responder sobre ese).
 - Historial de conversaciones por usuario, guardado en Supabase.
 - Métricas de uso: qué se pregunta más, qué herramientas se usan, cuánto se gasta en tokens.
+
+## Pendiente — más inteligencia (RAG / mapa de la app)
+
+Hoy **no hay RAG ni fine-tuning**: el modelo solo ve el system prompt + tools sobre tablas. Para mejor asesoría comercial y para que sepa **qué hay dentro de la aplicación** (módulos y flujos), hay un ítem abierto en [`PENDIENTES.md`](PENDIENTES.md) (evaluar RAG con docs internos, ampliar tools/contexto de la app, o fine-tuning si hace falta).
 
 ---
 

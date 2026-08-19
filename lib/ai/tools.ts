@@ -74,13 +74,14 @@ export const DEFINICIONES_TOOLS: DefinicionTool[] = [
     function: {
       name: 'listar_configuraciones_cercado',
       description:
-        'Lista las configuraciones de cercado disponibles con su precio por metro lineal. Usar para saber qué tipos de cerco se ofrecen antes de cotizar.',
+        'Lista las configuraciones de cercado disponibles con su precio por metro lineal. Usar antes de cotizar o al ayudar a contestar a un cliente. Las familias comerciales son: olímpico, postes de eucalipto, y country/punta diamante. NO inventes "cerco romboidal" como tipo: el tejido romboidal es el material de casi todos.',
       parameters: {
         type: 'object',
         properties: {
           busqueda: {
             type: 'string',
-            description: 'Filtro opcional por nombre. Ej: "olímpico", "eucalipto", "diamante".',
+            description:
+              'Filtro opcional por nombre o familia. Ej: "olimpico", "eucalipto", "diamante", "country".',
           },
         },
         required: [],
@@ -116,7 +117,7 @@ export const DEFINICIONES_TOOLS: DefinicionTool[] = [
     function: {
       name: 'buscar_clientes',
       description:
-        'Busca clientes por nombre, razón social o número de documento (DNI/CUIL/CUIT). Devuelve datos de contacto.',
+        'Busca clientes por nombre, razón social o número de documento (DNI/CUIL/CUIT). Devuelve contacto y ubicación (ciudad, provincia, dirección). Si faltan esos datos, pedilos al vendedor.',
       parameters: {
         type: 'object',
         properties: {
@@ -354,7 +355,7 @@ const ejecutores: Record<string, Ejecutor> = {
     const { data, error } = await filtrarPorPalabras(
       supabase
         .from('clientes')
-        .select('nombre_completo, razon_social, tipo_documento, numero_documento, email, telefono, ciudad, provincia, categoria')
+        .select('nombre_completo, razon_social, tipo_documento, numero_documento, email, telefono, direccion, ciudad, provincia, categoria')
         .eq('activo', true),
       palabras,
       ['nombre_completo', 'razon_social', 'numero_documento']

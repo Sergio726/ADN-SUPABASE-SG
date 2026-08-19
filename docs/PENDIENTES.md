@@ -18,7 +18,7 @@ Roadmap / ideas (no checklist operativo): [`../app/files/IDEAS_MEJORA.md`](../ap
 - [ ] **Confirmar si hay que importar postes** — hay plantilla + script (`app/files/INSTRUCCIONES_POSTES.md`, `scripts/importar-postes-excel.js`). Si el catálogo de postes ya está cargado en prod, tildar y no rehacer.
 - [ ] **Google OAuth (si lo quieren usar)** — login hoy es Supabase Auth; OAuth es opcional y se configura en Google Cloud + Supabase Providers.
 - [x] **Confirmar lista Marcelo Rojas** — los $ de la lista manuscrita ¿son **costo de compra** o **precio de venta al público**? Define márgenes. Detalle: [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENTA_MARCELO_ROJAS.md). → **Costo de compra** (2026-08-08).
-- [x] **Qué hacer con tejidos fabricados que Marcelo no vende** — cal.12, altura 1.00 m, etc.: ¿desactivar o dejar por si vuelve la fábrica? → **Quedan activos**, con badge “Fabricado” de aviso.
+- [x] **Qué hacer con tejidos fabricados que Marcelo no vende** — cal.12 completo y altura 1.00 m se habían dejado **activos** como fabricados (2026-08-08). **Update 2026-08-10:** Marcelo también vende cal.12 rombo 3", 2.5" y 2" (incl. 1 m) → esas pasan a reventa (ítem abajo). Siguen fabricados solo cal.12 rombo **3.5** (si existen) y cal.14 × 1.00 m.
 - [x] **Alta de proveedor Marcelo Rojas** — si no existe en `proveedores`, cargarlo (dato de negocio / quien administra el ERP). No existía: lo crea la migración `20260808_tejidos_reventa.sql`.
 
 ---
@@ -35,6 +35,10 @@ Roadmap / ideas (no checklist operativo): [`../app/files/IDEAS_MEJORA.md`](../ap
 
 Prioridad alta / trabajo activo. Lo demás del roadmap no se copia acá hasta que se ponga en marcha.
 
+### Precios
+
+- [x] **Actualización masiva** — `/dashboard/precios/masivo` (solo admin): alcance artículos / postes / tejidos / cercados / todos; selección por ítem o categoría; % sobre costo conservando el margen; tejidos fabricados solo vía alambre; recálculo de cercados activos. Lista nueva de Marcelo queda para un segundo paso.
+
 ### Analytics y comercial
 
 - [x] **Completar dashboard de conversión de presupuestos** — `/dashboard/ventas`: tasa vs decididos y vs enviados, pipeline, por vendedor/tipo/forma de pago, tendencia 12 meses, filtros de período, export Excel/CSV.
@@ -46,12 +50,14 @@ Contexto y lista de precios: [`TEJIDOS_REVENTA_MARCELO_ROJAS.md`](TEJIDOS_REVENT
 **Opción elegida (diseño):** flag `origen` fabricado|reventa en `tejidos_configuraciones`; **no** pasar los rollos a artículos sueltos (el cercado usa `tejido_config_id`).
 
 **Confirmado por negocio (2026-08-08):** la lista de Marcelo es **costo de compra** → venta = compra × (1 + `margen_efectivo`/100), 45% hoy.
-Los tejidos que Marcelo no vende (cal.12 y altura 1.00 m) quedan **activos** como fabricados, con badge de aviso.
-Código y migración listos en `supabase/migrations/20260808_tejidos_reventa.sql`: **falta aplicarla en el SQL Editor de Supabase.**
+Código y migración listos en `supabase/migrations/20260808_tejidos_reventa.sql` (16 SKUs cal.14): **falta aplicarla en el SQL Editor de Supabase** si aún no está en prod.
+
+**Nueva lista (2026-08-10):** 15 SKUs **cal.12** rombo 3", 2.5" y 2" (incluye 1.00 m). Ver doc. Antes se había dejado todo cal.12 como fabricado; ahora parte pasa a reventa.
 
 - [x] **Schema + trigger** — `origen` / `es_reventa`, `proveedor_id`, `precio_compra`; relajar `alambre_articulo_id` NOT NULL en reventa. Si reventa: `precio_costo` = compra; **saltar** `trigger_actualizar_precio_tejido_completo` y el recálculo desde `precios_venta` (hoy hardcode `articulo_id IN (7, 8)`). Si fabricado: comportamiento actual. Confirmar schema live en Supabase (migraciones de tejidos están en `archived/`).
 - [x] **UI tejidos** (listado / nuevo / editar / detalle) — toggle reventa; cargar precio Marcelo; ocultar o bloquear kg, mano de obra y alambre; badge “Reventa”.
 - [x] **Cargar las 16 SKUs cal.14 × 10 m** — rombo 3.5/3/2.5/2 × altura 2.00/1.80/1.50/1.20 con la lista de Marcelo (match contra configs existentes por calibre+altura+rombo+largo; no duplicar). Van por `UPDATE` en la migración: las 16 ya existían.
+- [ ] **Cargar las 15 SKUs cal.12 × 10 m (lista 2026-08-10)** — rombo 3.0 / 2.5 / 2.0 × altura 2.00/1.80/1.50/1.20/1.00; `origen=reventa`, costos del papel. Migración lista: `supabase/migrations/20260810_tejidos_reventa_cal12.sql` — **aplicar en SQL Editor de Supabase**. Después recalcular cercos que usen esos tejidos.
 - [x] **Márgenes de venta** — según la confirmación de negocio: o bien venta = costo × márgenes actuales (efectivo/lista/tarjeta/echeq), o bien la lista Marcelo **es** el `precio_venta`. → Es costo de compra; se le aplica el margen vigente.
 - [ ] **Cercado** — no cambiar fórmula de metros; sí recálculo de configs que apunten a esos tejidos (`lib/cercado-service.ts`, alta/edición cercado, wizard presupuesto) para que usen el nuevo `precio_venta`. **17 de 18 configs usan tejidos cal.14: recalcular después de aplicar la migración.**
 - [x] **Presupuestos artículos** — ítems `tejido_config_id` / `v_tejidos_con_precios` tienen que mostrar el precio de reventa (no el de fábrica). Sin cambios de código: leen `precio_venta`, que ahora trae el valor de reventa.
@@ -70,6 +76,7 @@ Requiere `OPENROUTER_API_KEY` en `.env.local` y en Vercel — **key de servidor,
 - [x] **Fase 3 — Acciones** — crear presupuestos en estado **borrador** desde la conversación, alta de clientes y tareas. Cada acción de escritura tiene que pedir confirmación explícita antes de ejecutarse. El modelo propone, el vendedor confirma en una tarjeta y recién ahí escribe `/api/asistente/ejecutar`; los importes se recalculan en el servidor, nunca llegan del cliente.
 - [ ] **Recargo de terrenos < 50 m: definir cuál vale** — existe `precio_por_metro_menor_50m` (recargo ~50%) pero el wizard de presupuestos **no lo usa**: arma el presupuesto con el precio normal. El asistente sigue al wizard e informa aparte el precio con recargo. Hay que decidir si el recargo se aplica (y corregir el wizard) o si la columna quedó sin uso. **Decisión de negocio.**
 - [ ] **Fase 4 — Contexto y memoria** — que sepa en qué pantalla está el vendedor, historial de conversaciones en Supabase y métricas de uso/costo de tokens.
+- [ ] **Hacer el asistente más inteligente (RAG / knowledge de la app)** — hoy **no hay RAG** ni fine-tuning: solo system prompt (`lib/ai/prompt.ts`) + tool calling a Supabase. Falta que pueda asesorar mejor (criterios comerciales, objeciones, qué preguntar) y **saber qué hay dentro de la aplicación** (módulos, pantallas, flujos: presupuestos, tejidos, clientes, etc.). Evaluar: (1) RAG con docs internos (`ASISTENTE_IA.md`, HANDOFF, manuales cortos de uso del ERP) + embeddings en Supabase/pgvector u otro store; (2) ampliar tools / mapa de la app inyectado en contexto; (3) fine-tuning solo si RAG + prompt no alcanza. **Decisión de diseño pendiente antes de implementar.**
 - [ ] **Nombres duplicados en cercado** — hay dos configuraciones activas llamadas igual (“Cerco Olimpico 2.4 alto - Estandar”) con precios distintos ($49.410 vs $60.068 por metro). El asistente las muestra con precio para poder elegir, pero conviene renombrarlas o dar de baja la que no se use.
 - [x] **Auditoría de flujo completo (2026-08-08)** — 12 casos de consulta + conversación multi-turno + camino de escritura contra OpenRouter real. Cinco bugs encontrados y corregidos (header no-ASCII que rompía todas las llamadas, búsquedas que fallaban con tildes, stock informado como dato real, invención de configuraciones inexistentes, y falta de aviso al modelo tras confirmar). Detalle en [`ASISTENTE_IA.md`](ASISTENTE_IA.md).
 - [ ] **Stock desactualizado** — 58 de 67 artículos tienen `stock_actual = 0` porque no se carga en el día a día. El asistente ya no lo informa como dato real, pero si el negocio quiere usar stock, hay que cargarlo y revisar el módulo.
