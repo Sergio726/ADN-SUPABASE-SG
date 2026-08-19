@@ -21,6 +21,7 @@ import {
   esAccion,
   AccionInvalida,
 } from '@/lib/ai/acciones'
+import { crearAlmacenPropuestasSupabase, crearPropuesta, firmarPropuesta } from '@/lib/ai/propuestas'
 
 // Tope de vueltas del loop: evita que un modelo en bucle dispare consultas sin fin
 const MAX_ITERACIONES = 5
@@ -97,10 +98,23 @@ export async function POST(request: NextRequest) {
         if (esAccion(call.function.name)) {
           try {
             const propuesta = await prepararAccion(supabase, call.function.name, argumentos)
+            const secreto = process.env.ASISTENTE_ACCIONES_SECRET || process.env.OPENROUTER_API_KEY
+            if (!secreto) throw new Error('Falta configurar el secreto para confirmar acciones del asistente.')
+            const propuestaPendiente = await crearPropuesta(
+              crearAlmacenPropuestasSupabase(supabase),
+              session.user.id,
+              propuesta.accion,
+              propuesta.datos
+            )
+            const { datos: _datos, ...propuestaVisible } = propuesta
+
             return NextResponse.json({
               respuesta:
                 typeof mensaje.content === 'string' && mensaje.content ? mensaje.content : '',
-              propuesta,
+              propuesta: {
+                ...propuestaVisible,
+                propuesta_token: firmarPropuesta(propuestaPendiente, secreto),
+              },
               herramientas_usadas: herramientasUsadas,
               modelo,
             })

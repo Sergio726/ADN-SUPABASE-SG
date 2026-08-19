@@ -132,6 +132,8 @@ POST /api/asistente/ejecutar → ejecutarAccion() escribe
 
 **La regla que sostiene todo esto: los importes nunca vienen del cliente.** En el paso de ejecución se vuelve a leer el precio de la base y se recalcula el total, así que aunque alguien manipule el pedido de confirmación, lo que queda guardado es lo que corresponde. Del cliente solo viajan referencias: ids, metros y textos.
 
+**La confirmación también queda atada a la propuesta.** El servidor guarda una propuesta que vence a los 15 minutos y entrega al navegador solo un token firmado. Al confirmar, valida firma, usuario, vencimiento y consumo único; no acepta `accion` ni `datos` enviados por el browser. `ASISTENTE_ACCIONES_SECRET` es el secreto recomendado para firmar; si no está definido, se usa `OPENROUTER_API_KEY` como compatibilidad transitoria.
+
 Otras protecciones:
 
 - Los presupuestos quedan **siempre en borrador**, nunca en "enviado".

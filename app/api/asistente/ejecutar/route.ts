@@ -13,6 +13,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { ejecutarAccion, esAccion, AccionInvalida } from '@/lib/ai/acciones'
+import {
+  confirmarPropuesta,
+  crearAlmacenPropuestasSupabase,
+  PropuestaInvalida,
+  verificarPropuestaFirmada,
+} from '@/lib/ai/propuestas'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,19 +33,40 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const accion = String(body?.accion || '')
-
-    if (!esAccion(accion)) {
-      return NextResponse.json({ error: 'Acción no reconocida.' }, { status: 400 })
+    const secreto = process.env.ASISTENTE_ACCIONES_SECRET || process.env.OPENROUTER_API_KEY
+    if (!secreto) {
+      return NextResponse.json({ error: 'No está configurado el secreto para confirmar acciones.' }, { status: 503 })
     }
 
-    const resultado = await ejecutarAccion(supabase, accion, body?.datos || {}, session.user.id)
+    const propuestaFirmada = verificarPropuestaFirmada(body?.propuesta_token, secreto)
+    if (propuestaFirmada.usuario_id !== session.user.id) {
+      return NextResponse.json({ error: 'La propuesta no pertenece a tu sesión.' }, { status: 403 })
+    }
+    const propuesta = await confirmarPropuesta(
+      crearAlmacenPropuestasSupabase(supabase),
+      propuestaFirmada.id,
+      session.user.id
+    )
+    if (!esAccion(propuesta.accion) || propuesta.accion !== propuestaFirmada.accion) {
+      return NextResponse.json({ error: 'La propuesta no es válida.' }, { status: 400 })
+    }
+
+    const resultado = await ejecutarAccion(
+      supabase,
+      propuestaFirmada.accion,
+      propuestaFirmada.datos,
+      session.user.id
+    )
 
     return NextResponse.json(resultado)
   } catch (error: any) {
     console.error('[asistente/ejecutar] Error:', error)
 
     if (error instanceof AccionInvalida) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    if (error instanceof PropuestaInvalida) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 

@@ -26,7 +26,7 @@ interface PropuestaAccion {
   titulo: string
   detalle: Array<{ campo: string; valor: string }>
   advertencias?: string[]
-  datos: Record<string, any>
+  propuesta_token: string
 }
 
 type PartePendiente =
@@ -135,7 +135,7 @@ export function AsistenteWidget() {
       const respuesta = await fetch('/api/asistente/ejecutar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: propuesta.accion, datos: propuesta.datos }),
+        body: JSON.stringify({ propuesta_token: propuesta.propuesta_token }),
       })
 
       const datos = await respuesta.json()
