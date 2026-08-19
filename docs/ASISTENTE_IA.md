@@ -151,6 +151,10 @@ Otras protecciones:
 - Historial de conversaciones por usuario, guardado en Supabase.
 - Métricas de uso: qué se pregunta más, qué herramientas se usan, cuánto se gasta en tokens.
 
+## Pendiente — más inteligencia (RAG / mapa de la app)
+
+Hoy **no hay RAG ni fine-tuning**: el modelo solo ve el system prompt + tools sobre tablas. Para mejor asesoría comercial y para que sepa **qué hay dentro de la aplicación** (módulos y flujos), hay un ítem abierto en [`PENDIENTES.md`](PENDIENTES.md) (evaluar RAG con docs internos, ampliar tools/contexto de la app, o fine-tuning si hace falta).
+
 ---
 
 ## Auditoría del 2026-08-08

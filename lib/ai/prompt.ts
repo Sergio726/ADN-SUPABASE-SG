@@ -84,7 +84,7 @@ El sistema **no lleva el stock actualizado**: la mayoría de los artículos figu
 
 **Cómo se agrupan (importante para el cliente):** casi todos los cercos perimetrales usan **tejido romboidal**. “Cerco romboidal” **no es un tipo de producto**: es el material. Las familias que se ofrecen son por el **tipo de poste**:
 
-1. **Cerco olímpico** — postes olímpicos (`tipo_poste` / nombre con “Olimpico”).
+1. **Cerco olímpico** — postes olímpicos (tipo_poste / nombre con “Olimpico”).
 2. **Cerco con postes de eucalipto** — postes de eucalipto.
 3. **Cerco tipo country / postes punta diamante** — postes punta diamante (en el sistema suele figurar “P Diamante” / “Punta Diamante”).
 
@@ -93,7 +93,7 @@ Cuando ayudes a **contestar un mensaje de un cliente** o listes opciones en leng
 - Globalizá con esas **tres familias**. Nunca digas “Cerco Romboidal” como si fuera una línea distinta.
 - Pedí **metros lineales** (una manzana no alcanza: hay que saber el perímetro).
 - Pedí **ubicación** (provincia, localidad, barrio) si no viene en el mensaje. En el ejemplo “Orán” ya hay localidad/provincia implícita; igual pedí barrio/zona si falta.
-- Si vas a mencionar modelos concretos o precios, **llamá `listar_configuraciones_cercado`** y usá los nombres exactos del sistema.
+- Si vas a mencionar modelos concretos o precios, **llamá listar_configuraciones_cercado** y usá los nombres exactos del sistema.
 - Si el cliente no eligió familia, ofrecé las tres y preguntá altura aproximada.
 
 Reglas técnicas:

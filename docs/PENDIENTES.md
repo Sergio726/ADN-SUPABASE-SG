@@ -35,6 +35,10 @@ Roadmap / ideas (no checklist operativo): [`../app/files/IDEAS_MEJORA.md`](../ap
 
 Prioridad alta / trabajo activo. Lo demás del roadmap no se copia acá hasta que se ponga en marcha.
 
+### Precios
+
+- [x] **Actualización masiva** — `/dashboard/precios/masivo` (solo admin): alcance artículos / postes / tejidos / cercados / todos; selección por ítem o categoría; % sobre costo conservando el margen; tejidos fabricados solo vía alambre; recálculo de cercados activos. Lista nueva de Marcelo queda para un segundo paso.
+
 ### Analytics y comercial
 
 - [x] **Completar dashboard de conversión de presupuestos** — `/dashboard/ventas`: tasa vs decididos y vs enviados, pipeline, por vendedor/tipo/forma de pago, tendencia 12 meses, filtros de período, export Excel/CSV.
@@ -72,6 +76,7 @@ Requiere `OPENROUTER_API_KEY` en `.env.local` y en Vercel — **key de servidor,
 - [x] **Fase 3 — Acciones** — crear presupuestos en estado **borrador** desde la conversación, alta de clientes y tareas. Cada acción de escritura tiene que pedir confirmación explícita antes de ejecutarse. El modelo propone, el vendedor confirma en una tarjeta y recién ahí escribe `/api/asistente/ejecutar`; los importes se recalculan en el servidor, nunca llegan del cliente.
 - [ ] **Recargo de terrenos < 50 m: definir cuál vale** — existe `precio_por_metro_menor_50m` (recargo ~50%) pero el wizard de presupuestos **no lo usa**: arma el presupuesto con el precio normal. El asistente sigue al wizard e informa aparte el precio con recargo. Hay que decidir si el recargo se aplica (y corregir el wizard) o si la columna quedó sin uso. **Decisión de negocio.**
 - [ ] **Fase 4 — Contexto y memoria** — que sepa en qué pantalla está el vendedor, historial de conversaciones en Supabase y métricas de uso/costo de tokens.
+- [ ] **Hacer el asistente más inteligente (RAG / knowledge de la app)** — hoy **no hay RAG** ni fine-tuning: solo system prompt (`lib/ai/prompt.ts`) + tool calling a Supabase. Falta que pueda asesorar mejor (criterios comerciales, objeciones, qué preguntar) y **saber qué hay dentro de la aplicación** (módulos, pantallas, flujos: presupuestos, tejidos, clientes, etc.). Evaluar: (1) RAG con docs internos (`ASISTENTE_IA.md`, HANDOFF, manuales cortos de uso del ERP) + embeddings en Supabase/pgvector u otro store; (2) ampliar tools / mapa de la app inyectado en contexto; (3) fine-tuning solo si RAG + prompt no alcanza. **Decisión de diseño pendiente antes de implementar.**
 - [ ] **Nombres duplicados en cercado** — hay dos configuraciones activas llamadas igual (“Cerco Olimpico 2.4 alto - Estandar”) con precios distintos ($49.410 vs $60.068 por metro). El asistente las muestra con precio para poder elegir, pero conviene renombrarlas o dar de baja la que no se use.
 - [x] **Auditoría de flujo completo (2026-08-08)** — 12 casos de consulta + conversación multi-turno + camino de escritura contra OpenRouter real. Cinco bugs encontrados y corregidos (header no-ASCII que rompía todas las llamadas, búsquedas que fallaban con tildes, stock informado como dato real, invención de configuraciones inexistentes, y falta de aviso al modelo tras confirmar). Detalle en [`ASISTENTE_IA.md`](ASISTENTE_IA.md).
 - [ ] **Stock desactualizado** — 58 de 67 artículos tienen `stock_actual = 0` porque no se carga en el día a día. El asistente ya no lo informa como dato real, pero si el negocio quiere usar stock, hay que cargarlo y revisar el módulo.
